@@ -20,8 +20,8 @@ Product analysis → Marketing strategy → Post draft generation → Reaction t
 ```
 /
 ├── apps/
-│   ├── backend/     # NestJS API
-│   └── frontend/    # Next.js
+│   ├── backend/     # NestJS API (port 3000)
+│   └── frontend/    # Next.js (port 3001)
 ├── CLAUDE.md
 └── .claude/
 ```
@@ -30,21 +30,33 @@ Product analysis → Marketing strategy → Post draft generation → Reaction t
 
 ```bash
 # Backend (apps/backend/)
-npm run start:dev    # Dev server (localhost:3000)
-npm run test         # Run tests
-npm run test:watch   # Test watch mode
-npm run lint         # ESLint
-npm run build        # Production build
+pnpm start:dev       # Dev server (localhost:3000)
+pnpm test            # Run tests
+pnpm test:watch      # Test watch mode
+pnpm lint            # ESLint
+pnpm build           # Production build
 
 # Frontend (apps/frontend/)
-npm run dev          # Dev server (localhost:3001)
-npm run build        # Production build
-npm run lint         # ESLint
+pnpm dev             # Dev server (localhost:3001) — Turbopack
+pnpm build           # Production build
+pnpm lint            # ESLint
+
+# Root (workspace)
+pnpm dev:backend     # Start backend
+pnpm dev:frontend    # Start frontend
 
 # Docker (local development)
-docker-compose up -d  # Run PostgreSQL + backend
-docker-compose down   # Stop
+docker compose up -d postgres   # PostgreSQL only (port 5432)
+docker compose down             # Stop
 ```
+
+## Local Dev Setup
+
+- **Package manager**: pnpm 10 (workspaces)
+- **Backend build**: SWC (`nest-cli.json` builder: swc)
+- **Frontend build**: Turbopack (`next dev --turbopack`)
+- **DB port**: 5432 — Docker container only (local postgresql@14 disabled)
+- **Prisma**: run `npx prisma generate` after schema changes
 
 ## Coding Conventions
 
@@ -68,18 +80,3 @@ docker-compose down   # Stop
 - Never commit `.env` files
 - When adding a new env var, also add it to `.env.example`
 - Never hardcode secrets in code
-
-## Current Version
-
-**v0.1** — NestJS project setup + Docker local dev environment
-
-## Version Roadmap
-
-- v0.1: NestJS setup + Docker + Prisma + DB connection
-- v0.3: Product registration + Claude API analysis
-- v0.4: Next.js frontend integration
-- v0.5: AWS deployment (EC2 + RDS + CI/CD)
-- v0.6: Marketing strategy + draft generation
-- v0.7: Passport.js + JWT auth
-- v0.8: X OAuth + tracking dashboard
-- v0.9: Stripe payments
