@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { getProducts } from '@/lib/api';
-import ProductCard from '@/components/product/ProductCard';
+import { getProducts } from '@/features/product/api-client';
 import type { Product } from '@/lib/types';
+import Header from '@/components/layout/Header';
+import ProductCard from '@/features/product/components/ProductCard';
 
 export default async function HomePage() {
   let products: Product[] = [];
@@ -15,27 +16,7 @@ export default async function HomePage() {
 
   return (
     <div className='min-h-screen bg-gray-50'>
-      <header className='bg-white border-b border-gray-200'>
-        <div className='max-w-5xl mx-auto px-6 py-4 flex items-center justify-between'>
-          <h1 className='text-lg font-bold text-gray-900'>
-            <span className='text-indigo-600'>Varogo</span>
-          </h1>
-          <Link
-            href='/products/new'
-            className='inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors'
-          >
-            <svg
-              className='w-4 h-4'
-              fill='none'
-              stroke='currentColor'
-              viewBox='0 0 24 24'
-            >
-              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 4v16m8-8H4' />
-            </svg>
-            새 제품 등록
-          </Link>
-        </div>
-      </header>
+      <Header showNewProductButton />
 
       <main className='max-w-5xl mx-auto px-6 py-10'>
         <div className='mb-8'>

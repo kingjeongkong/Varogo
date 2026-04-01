@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProduct, getAnalyses } from '@/lib/api';
+import { getProduct } from '@/features/product/api-client';
+import { getAnalyses } from '@/features/analysis/api-client';
 import type { Analysis } from '@/lib/types';
-import AnalyzeButton from './AnalyzeButton';
-import AnalysisHistory from './AnalysisHistory';
+import { formatDate } from '@/lib/utils';
+import Header from '@/components/layout/Header';
+import AnalyzeSection from '@/features/analysis/components/AnalyzeSection';
+import AnalysisHistory from '@/features/analysis/components/AnalysisHistory';
 
 export default async function ProductDetailPage({
   params,
@@ -19,22 +22,16 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  let analyses: Analysis[] = [];
+  let initialAnalyses: Analysis[] = [];
   try {
-    analyses = await getAnalyses(id);
+    initialAnalyses = await getAnalyses(id);
   } catch {
     // analyses list is non-critical — continue without it
   }
 
   return (
     <div className='min-h-screen bg-gray-50'>
-      <header className='bg-white border-b border-gray-200'>
-        <div className='max-w-5xl mx-auto px-6 py-4 flex items-center justify-between'>
-          <Link href='/' className='text-lg font-bold text-gray-900'>
-            <span className='text-indigo-600'>Varogo</span>
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main className='max-w-3xl mx-auto px-6 py-10'>
         <Link
@@ -79,24 +76,16 @@ export default async function ProductDetailPage({
           <p className='text-sm text-gray-600 leading-relaxed'>{product.description}</p>
 
           <p className='mt-4 text-xs text-gray-400'>
-            등록일:{' '}
-            {new Date(product.createdAt).toLocaleDateString('ko-KR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
+            등록일: {formatDate(product.createdAt)}
           </p>
         </div>
 
         <div>
           <h3 className='text-base font-semibold text-gray-900 mb-4'>AI 마케팅 분석</h3>
-          <AnalyzeButton
-            productId={product.id}
-            initialAnalysis={product.latestAnalysis}
-          />
+          <AnalyzeSection productId={product.id} initialAnalysis={product.latestAnalysis} />
         </div>
 
-        <AnalysisHistory analyses={analyses} />
+        <AnalysisHistory productId={product.id} initialAnalyses={initialAnalyses} />
       </main>
     </div>
   );
