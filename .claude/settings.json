@@ -1,4 +1,8 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "teammateMode": "tmux",
   "hooks": {
     "PostToolUse": [
       {
@@ -7,6 +11,10 @@
           {
             "type": "command",
             "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ \\.(ts|tsx|js|jsx|json|css)$ ]]; then npx prettier --write \"$FILE\" 2>/dev/null || true; fi"
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.ts$ ]]; then npx eslint --fix \"$FILE\" 2>/dev/null || true; fi"
           }
         ]
       }
