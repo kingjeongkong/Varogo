@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Product } from '@/lib/types';
+import { formatDate, truncate } from '@/lib/utils';
 
 interface ProductCardProps {
   product: Product;
@@ -7,16 +8,6 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const analysisCount = product._count?.analyses ?? 0;
-  const truncatedDesc =
-    product.description.length > 120
-      ? product.description.slice(0, 120) + '...'
-      : product.description;
-
-  const formattedDate = new Date(product.createdAt).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
 
   return (
     <Link href={`/products/${product.id}`} className='block group'>
@@ -29,8 +20,10 @@ export default function ProductCard({ product }: ProductCardProps) {
             분석 {analysisCount}회
           </span>
         </div>
-        <p className='text-sm text-gray-500 leading-relaxed mb-4'>{truncatedDesc}</p>
-        <p className='text-xs text-gray-400'>{formattedDate} 등록</p>
+        <p className='text-sm text-gray-500 leading-relaxed mb-4'>
+          {truncate(product.description, 120)}
+        </p>
+        <p className='text-xs text-gray-400'>{formatDate(product.createdAt)} 등록</p>
       </div>
     </Link>
   );

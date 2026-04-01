@@ -1,3 +1,7 @@
+// Backend API response types — shared across features.
+// Types that come from the backend contract belong here.
+// Feature-specific input/form types belong in each feature's types.ts.
+
 export interface Product {
   id: string;
   name: string;
@@ -32,10 +36,4 @@ export interface PlanPhase {
   phase: string;
   goals: string[];
   actions: string[];
-}
-
-export interface CreateProductInput {
-  name: string;
-  url?: string;
-  description: string;
 }

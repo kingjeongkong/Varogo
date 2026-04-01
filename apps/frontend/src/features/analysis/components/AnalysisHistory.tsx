@@ -2,18 +2,20 @@
 
 import { useState } from 'react';
 import type { Analysis } from '@/lib/types';
-import AnalysisResult from '@/components/analysis/AnalysisResult';
+import { formatDateShort } from '@/lib/utils';
+import { useAnalyses } from '../hooks/use-analyses';
+import AnalysisResult from './AnalysisResult';
 
 interface AnalysisHistoryProps {
-  analyses: Analysis[];
+  productId: string;
+  initialAnalyses: Analysis[];
 }
 
-export default function AnalysisHistory({ analyses }: AnalysisHistoryProps) {
+export default function AnalysisHistory({ productId, initialAnalyses }: AnalysisHistoryProps) {
+  const { data: analyses } = useAnalyses(productId, initialAnalyses);
   const [selected, setSelected] = useState<Analysis | null>(null);
 
-  if (analyses.length === 0) {
-    return null;
-  }
+  if (!analyses || analyses.length === 0) return null;
 
   return (
     <div className='mt-10 pt-8 border-t border-gray-200'>
@@ -31,15 +33,7 @@ export default function AnalysisHistory({ analyses }: AnalysisHistoryProps) {
           >
             <div className='flex items-center justify-between'>
               <span className='font-medium'>분석 #{analyses.length - index}</span>
-              <span className='text-xs text-gray-400'>
-                {new Date(analysis.createdAt).toLocaleDateString('ko-KR', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
+              <span className='text-xs text-gray-400'>{formatDateShort(analysis.createdAt)}</span>
             </div>
             {analysis.summary && (
               <p className='mt-0.5 text-xs text-gray-500 truncate'>{analysis.summary}</p>
