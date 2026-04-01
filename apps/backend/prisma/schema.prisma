@@ -6,3 +6,29 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Product {
+  id          String     @id @default(uuid())
+  name        String
+  url         String?
+  description String
+  analyses    Analysis[]
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@map("products")
+}
+
+model Analysis {
+  id             String   @id @default(uuid())
+  productId      String   @map("product_id")
+  summary        String
+  targetAudience String   @map("target_audience")
+  strategies     Json
+  plan           Json
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("analyses")
+}
