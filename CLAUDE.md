@@ -10,7 +10,7 @@ Product analysis → Marketing strategy → Post draft generation → Reaction t
 - **Database**: PostgreSQL → AWS RDS / Local Docker
 - **ORM**: Prisma
 - **Auth**: Passport.js + JWT
-- **AI**: Claude API (Anthropic SDK)
+- **AI**: Gemini API
 - **Payments**: Stripe
 - **CI/CD**: GitHub Actions
 - **Domain**: varo-go.com (Cloudflare)
