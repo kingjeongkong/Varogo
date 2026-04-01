@@ -60,20 +60,13 @@ docker compose down             # Stop
 
 ## Coding Conventions
 
-- **File names**: kebab-case (`auth.service.ts`, `create-product.dto.ts`)
+- **File names**: kebab-case (`auth.service.ts`, `use-create-product.ts`)
+- **Component files**: PascalCase (`ProductCard.tsx`, `Header.tsx`)
 - **Class names**: PascalCase (`AuthService`, `ProductController`)
 - **Variables/functions**: camelCase (`userId`, `createProduct`)
 - **Constants**: UPPER_SNAKE_CASE (`JWT_SECRET`)
 - **Indentation**: 2 spaces
 - **Quotes**: single quote
-
-## NestJS Rules
-
-- Controllers handle routing and request/response only — business logic goes in Services
-- All API responses must follow a consistent shape
-- DTOs must use class-validator decorators
-- Every endpoint must explicitly have AuthGuard or Public decorator
-- Errors must use NestJS built-in HttpException
 
 ## Environment Variables
 
