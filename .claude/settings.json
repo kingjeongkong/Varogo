@@ -4,10 +4,33 @@
   },
   "teammateMode": "tmux",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "COMMAND=$(echo $CLAUDE_TOOL_INPUT | jq -r '.command // empty'); if echo \"$COMMAND\" | grep -q 'git commit'; then cd /Users/wang/Desktop/Varogo/apps/backend && pnpm test:unit --passWithNoTests; fi"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
         "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.spec\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && pnpm test:unit --passWithNoTests 2>&1 | tail -10; fi"
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.integration\\.spec\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && pnpm test:integration 2>&1 | tail -10; fi"
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/frontend/src/.*\\.test\\.tsx?$ ]]; then cd /Users/wang/Desktop/Varogo/apps/frontend && pnpm test 2>&1 | tail -10; fi"
+          },
           {
             "type": "command",
             "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ \\.(ts|tsx|js|jsx|json|css)$ ]]; then npx prettier --write \"$FILE\" 2>/dev/null || true; fi"
