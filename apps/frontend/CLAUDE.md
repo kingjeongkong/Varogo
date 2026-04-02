@@ -15,4 +15,5 @@ See root `CLAUDE.md` for shared conventions, commands, and environment variable 
 - **Feature ownership**: New features go under `features/` with their own `api-client.ts`, `components/`, and `hooks/`
 - **No cross-feature imports**: Features must not import from other features — shared types go to `lib/types.ts`, shared logic to `lib/utils.ts`
 - **Server state vs client state**: API data → TanStack Query. Auth / UI state → Zustand
+- **Zustand stores**: Global stores (auth, UI modals) go in `src/stores/` — NOT inside `features/`. Feature hooks may import from `src/stores/` without violating feature isolation rules.
 - **Client Components**: Must use hooks (`useQuery`/`useMutation`) — never call `api-client` directly
