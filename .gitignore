@@ -10,7 +10,6 @@ out/
 # Environment (시크릿 — 절대 커밋 금지)
 .env
 .env.*
-!.env.example
 
 # Logs & debug
 *.log
@@ -25,6 +24,7 @@ Thumbs.db
 
 # Personal work notes (not for team sharing)
 .claude/TODO.md
+.claude/*-todo.md
 
 # IDE / editor
 .idea/
