@@ -31,6 +31,5 @@ import { REFRESH_TOKEN_REPOSITORY } from './auth.constants';
       useClass: PrismaRefreshTokenRepository,
     },
   ],
-  exports: [JwtAuthGuard],
 })
 export class AuthModule {}
