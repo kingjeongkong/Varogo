@@ -18,32 +18,32 @@ export default function AnalysisHistory({ productId, initialAnalyses }: Analysis
   if (!analyses || analyses.length === 0) return null;
 
   return (
-    <div className='mt-10 pt-8 border-t border-gray-200'>
-      <h3 className='text-base font-semibold text-gray-900 mb-4'>분석 기록</h3>
+    <div className='mt-10 pt-8 border-t border-border'>
+      <h3 className='text-base font-semibold text-text-primary font-heading mb-4'>분석 기록</h3>
       <div className='space-y-2'>
         {analyses.map((analysis, index) => (
           <button
             key={analysis.id}
             onClick={() => setSelected(selected?.id === analysis.id ? null : analysis)}
-            className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ${
+            className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all duration-200 ${
               selected?.id === analysis.id
-                ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                ? 'border-primary/40 bg-primary-dim text-primary'
+                : 'border-border bg-surface text-text-secondary hover:border-border-hover hover:bg-surface-hover'
             }`}
           >
             <div className='flex items-center justify-between'>
-              <span className='font-medium'>분석 #{analyses.length - index}</span>
-              <span className='text-xs text-gray-400'>{formatDateShort(analysis.createdAt)}</span>
+              <span className='font-medium font-heading'>분석 #{analyses.length - index}</span>
+              <span className='text-xs text-text-muted font-mono'>{formatDateShort(analysis.createdAt)}</span>
             </div>
             {analysis.summary && (
-              <p className='mt-0.5 text-xs text-gray-500 truncate'>{analysis.summary}</p>
+              <p className='mt-1 text-xs text-text-muted truncate'>{analysis.summary}</p>
             )}
           </button>
         ))}
       </div>
 
       {selected && (
-        <div className='mt-6'>
+        <div className='mt-6 animate-fade-in'>
           <AnalysisResult analysis={selected} />
         </div>
       )}

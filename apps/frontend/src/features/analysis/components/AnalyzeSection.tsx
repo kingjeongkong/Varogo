@@ -26,12 +26,12 @@ export default function AnalyzeSection({ productId, initialAnalysis }: AnalyzeSe
             analyze();
           }}
           disabled={isPending}
-          className='inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors'
+          className='inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:shadow-[0_0_20px_rgba(14,165,233,0.15)]'
         >
           {isPending ? (
             <>
               <svg
-                className='animate-spin h-4 w-4 text-white'
+                className='animate-spin h-4 w-4'
                 xmlns='http://www.w3.org/2000/svg'
                 fill='none'
                 viewBox='0 0 24 24'
@@ -67,21 +67,21 @@ export default function AnalyzeSection({ productId, initialAnalysis }: AnalyzeSe
           )}
         </button>
         {isPending && (
-          <p className='text-xs text-gray-400'>Claude AI가 마케팅 전략을 생성하고 있습니다...</p>
+          <p className='text-xs text-text-muted'>Claude AI가 마케팅 전략을 생성하고 있습니다...</p>
         )}
       </div>
 
       {error && (
-        <div className='bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm'>
+        <div className='bg-error-dim border border-error/20 text-error rounded-lg px-4 py-3 text-sm'>
           {error.message}
         </div>
       )}
 
       {displayAnalysis && !isPending && (
-        <div>
+        <div className='animate-fade-in'>
           <div className='flex items-center gap-3 mb-4'>
-            <h3 className='text-base font-semibold text-gray-900'>최신 분석 결과</h3>
-            <span className='text-xs text-gray-400'>
+            <h3 className='text-base font-semibold text-text-primary font-heading'>최신 분석 결과</h3>
+            <span className='text-xs text-text-muted font-mono'>
               {formatDateTime(displayAnalysis.createdAt)}
             </span>
           </div>

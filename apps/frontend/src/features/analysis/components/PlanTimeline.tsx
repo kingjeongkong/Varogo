@@ -10,26 +10,26 @@ export default function PlanTimeline({ plan }: PlanTimelineProps) {
       {plan.map((phase, index) => (
         <div key={index} className='flex gap-4'>
           <div className='flex flex-col items-center'>
-            <div className='w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0'>
+            <div className='w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0 font-heading shadow-[0_0_12px_rgba(14,165,233,0.2)]'>
               {index + 1}
             </div>
             {index < plan.length - 1 && (
-              <div className='w-0.5 bg-indigo-200 flex-1 my-1' />
+              <div className='w-px bg-gradient-to-b from-primary/40 to-border flex-1 my-1' />
             )}
           </div>
 
           <div className={`pb-6 flex-1 ${index === plan.length - 1 ? 'pb-0' : ''}`}>
-            <h4 className='text-sm font-semibold text-gray-900 mb-3 mt-1'>{phase.phase}</h4>
+            <h4 className='text-sm font-semibold text-text-primary font-heading mb-3 mt-1'>{phase.phase}</h4>
 
             {phase.goals.length > 0 && (
               <div className='mb-3'>
-                <p className='text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5'>
+                <p className='text-xs font-semibold text-primary uppercase tracking-wider mb-2 font-heading'>
                   목표
                 </p>
-                <ul className='space-y-1'>
+                <ul className='space-y-1.5'>
                   {phase.goals.map((goal, i) => (
-                    <li key={i} className='text-sm text-gray-700 flex items-start gap-2'>
-                      <span className='mt-1 w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0' />
+                    <li key={i} className='text-sm text-text-secondary flex items-start gap-2.5'>
+                      <span className='mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0' />
                       {goal}
                     </li>
                   ))}
@@ -39,13 +39,13 @@ export default function PlanTimeline({ plan }: PlanTimelineProps) {
 
             {phase.actions.length > 0 && (
               <div>
-                <p className='text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5'>
+                <p className='text-xs font-semibold text-primary uppercase tracking-wider mb-2 font-heading'>
                   액션
                 </p>
-                <ul className='space-y-1'>
+                <ul className='space-y-1.5'>
                   {phase.actions.map((action, i) => (
-                    <li key={i} className='text-sm text-gray-700 flex items-start gap-2'>
-                      <span className='mt-0.5 text-indigo-500 shrink-0'>→</span>
+                    <li key={i} className='text-sm text-text-secondary flex items-start gap-2.5'>
+                      <span className='mt-0.5 text-primary shrink-0'>→</span>
                       {action}
                     </li>
                   ))}

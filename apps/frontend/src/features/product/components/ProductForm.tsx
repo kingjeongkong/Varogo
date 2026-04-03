@@ -47,76 +47,76 @@ export default function ProductForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
       {apiError && (
-        <div className='bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm'>
+        <div className='bg-error-dim border border-error/20 text-error rounded-lg px-4 py-3 text-sm'>
           {apiError.message}
         </div>
       )}
 
       <div>
-        <label htmlFor='name' className='block text-sm font-medium text-gray-700 mb-1'>
-          제품명 <span className='text-red-500'>*</span>
+        <label htmlFor='name' className='block text-base font-medium text-text-secondary mb-1.5'>
+          제품명 <span className='text-error'>*</span>
         </label>
         <input
           id='name'
           type='text'
           {...register('name')}
           placeholder='예: Varogo'
-          className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.name ? 'border-red-400' : 'border-gray-300'
+          className={`w-full rounded-lg border bg-surface-elevated px-3 py-2.5 text-base text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors ${
+            errors.name ? 'border-error/50' : 'border-border'
           }`}
         />
-        {errors.name && <p className='mt-1 text-xs text-red-500'>{errors.name.message}</p>}
+        {errors.name && <p className='mt-1.5 text-xs text-error'>{errors.name.message}</p>}
       </div>
 
       <div>
-        <label htmlFor='url' className='block text-sm font-medium text-gray-700 mb-1'>
-          제품 URL <span className='text-gray-400 font-normal'>(선택)</span>
+        <label htmlFor='url' className='block text-base font-medium text-text-secondary mb-1.5'>
+          제품 URL <span className='text-text-muted font-normal'>(선택)</span>
         </label>
         <input
           id='url'
           type='url'
           {...register('url')}
           placeholder='https://example.com'
-          className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.url ? 'border-red-400' : 'border-gray-300'
+          className={`w-full rounded-lg border bg-surface-elevated px-3 py-2.5 text-base text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors ${
+            errors.url ? 'border-error/50' : 'border-border'
           }`}
         />
-        {errors.url && <p className='mt-1 text-xs text-red-500'>{errors.url.message}</p>}
+        {errors.url && <p className='mt-1.5 text-xs text-error'>{errors.url.message}</p>}
       </div>
 
       <div>
-        <label htmlFor='description' className='block text-sm font-medium text-gray-700 mb-1'>
-          제품 설명 <span className='text-red-500'>*</span>
+        <label htmlFor='description' className='block text-base font-medium text-text-secondary mb-1.5'>
+          제품 설명 <span className='text-error'>*</span>
         </label>
         <textarea
           id='description'
           rows={5}
           {...register('description')}
           placeholder='제품의 기능, 타겟 사용자, 해결하는 문제를 설명해주세요.'
-          className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none ${
-            errors.description ? 'border-red-400' : 'border-gray-300'
+          className={`w-full rounded-lg border bg-surface-elevated px-3 py-2.5 text-base text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none transition-colors ${
+            errors.description ? 'border-error/50' : 'border-border'
           }`}
         />
         {errors.description && (
-          <p className='mt-1 text-xs text-red-500'>{errors.description.message}</p>
+          <p className='mt-1.5 text-xs text-error'>{errors.description.message}</p>
         )}
       </div>
 
-      <div className='flex justify-end gap-3'>
+      <div className='flex justify-end gap-3 pt-2'>
         <Link
           href='/'
-          className='px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'
+          className='px-4 py-2.5 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-surface-hover hover:border-border-hover transition-colors'
         >
           취소
         </Link>
         <button
           type='submit'
           disabled={isPending}
-          className='px-5 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center gap-2'
+          className='px-5 py-2.5 text-base font-medium text-white bg-primary rounded-lg hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center gap-2'
         >
           {isPending && (
             <svg
-              className='animate-spin h-4 w-4 text-white'
+              className='animate-spin h-4 w-4'
               xmlns='http://www.w3.org/2000/svg'
               fill='none'
               viewBox='0 0 24 24'

@@ -6,33 +6,33 @@ interface StrategyCardProps {
 
 export default function StrategyCard({ strategy }: StrategyCardProps) {
   return (
-    <div className='bg-white border border-gray-200 rounded-lg overflow-hidden'>
-      <div className='bg-indigo-50 px-5 py-3 border-b border-gray-200'>
+    <div className='glass-card overflow-hidden'>
+      <div className='bg-primary-dim px-5 py-3 border-b border-border'>
         <div className='flex items-center gap-3'>
-          <span className='text-sm font-semibold text-indigo-700'>{strategy.channel}</span>
-          <span className='text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200'>
+          <span className='text-sm font-semibold text-primary font-heading'>{strategy.channel}</span>
+          <span className='text-xs text-text-muted bg-surface px-2.5 py-0.5 rounded-full border border-border'>
             톤: {strategy.tone}
           </span>
         </div>
       </div>
 
-      <div className='p-5 space-y-4'>
+      <div className='p-5 space-y-5'>
         <div>
-          <h4 className='text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5'>
+          <h4 className='text-xs font-semibold text-primary uppercase tracking-wider mb-2 font-heading'>
             전략 내용
           </h4>
-          <p className='text-sm text-gray-700 leading-relaxed'>{strategy.content}</p>
+          <p className='text-sm text-text-secondary leading-relaxed'>{strategy.content}</p>
         </div>
 
         {strategy.tips.length > 0 && (
           <div>
-            <h4 className='text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5'>
+            <h4 className='text-xs font-semibold text-primary uppercase tracking-wider mb-2 font-heading'>
               팁
             </h4>
-            <ul className='space-y-1'>
+            <ul className='space-y-1.5'>
               {strategy.tips.map((tip, i) => (
-                <li key={i} className='flex items-start gap-2 text-sm text-gray-700'>
-                  <span className='mt-0.5 text-green-500 shrink-0'>✓</span>
+                <li key={i} className='flex items-start gap-2.5 text-sm text-text-secondary'>
+                  <span className='mt-0.5 text-success shrink-0'>✓</span>
                   <span>{tip}</span>
                 </li>
               ))}
@@ -42,13 +42,13 @@ export default function StrategyCard({ strategy }: StrategyCardProps) {
 
         {strategy.cautions.length > 0 && (
           <div>
-            <h4 className='text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5'>
+            <h4 className='text-xs font-semibold text-primary uppercase tracking-wider mb-2 font-heading'>
               주의사항
             </h4>
-            <ul className='space-y-1'>
+            <ul className='space-y-1.5'>
               {strategy.cautions.map((caution, i) => (
-                <li key={i} className='flex items-start gap-2 text-sm text-gray-700'>
-                  <span className='mt-0.5 text-amber-500 shrink-0'>!</span>
+                <li key={i} className='flex items-start gap-2.5 text-sm text-text-secondary'>
+                  <span className='mt-0.5 text-warning shrink-0'>!</span>
                   <span>{caution}</span>
                 </li>
               ))}
@@ -58,10 +58,10 @@ export default function StrategyCard({ strategy }: StrategyCardProps) {
 
         {strategy.samplePost && (
           <div>
-            <h4 className='text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5'>
+            <h4 className='text-xs font-semibold text-primary uppercase tracking-wider mb-2 font-heading'>
               샘플 포스트
             </h4>
-            <div className='bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed'>
+            <div className='bg-surface-elevated border border-border rounded-lg p-4 text-sm text-text-secondary whitespace-pre-wrap leading-relaxed font-mono'>
               {strategy.samplePost}
             </div>
           </div>
