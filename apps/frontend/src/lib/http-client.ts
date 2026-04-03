@@ -48,18 +48,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       await refreshPromise;
     } catch {
-      if (typeof window !== 'undefined') window.location.href = '/login';
       throw err;
     }
 
-    // 재시도 — 401만 /login 리다이렉트, 나머지 에러는 호출자에게 전파
-    try {
-      return await baseFetch<T>(url, opts);
-    } catch (retryErr) {
-      if (retryErr instanceof ApiError && retryErr.status === 401) {
-        if (typeof window !== 'undefined') window.location.href = '/login';
-      }
-      throw retryErr;
-    }
+    // 재시도 — 실패 시 호출자에게 전파 (AuthProvider가 에러 처리)
+    return await baseFetch<T>(url, opts);
   }
 }
