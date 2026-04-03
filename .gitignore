@@ -36,6 +36,9 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Playwright MCP (임시 스크린샷/스냅샷)
+.playwright-mcp/
+
 # TypeScript / tooling caches
 *.tsbuildinfo
 .eslintcache
