@@ -10,7 +10,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!request.cookies.has('access_token')) {
+  const hasAccess = request.cookies.has('access_token');
+  const hasRefresh = request.cookies.has('refresh_token');
+
+  if (!hasAccess && !hasRefresh) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

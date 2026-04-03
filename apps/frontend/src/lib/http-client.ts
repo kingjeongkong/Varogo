@@ -40,7 +40,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
         credentials: 'include',
       });
     } catch {
-      window.location.href = '/login';
+      if (typeof window !== 'undefined') window.location.href = '/login';
       throw err;
     }
 
@@ -48,7 +48,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       return await baseFetch<T>(url, opts);
     } catch (retryErr) {
-      window.location.href = '/login';
+      if (typeof window !== 'undefined') window.location.href = '/login';
       throw retryErr;
     }
   }

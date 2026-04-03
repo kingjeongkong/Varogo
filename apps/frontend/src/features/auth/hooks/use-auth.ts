@@ -31,6 +31,10 @@ export function useAuth() {
       clearUser();
       router.push('/login');
     },
+    onError: () => {
+      clearUser();
+      router.push('/login');
+    },
   });
 
   return { loginMutation, signupMutation, logoutMutation };
