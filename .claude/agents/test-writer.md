@@ -1,6 +1,6 @@
 ---
 name: test-writer
-description: Writes unit and integration tests for NestJS services/controllers, and component tests for React form components. Invoke after completing a NestJS service/controller or a React form component. Do NOT invoke for DTO classes, Prisma schema changes, config files, or decorators — those do not need direct tests.
+description: Writes unit and integration tests for NestJS services/controllers, and tests for React Client Components with logic (forms, custom hooks, conditional rendering). Do NOT invoke for DTOs, Prisma schema changes, config files, decorators, or simple UI components that only render props.
 tools: Read, Grep, Glob, Write
 ---
 
@@ -214,15 +214,27 @@ describe('LoginForm', () => {
 ```
 
 **What to test in frontend:**
-- Form validation errors (missing fields, invalid formats, min length)
-- Loading/disabled states during mutation
+
+*Form components:*
+- Validation errors (missing fields, invalid formats, min length)
+- Loading/disabled states during mutation (`isPending`)
 - Error messages rendered from API failures
-- Conditional rendering based on auth state (isLoading skeleton, logged-in vs out)
+
+*Custom hooks (`use-*.ts`):*
+- `useMutation` wrappers: `onSuccess` / `onError` callbacks fire correctly, query invalidation happens
+- `useQuery` wrappers: data transformation logic, `enabled` flag behavior
+
+*Components with conditional rendering:*
+- Auth state branches (skeleton while loading, redirect when unauthenticated)
+- Empty state vs populated state
+- Different UI paths based on props or fetched data
 
 **What NOT to test:**
 - TanStack Query internals or cache behavior
 - Next.js routing or navigation
 - CSS/Tailwind styling
+- Simple UI components that only receive props and render them (Button, Card, layout components)
+- Thin Next.js page files that only compose components
 
 ---
 

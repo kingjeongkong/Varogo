@@ -73,3 +73,7 @@ docker compose down             # Stop
 - Never commit `.env` files
 - When adding a new env var, also add it to `.env.example`
 - Never hardcode secrets in code
+
+## Agent Workflow
+
+See `.claude/WORKFLOW.md` for agent delegation rules.
