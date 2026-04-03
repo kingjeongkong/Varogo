@@ -23,12 +23,12 @@ export class ProductController {
   }
 
   @Get()
-  findAll() {
-    return this.productService.findAll();
+  findAll(@CurrentUser() user: JwtPayload) {
+    return this.productService.findAll(user.sub);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.productService.findOne(id, user.sub);
   }
 }

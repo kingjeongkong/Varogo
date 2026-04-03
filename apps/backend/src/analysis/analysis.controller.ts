@@ -7,6 +7,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AnalysisService } from './analysis.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { JwtPayload } from '../auth/types/jwt-payload';
 
 @Controller('products')
 export class AnalysisController {
@@ -14,12 +16,12 @@ export class AnalysisController {
 
   @Post(':id/analyze')
   @HttpCode(HttpStatus.CREATED)
-  analyze(@Param('id') id: string) {
-    return this.analysisService.create(id);
+  analyze(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.analysisService.create(id, user.sub);
   }
 
   @Get(':id/analyses')
-  findAll(@Param('id') id: string) {
-    return this.analysisService.findByProduct(id);
+  findAll(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.analysisService.findByProduct(id, user.sub);
   }
 }

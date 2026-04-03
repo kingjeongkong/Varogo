@@ -9,9 +9,9 @@ export class AnalysisService {
     private readonly geminiService: GeminiService,
   ) {}
 
-  async create(productId: string) {
+  async create(productId: string, userId: string) {
     const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+      where: { id: productId, userId },
     });
 
     if (!product) {
@@ -37,9 +37,9 @@ export class AnalysisService {
     return analysis;
   }
 
-  async findByProduct(productId: string) {
+  async findByProduct(productId: string, userId: string) {
     const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+      where: { id: productId, userId },
     });
 
     if (!product) {

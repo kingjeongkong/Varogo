@@ -18,8 +18,9 @@ export class ProductService {
     return product;
   }
 
-  async findAll() {
+  async findAll(userId: string) {
     const products = await this.prisma.product.findMany({
+      where: { userId },
       select: {
         id: true,
         name: true,
@@ -35,9 +36,9 @@ export class ProductService {
     return products;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string) {
     const product = await this.prisma.product.findUnique({
-      where: { id },
+      where: { id, userId },
       select: {
         id: true,
         name: true,
