@@ -21,6 +21,11 @@ After the test-writer agent writes test files, hooks will automatically run the 
 
 Use `/code-review` plugin when you want a review. No automatic invocation — request it when needed.
 
+## Code review scope
+
+- Always review frontend + backend together after a feature is complete
+- Verify agent output against actual files before accepting changes
+
 ## Playwright
 
 Only write E2E tests when explicitly requested by the user.
