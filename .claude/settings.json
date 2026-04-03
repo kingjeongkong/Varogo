@@ -11,6 +11,10 @@
           {
             "type": "command",
             "command": "COMMAND=$(echo $CLAUDE_TOOL_INPUT | jq -r '.command // empty'); if echo \"$COMMAND\" | grep -q 'git commit'; then cd /Users/wang/Desktop/Varogo/apps/backend && pnpm test:unit --passWithNoTests; fi"
+          },
+          {
+            "type": "command",
+            "command": "COMMAND=$(echo $CLAUDE_TOOL_INPUT | jq -r '.command // empty'); if echo \"$COMMAND\" | grep -q 'git commit'; then cd /Users/wang/Desktop/Varogo/apps/backend && ERRORS=$(npx tsc --noEmit 2>&1 | grep -E 'error TS' | head -20); if [ -n \"$ERRORS\" ]; then echo \"[tsc] TypeScript errors:\"; echo \"$ERRORS\"; exit 2; fi; fi"
           }
         ]
       }
@@ -34,10 +38,6 @@
           {
             "type": "command",
             "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && npx eslint --fix \"$FILE\" 2>&1; ERRORS=$(npx eslint \"$FILE\" 2>&1); RC=$?; if [ $RC -ne 0 ]; then echo \"[eslint] $FILE\"; echo \"$ERRORS\"; exit 2; fi; fi"
-          },
-          {
-            "type": "command",
-            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && ERRORS=$(npx tsc --noEmit 2>&1 | grep -E 'error TS' | head -20); if [ -n \"$ERRORS\" ]; then echo \"[tsc] TypeScript errors:\"; echo \"$ERRORS\"; exit 2; fi; fi"
           }
         ]
       }

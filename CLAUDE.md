@@ -76,4 +76,4 @@ docker compose down             # Stop
 
 ## Agent Workflow
 
-See `.claude/WORKFLOW.md` for agent delegation rules.
+See `.claude/WORKFLOW.md` for test-writer invocation rules.

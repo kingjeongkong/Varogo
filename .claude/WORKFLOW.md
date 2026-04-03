@@ -1,25 +1,5 @@
 # Agent Workflow
 
-These rules are mandatory. Follow them without being asked.
-
-## Execution Order
-
-architect (if needed) → implementation → test-writer → code-reviewer
-
----
-
-## Architect — invoke BEFORE starting work when ANY of these are true:
-
-- The change touches 3+ layers (e.g., Prisma schema + service + controller + frontend)
-- Prisma schema changes are involved
-- A new NestJS module is being created
-- Cross-module dependencies need to be designed
-- The change spans 2+ files across different layers (schema ↔ service ↔ controller ↔ frontend)
-
-**Skip for:** single-file bug fixes, adding a field to an existing DTO, config changes, copy/style edits.
-
----
-
 ## test-writer — invoke AFTER completing:
 
 **Backend**
@@ -31,20 +11,16 @@ architect (if needed) → implementation → test-writer → code-reviewer
 - Custom hooks with logic (`use-*.ts`) — mutation wrappers, query wrappers with data transforms
 - Components with conditional rendering based on state or auth
 
-**Skip for:** DTOs, Prisma schema changes, config files, decorators, simple UI components that only receive props and render them (Button, Card, layout components, thin Next.js page files).
+**Skip for:** DTOs, Prisma schema changes, config files, decorators, simple UI components that only render props.
 
 After the test-writer agent writes test files, hooks will automatically run the tests.
 
 ---
 
-## code-reviewer — invoke AFTER a logical unit of work is complete:
+## Code review & architecture
 
-- Run immediately after test-writer finishes
-- If no tests were needed, run after the last file in a self-contained change is written
+Use `/code-review` plugin when you want a review. No automatic invocation — request it when needed.
 
-A "logical unit" means one of:
-- All files for a single Step (e.g., Step 4 in a todo file) are done
-- A feature is functional end-to-end (even if partially)
-- You are about to move on to a clearly different concern
+## Playwright
 
-Do NOT invoke after every single file edit. Wait for the group to finish.
+Only write E2E tests when explicitly requested by the user.
