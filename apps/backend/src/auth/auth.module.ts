@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
@@ -31,10 +30,7 @@ import { REFRESH_TOKEN_REPOSITORY } from './auth.constants';
       provide: REFRESH_TOKEN_REPOSITORY,
       useClass: PrismaRefreshTokenRepository,
     },
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
   ],
+  exports: [JwtAuthGuard],
 })
 export class AuthModule {}

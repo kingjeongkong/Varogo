@@ -25,10 +25,11 @@ export class PrismaRefreshTokenRepository implements IRefreshTokenRepository {
   ): Promise<{ token: string; userId: string } | null> {
     const tokenHash = this.hash(rawToken);
     return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.refreshToken.findFirst({
-        where: { tokenHash, revokedAt: null },
+      const existing = await tx.refreshToken.findUnique({
+        where: { tokenHash },
       });
-      if (!existing || existing.expiresAt < new Date()) return null;
+      if (!existing || existing.revokedAt || existing.expiresAt < new Date())
+        return null;
 
       await tx.refreshToken.update({
         where: { id: existing.id },
@@ -48,10 +49,10 @@ export class PrismaRefreshTokenRepository implements IRefreshTokenRepository {
   }
 
   async verify(rawToken: string): Promise<{ userId: string } | null> {
-    const token = await this.prisma.refreshToken.findFirst({
-      where: { tokenHash: this.hash(rawToken), revokedAt: null },
+    const token = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash: this.hash(rawToken) },
     });
-    if (!token || token.expiresAt < new Date()) return null;
+    if (!token || token.revokedAt || token.expiresAt < new Date()) return null;
     return { userId: token.userId };
   }
 
