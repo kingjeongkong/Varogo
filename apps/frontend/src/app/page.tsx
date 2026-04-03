@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getProducts } from '@/features/product/api-client';
+import { getProducts } from '@/features/product/server-api-client';
 import type { Product } from '@/lib/types';
 import Header from '@/components/layout/Header';
 import ProductCard from '@/features/product/components/ProductCard';

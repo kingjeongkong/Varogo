@@ -1,7 +1,6 @@
-import { cookies } from 'next/headers';
 import { API_BASE_URL } from './constants';
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
@@ -10,7 +9,7 @@ class ApiError extends Error {
   }
 }
 
-async function _baseFetch<T>(url: string, options: RequestInit): Promise<T> {
+export async function baseFetch<T>(url: string, options: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -30,13 +29,13 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const opts: RequestInit = { ...options, credentials: 'include' };
 
   try {
-    return await _baseFetch<T>(url, opts);
+    return await baseFetch<T>(url, opts);
   } catch (err) {
     if (!(err instanceof ApiError) || err.status !== 401) throw err;
 
     // 401 → refresh 시도
     try {
-      await _baseFetch<void>(`${API_BASE_URL}/auth/refresh`, {
+      await baseFetch<void>(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -47,26 +46,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
     // 재시도 — 실패 시 /login
     try {
-      return await _baseFetch<T>(url, opts);
+      return await baseFetch<T>(url, opts);
     } catch (retryErr) {
       window.location.href = '/login';
       throw retryErr;
     }
   }
-}
-
-export async function serverFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join('; ');
-
-  return _baseFetch<T>(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      ...(cookieHeader && { Cookie: cookieHeader }),
-      ...options.headers,
-    },
-  });
 }

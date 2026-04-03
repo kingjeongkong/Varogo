@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/use-auth';
 const schema = z.object({
   email: z.string().email('유효한 이메일을 입력해주세요'),
   password: z.string().min(8, '비밀번호는 8자 이상이어야 합니다'),
-  name: z.string().min(1).optional(),
+  name: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;

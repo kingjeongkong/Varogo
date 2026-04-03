@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProduct } from '@/features/product/api-client';
-import { getAnalyses } from '@/features/analysis/api-client';
+import { getProduct } from '@/features/product/server-api-client';
+import { getAnalyses } from '@/features/analysis/server-api-client';
 import type { Analysis } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import Header from '@/components/layout/Header';
