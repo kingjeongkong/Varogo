@@ -67,12 +67,14 @@ describe('AuthService', () => {
     });
 
     it('creates a user and returns tokens when email is new', async () => {
+      const createdAt = new Date();
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.user.create.mockResolvedValue({
         id: 'user-1',
         email: 'new@example.com',
         name: 'Test User',
-        passwordHash: 'hashed',
+        avatarUrl: null,
+        createdAt,
       });
       mockJwtService.sign.mockReturnValue('access-token');
       mockConfigService.get.mockReturnValue('7');
@@ -88,6 +90,8 @@ describe('AuthService', () => {
         id: 'user-1',
         email: 'new@example.com',
         name: 'Test User',
+        avatarUrl: null,
+        createdAt,
       });
       expect(result.tokens.accessToken).toBe('access-token');
       expect(result.tokens.refreshToken).toBe('refresh-token');
@@ -98,6 +102,7 @@ describe('AuthService', () => {
             email: 'new@example.com',
             name: 'Test User',
           }),
+          select: { id: true, email: true, name: true, avatarUrl: true, createdAt: true },
         }),
       );
     });
@@ -108,7 +113,8 @@ describe('AuthService', () => {
         id: 'user-1',
         email: 'new@example.com',
         name: null,
-        passwordHash: 'hashed',
+        avatarUrl: null,
+        createdAt: new Date(),
       });
       mockJwtService.sign.mockReturnValue('access-token');
       mockConfigService.get.mockReturnValue('7');
@@ -162,10 +168,13 @@ describe('AuthService', () => {
 
     it('returns user and tokens on valid credentials', async () => {
       const passwordHash = await bcrypt.hash('password123', 10);
+      const createdAt = new Date();
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-1',
         email: 'test@example.com',
         name: 'Test User',
+        avatarUrl: null,
+        createdAt,
         passwordHash,
       });
       mockJwtService.sign.mockReturnValue('access-token');
@@ -181,6 +190,8 @@ describe('AuthService', () => {
         id: 'user-1',
         email: 'test@example.com',
         name: 'Test User',
+        avatarUrl: null,
+        createdAt,
       });
       expect(result.tokens.accessToken).toBe('access-token');
       expect(result.tokens.refreshToken).toBe('refresh-token');

@@ -34,11 +34,7 @@ const defaultLogoutMutation = {
 describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseAuth.mockReturnValue({
-      loginMutation: { mutate: vi.fn(), isPending: false, error: null },
-      signupMutation: { mutate: vi.fn(), isPending: false, error: null },
-      logoutMutation: { ...defaultLogoutMutation },
-    });
+    mockUseAuth.mockReturnValue({ logoutMutation: { ...defaultLogoutMutation } });
   });
 
   describe('loading state (isLoading: true)', () => {
@@ -88,21 +84,13 @@ describe('Header', () => {
     });
 
     it('disables the logout button while logout is pending', () => {
-      mockUseAuth.mockReturnValue({
-        loginMutation: { mutate: vi.fn(), isPending: false, error: null },
-        signupMutation: { mutate: vi.fn(), isPending: false, error: null },
-        logoutMutation: { mutate: mockLogoutMutate, isPending: true, error: null },
-      });
+      mockUseAuth.mockReturnValue({ logoutMutation: { mutate: mockLogoutMutate, isPending: true, error: null } });
       render(<Header />);
       expect(screen.getByRole('button', { name: /로그아웃 중/i })).toBeDisabled();
     });
 
     it('shows loading text on logout button while pending', () => {
-      mockUseAuth.mockReturnValue({
-        loginMutation: { mutate: vi.fn(), isPending: false, error: null },
-        signupMutation: { mutate: vi.fn(), isPending: false, error: null },
-        logoutMutation: { mutate: mockLogoutMutate, isPending: true, error: null },
-      });
+      mockUseAuth.mockReturnValue({ logoutMutation: { mutate: mockLogoutMutate, isPending: true, error: null } });
       render(<Header />);
       expect(screen.getByRole('button', { name: /로그아웃 중/i })).toBeInTheDocument();
     });

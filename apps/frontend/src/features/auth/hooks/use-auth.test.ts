@@ -31,6 +31,7 @@ vi.mock('../api-client', () => ({
 type MutationOptions = {
   mutationFn: (...args: unknown[]) => Promise<unknown>;
   onSuccess?: (data: unknown) => void;
+  onError?: () => void;
 };
 
 const capturedMutations: MutationOptions[] = [];
@@ -133,6 +134,18 @@ describe('useAuth', () => {
       const logoutOptions = capturedMutations[2];
       await act(async () => {
         logoutOptions.onSuccess?.(undefined);
+      });
+
+      expect(mockClearUser).toHaveBeenCalled();
+      expect(mockPush).toHaveBeenCalledWith('/login');
+    });
+
+    it('calls clearUser and navigates to "/login" on error', async () => {
+      renderHook(() => useAuth());
+
+      const logoutOptions = capturedMutations[2];
+      await act(async () => {
+        logoutOptions.onError?.();
       });
 
       expect(mockClearUser).toHaveBeenCalled();
