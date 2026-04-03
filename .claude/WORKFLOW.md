@@ -37,7 +37,14 @@ After the test-writer agent writes test files, hooks will automatically run the 
 
 ---
 
-## code-reviewer — invoke AFTER completing any feature:
+## code-reviewer — invoke AFTER a logical unit of work is complete:
 
-- Run after test-writer finishes (or after implementation if no tests are needed)
-- Applies to backend-only, frontend-only, and full-stack changes
+- Run immediately after test-writer finishes
+- If no tests were needed, run after the last file in a self-contained change is written
+
+A "logical unit" means one of:
+- All files for a single Step (e.g., Step 4 in a todo file) are done
+- A feature is functional end-to-end (even if partially)
+- You are about to move on to a clearly different concern
+
+Do NOT invoke after every single file edit. Wait for the group to finish.
