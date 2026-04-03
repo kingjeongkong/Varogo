@@ -1,16 +1,21 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Sora, Outfit, JetBrains_Mono } from 'next/font/google';
 import QueryProvider from '@/providers/query-provider';
 import { AuthProvider } from '@/providers/auth-provider';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const sora = Sora({
+  variable: '--font-sora',
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const outfit = Outfit({
+  variable: '--font-outfit',
+  subsets: ['latin'],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: '--font-jetbrains-mono',
   subsets: ['latin'],
 });
 
@@ -25,10 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang='ko'
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang='ko' className={`${sora.variable} ${outfit.variable} ${jetbrainsMono.variable} h-full`}>
       <body className='min-h-full flex flex-col'>
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>

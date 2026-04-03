@@ -1,26 +1,272 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
+/* ─── Color Tokens: Light (default) / Dark (system) ─── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  color-scheme: light dark;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #f5f5f7;
+  --fg: #1a1b1e;
+
+  --srf: #ffffff;
+  --srf-hover: #fafafa;
+  --srf-elevated: #f0f0f2;
+
+  --bdr: #e2e4e9;
+  --bdr-hover: #c8cbd4;
+  --bdr-accent: rgba(14, 165, 233, 0.3);
+
+  --pri: #0ea5e9;
+  --pri-hover: #0284c7;
+  --pri-dim: rgba(14, 165, 233, 0.08);
+  --pri-glow: rgba(14, 165, 233, 0.12);
+
+  --acc: #f97316;
+  --acc-hover: #ea580c;
+  --acc-dim: rgba(249, 115, 22, 0.08);
+
+  --txt-1: #111214;
+  --txt-2: #2e3039;
+  --txt-3: #535663;
+
+  --ok: #059669;
+  --ok-dim: rgba(5, 150, 105, 0.08);
+  --err: #dc2626;
+  --err-dim: rgba(220, 38, 38, 0.06);
+  --warn: #d97706;
+  --warn-dim: rgba(217, 119, 6, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #111215;
+    --fg: #ededef;
+
+    --srf: #1c1d23;
+    --srf-hover: #26272e;
+    --srf-elevated: #2a2b33;
+
+    --bdr: #33353f;
+    --bdr-hover: #484b5a;
+    --bdr-accent: rgba(56, 189, 248, 0.35);
+
+    --pri: #38bdf8;
+    --pri-hover: #0ea5e9;
+    --pri-dim: rgba(56, 189, 248, 0.10);
+    --pri-glow: rgba(56, 189, 248, 0.18);
+
+    --acc: #f97316;
+    --acc-hover: #ea580c;
+    --acc-dim: rgba(249, 115, 22, 0.12);
+
+    --txt-1: #ededef;
+    --txt-2: #d0d3dc;
+    --txt-3: #9a9dab;
+
+    --ok: #34d399;
+    --ok-dim: rgba(52, 211, 153, 0.12);
+    --err: #f87171;
+    --err-dim: rgba(248, 113, 113, 0.12);
+    --warn: #fbbf24;
+    --warn-dim: rgba(251, 191, 36, 0.12);
   }
 }
 
+/* ─── Tailwind Theme (references switchable tokens) ─── */
+@theme {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+
+  --color-surface: var(--srf);
+  --color-surface-hover: var(--srf-hover);
+  --color-surface-elevated: var(--srf-elevated);
+
+  --color-border: var(--bdr);
+  --color-border-hover: var(--bdr-hover);
+  --color-border-accent: var(--bdr-accent);
+
+  --color-primary: var(--pri);
+  --color-primary-hover: var(--pri-hover);
+  --color-primary-dim: var(--pri-dim);
+  --color-primary-glow: var(--pri-glow);
+
+  --color-accent: var(--acc);
+  --color-accent-hover: var(--acc-hover);
+  --color-accent-dim: var(--acc-dim);
+
+  --color-text-primary: var(--txt-1);
+  --color-text-secondary: var(--txt-2);
+  --color-text-muted: var(--txt-3);
+
+  --color-success: var(--ok);
+  --color-success-dim: var(--ok-dim);
+  --color-error: var(--err);
+  --color-error-dim: var(--err-dim);
+  --color-warning: var(--warn);
+  --color-warning-dim: var(--warn-dim);
+
+  --font-heading: var(--font-sora), sans-serif;
+  --font-body: var(--font-outfit), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+}
+
+/* ─── Base ─── */
+* {
+  box-sizing: border-box;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle noise texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bdr);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bdr-hover);
+}
+
+/* ─── Focus / Selection ─── */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--pri-dim);
+}
+
+/* ─── Typography ─── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* ─── Input autofill ─── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill {
+  -webkit-text-fill-color: var(--txt-1);
+  -webkit-box-shadow: 0 0 0 1000px var(--srf-elevated) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* ─── Transitions ─── */
+a, button {
+  transition: all 0.2s ease;
+}
+
+/* ─── Keyframes ─── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px var(--pri-dim); }
+  50% { box-shadow: 0 0 30px var(--pri-glow); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+/* ─── Glass Card ─── */
+.glass-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+
+/* ─── Skeleton ─── */
+.skeleton {
+  background: linear-gradient(90deg, var(--srf) 25%, var(--srf-elevated) 50%, var(--srf) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* ─── Dark mode specific ─── */
+@media (prefers-color-scheme: dark) {
+  body::before {
+    opacity: 0.025;
+  }
+
+  /* Ambient glow — dark only */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -30%;
+    left: -10%;
+    width: 60%;
+    height: 60%;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.04) 0%, transparent 70%);
+  }
+
+  .glass-card {
+    box-shadow: none;
+  }
+
+  .glass-card:hover {
+    box-shadow: none;
+  }
 }
