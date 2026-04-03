@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.spec\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && pnpm test:unit --passWithNoTests 2>&1 | tail -10; fi"
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.spec\\.ts$ ]] && [[ ! \"$FILE\" =~ \\.integration\\.spec\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && OUTPUT=$(pnpm test:unit --passWithNoTests 2>&1 | tail -15); echo \"$OUTPUT\"; echo \"$OUTPUT\" | grep -qE 'FAIL|Tests:.*failed' && exit 2 || true; fi"
           },
           {
             "type": "command",
@@ -37,7 +37,11 @@
           },
           {
             "type": "command",
-            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.ts$ ]]; then npx eslint --fix \"$FILE\" 2>/dev/null || true; fi"
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && npx eslint --fix \"$FILE\" 2>/dev/null; ERRORS=$(npx eslint \"$FILE\" 2>&1); if [ -n \"$ERRORS\" ]; then echo \"[eslint] $FILE\"; echo \"$ERRORS\"; exit 2; fi; fi"
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && ERRORS=$(npx tsc --noEmit 2>&1 | grep -E 'error TS' | head -20); if [ -n \"$ERRORS\" ]; then echo \"[tsc] TypeScript errors:\"; echo \"$ERRORS\"; exit 2; fi; fi"
           }
         ]
       }
