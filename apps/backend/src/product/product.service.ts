@@ -6,12 +6,13 @@ import { CreateProductDto } from './dto/create-product.dto';
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateProductDto) {
+  async create(dto: CreateProductDto, userId: string) {
     const product = await this.prisma.product.create({
       data: {
         name: dto.name,
         url: dto.url ?? null,
         description: dto.description,
+        userId,
       },
     });
     return product;
