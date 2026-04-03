@@ -24,6 +24,8 @@ export async function baseFetch<T>(url: string, options: RequestInit): Promise<T
   return (text ? JSON.parse(text) : null) as T;
 }
 
+let refreshPromise: Promise<void> | null = null;
+
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const opts: RequestInit = { ...options, credentials: 'include' };
@@ -33,22 +35,30 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   } catch (err) {
     if (!(err instanceof ApiError) || err.status !== 401) throw err;
 
-    // 401 → refresh 시도
-    try {
-      await baseFetch<void>(`${API_BASE_URL}/auth/refresh`, {
+    // 동시 401 → 하나의 refresh만 실행
+    if (!refreshPromise) {
+      refreshPromise = baseFetch<void>(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
+      }).finally(() => {
+        refreshPromise = null;
       });
+    }
+
+    try {
+      await refreshPromise;
     } catch {
       if (typeof window !== 'undefined') window.location.href = '/login';
       throw err;
     }
 
-    // 재시도 — 실패 시 /login
+    // 재시도 — 401만 /login 리다이렉트, 나머지 에러는 호출자에게 전파
     try {
       return await baseFetch<T>(url, opts);
     } catch (retryErr) {
-      if (typeof window !== 'undefined') window.location.href = '/login';
+      if (retryErr instanceof ApiError && retryErr.status === 401) {
+        if (typeof window !== 'undefined') window.location.href = '/login';
+      }
       throw retryErr;
     }
   }

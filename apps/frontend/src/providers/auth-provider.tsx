@@ -9,7 +9,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setUser = useAuthStore((s) => s.setUser);
   const clearUser = useAuthStore((s) => s.clearUser);
 
-  const { data, isSuccess, isError } = useQuery({
+  const { data, isPending, isSuccess, isError } = useQuery({
     queryKey: ['me'],
     queryFn: getMe,
     retry: false,
@@ -18,11 +18,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isSuccess) setUser(data);
-  }, [isSuccess, data, setUser]);
-
-  useEffect(() => {
-    if (isError) clearUser();
-  }, [isError, clearUser]);
+    else if (isError) clearUser();
+    else if (!isPending) clearUser();
+  }, [isPending, isSuccess, isError, data, setUser, clearUser]);
 
   return <>{children}</>;
 }
