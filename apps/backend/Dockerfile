@@ -4,11 +4,14 @@ WORKDIR /app
 
 RUN npm install -g pnpm
 
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/backend/package.json ./apps/backend/
 
-COPY . .
-RUN pnpm build
+RUN pnpm install --frozen-lockfile --filter backend
+
+COPY apps/backend ./apps/backend
+
+RUN pnpm --filter backend build
 
 FROM node:20-alpine AS production
 
@@ -16,15 +19,16 @@ WORKDIR /app
 
 RUN npm install -g pnpm
 
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-lock.yaml* ./
-RUN pnpm install --prod --frozen-lockfile
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/apps/backend/package.json ./apps/backend/
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
+RUN pnpm install --prod --frozen-lockfile --filter backend
 
-RUN pnpm exec prisma generate
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+
+RUN cd apps/backend && pnpm exec prisma generate
 
 EXPOSE 3000
 
-CMD ["node", "dist/main"]
+CMD ["node", "apps/backend/dist/main"]
