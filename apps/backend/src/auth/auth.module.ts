@@ -6,7 +6,6 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PrismaRefreshTokenRepository } from './repositories/prisma-refresh-token.repository';
 import { REFRESH_TOKEN_REPOSITORY } from './auth.constants';
 
