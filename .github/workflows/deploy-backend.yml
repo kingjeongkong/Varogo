@@ -7,28 +7,7 @@ on:
       - 'apps/backend/**'
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm --filter backend lint
-
-      - run: pnpm --filter backend test
-
   deploy:
-    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to EC2

@@ -1,7 +1,7 @@
-name: Test Frontend
+name: CI Frontend
 
 on:
-  push:
+  pull_request:
     branches: [main]
     paths:
       - 'apps/frontend/**'
