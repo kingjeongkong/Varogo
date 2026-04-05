@@ -11,21 +11,5 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  backend:
-    build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
-    container_name: varogo_backend
-    ports:
-      - '3000:3000'
-    environment:
-      DATABASE_URL: postgresql://varogo:varogo_password@postgres:5432/varogo_db?schema=public
-      NODE_ENV: development
-    depends_on:
-      - postgres
-    volumes:
-      - ./apps/backend:/app
-      - /app/node_modules
-
 volumes:
   postgres_data:
