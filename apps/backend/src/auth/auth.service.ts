@@ -33,7 +33,13 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = await this.prisma.user.create({
       data: { email: dto.email, name: dto.name, passwordHash },
-      select: { id: true, email: true, name: true, avatarUrl: true, createdAt: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
     });
 
     const tokens = await this.issueTokens(user.id, user.email);
@@ -53,7 +59,13 @@ export class AuthService {
 
     const tokens = await this.issueTokens(user.id, user.email);
     return {
-      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl, createdAt: user.createdAt },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        createdAt: user.createdAt,
+      },
       tokens,
     };
   }

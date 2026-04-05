@@ -102,7 +102,13 @@ describe('AuthService', () => {
             email: 'new@example.com',
             name: 'Test User',
           }),
-          select: { id: true, email: true, name: true, avatarUrl: true, createdAt: true },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            avatarUrl: true,
+            createdAt: true,
+          },
         }),
       );
     });
