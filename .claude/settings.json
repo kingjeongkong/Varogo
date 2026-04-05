@@ -33,6 +33,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ prisma/schema\\.prisma$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && npx prisma generate 2>&1; fi"
+          },
+          {
+            "type": "command",
             "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.spec\\.ts$ ]] && [[ ! \"$FILE\" =~ \\.integration\\.spec\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && OUTPUT=$(pnpm test:unit --passWithNoTests 2>&1 | tail -15); echo \"$OUTPUT\"; echo \"$OUTPUT\" | grep -qE 'FAIL|Tests:.*failed' && exit 2 || true; fi"
           },
           {
