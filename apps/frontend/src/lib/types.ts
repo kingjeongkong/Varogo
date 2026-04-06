@@ -9,3 +9,55 @@ export interface User {
   avatarUrl?: string;
   createdAt: string;
 }
+
+export interface TargetAudience {
+  definition: string;
+  behaviors: string[];
+  painPoints: string[];
+  activeCommunities: string[];
+}
+
+export interface Alternative {
+  name: string;
+  problemSolved: string;
+  price: string;
+  limitations: string[];
+}
+
+export interface CompetitorValue {
+  name: string;
+  value: string;
+}
+
+export interface ComparisonItem {
+  aspect: string;
+  myProduct: string;
+  competitors: CompetitorValue[];
+}
+
+export interface ProductAnalysis {
+  id: string;
+  productId: string;
+  targetAudience: TargetAudience;
+  problem: string;
+  alternatives: Alternative[];
+  comparisonTable: ComparisonItem[];
+  differentiators: string[];
+  positioningStatement: string;
+  keywords: string[];
+  createdAt: string;
+}
+
+export interface Product {
+  id: string;
+  userId: string;
+  name: string;
+  url: string;
+  additionalInfo?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductWithAnalysis extends Product {
+  analysis: ProductAnalysis | null;
+}

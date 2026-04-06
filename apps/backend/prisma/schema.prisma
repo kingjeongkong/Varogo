@@ -15,8 +15,9 @@ model User {
   avatarUrl    String?        @map("avatar_url")
   createdAt    DateTime       @default(now()) @map("created_at")
   updatedAt    DateTime       @updatedAt @map("updated_at")
-  accounts     Account[]
+  accounts      Account[]
   refreshTokens RefreshToken[]
+  products      Product[]
 
   @@map("users")
 }
@@ -47,5 +48,39 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+model Product {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  name           String
+  url            String
+  additionalInfo String?  @map("additional_info")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses ProductAnalysis[]
+
+  @@index([userId])
+  @@map("products")
+}
+
+model ProductAnalysis {
+  id                   String   @id @default(uuid())
+  productId            String   @map("product_id")
+  targetAudience       Json     @map("target_audience")
+  problem              String
+  alternatives         Json
+  comparisonTable      Json     @map("comparison_table")
+  differentiators      String[]
+  positioningStatement String   @map("positioning_statement")
+  keywords             String[]
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_analyses")
 }
 
