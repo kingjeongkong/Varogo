@@ -2,7 +2,7 @@
 
 import { use } from 'react';
 import Header from '@/components/layout/Header';
-import { AnalysisResult } from '@/features/product/components/AnalysisResult';
+import { AnalysisResult } from '@/features/product/components/analysis/AnalysisResult';
 import { useProduct } from '@/features/product/hooks/use-product';
 
 export default function AnalysisPage({
@@ -17,7 +17,7 @@ export default function AnalysisPage({
     <div className='min-h-screen'>
       <Header />
 
-      <main className='max-w-3xl mx-auto px-6 py-10'>
+      <main className='max-w-4xl mx-auto px-6 py-12'>
         {isLoading && (
           <div className='space-y-4'>
             <div className='skeleton h-8 w-1/3' />
