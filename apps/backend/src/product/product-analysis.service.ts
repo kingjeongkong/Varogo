@@ -1,0 +1,133 @@
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { type ResponseSchema, SchemaType } from '@google/generative-ai';
+import { GeminiService } from '../gemini/gemini.service';
+import type { ProductAnalysisResult } from './types/product-analysis.type';
+
+@Injectable()
+export class ProductAnalysisService {
+  constructor(private readonly gemini: GeminiService) {}
+
+  async analyze(
+    url: string,
+    additionalInfo?: string,
+  ): Promise<ProductAnalysisResult> {
+    const prompt = this.buildPrompt(url, additionalInfo);
+    const model = this.gemini.getClient().getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: this.responseSchema as ResponseSchema,
+      },
+    });
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+
+    try {
+      return JSON.parse(text) as ProductAnalysisResult;
+    } catch {
+      throw new InternalServerErrorException('Failed to parse AI response');
+    }
+  }
+
+  private buildPrompt(url: string, additionalInfo?: string): string {
+    return `You are a product analyst specializing in indie/startup products.
+Analyze the following product and provide a comprehensive marketing analysis.
+
+Product URL: ${url}
+${additionalInfo ? `Additional context: ${additionalInfo}` : ''}
+
+If you cannot access the URL, analyze based on the domain name, URL path, and any additional context provided.
+
+Provide your analysis in the following structure:
+- targetAudience: Who is this product for? Include a clear definition, their behaviors, pain points, and communities where they are active.
+- problem: What core problem does this product solve? (one concise paragraph)
+- alternatives: What are the main alternatives/competitors? For each, include name, what problem they solve, pricing, and limitations.
+- comparisonTable: Compare the product against alternatives across key aspects. Each item has an aspect name, the product's value, and competitor values.
+- differentiators: What makes this product uniquely different? (list of key differentiators)
+- positioningStatement: A clear, concise positioning statement for the product.
+- keywords: Relevant marketing keywords for this product.
+
+Respond in Korean. Be specific and actionable.`;
+  }
+
+  private readonly responseSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+      targetAudience: {
+        type: SchemaType.OBJECT,
+        properties: {
+          definition: { type: SchemaType.STRING },
+          behaviors: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING },
+          },
+          painPoints: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING },
+          },
+          activeCommunities: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING },
+          },
+        },
+        required: [
+          'definition',
+          'behaviors',
+          'painPoints',
+          'activeCommunities',
+        ],
+      },
+      problem: { type: SchemaType.STRING },
+      alternatives: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            name: { type: SchemaType.STRING },
+            problemSolved: { type: SchemaType.STRING },
+            price: { type: SchemaType.STRING },
+            limitations: {
+              type: SchemaType.ARRAY,
+              items: { type: SchemaType.STRING },
+            },
+          },
+          required: ['name', 'problemSolved', 'price', 'limitations'],
+        },
+      },
+      comparisonTable: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            aspect: { type: SchemaType.STRING },
+            myProduct: { type: SchemaType.STRING },
+            competitors: {
+              type: SchemaType.OBJECT,
+              additionalProperties: { type: SchemaType.STRING },
+            },
+          },
+          required: ['aspect', 'myProduct', 'competitors'],
+        },
+      },
+      differentiators: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      positioningStatement: { type: SchemaType.STRING },
+      keywords: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+    },
+    required: [
+      'targetAudience',
+      'problem',
+      'alternatives',
+      'comparisonTable',
+      'differentiators',
+      'positioningStatement',
+      'keywords',
+    ],
+  };
+}
