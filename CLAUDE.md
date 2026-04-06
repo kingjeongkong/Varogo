@@ -74,6 +74,11 @@ docker compose down             # Stop
 - When adding a new env var, also add it to `.env.example`
 - Never hardcode secrets in code
 
+## Code Verification
+
+- Before finishing any task: run tsc --noEmit → must have 0 errors
+- If the file is a test-writer target: invoke test-writer agent → confirm tests pass
+
 ## Agent Workflow
 
 See `.claude/WORKFLOW.md` for test-writer invocation rules.
