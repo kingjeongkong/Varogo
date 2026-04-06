@@ -116,8 +116,7 @@ describe('ProductService', () => {
       expect(result).toEqual({ ...mockProduct, analysis: mockSavedAnalysis });
     });
 
-    it('propagates error when analyze fails', async () => {
-      mockPrisma.product.create.mockResolvedValue(mockProduct);
+    it('does not create product when analyze fails', async () => {
       mockProductAnalysisService.analyze.mockRejectedValue(
         new Error('AI service unavailable'),
       );
@@ -126,7 +125,7 @@ describe('ProductService', () => {
         'AI service unavailable',
       );
 
-      expect(mockPrisma.product.create).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.product.create).not.toHaveBeenCalled();
       expect(mockPrisma.productAnalysis.create).not.toHaveBeenCalled();
     });
   });

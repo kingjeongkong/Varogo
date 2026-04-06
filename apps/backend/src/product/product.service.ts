@@ -12,6 +12,12 @@ export class ProductService {
   ) {}
 
   async create(userId: string, dto: CreateProductDto) {
+    const analysis = await this.productAnalysisService.analyze(
+      dto.name,
+      dto.url,
+      dto.additionalInfo,
+    );
+
     const product = await this.prisma.product.create({
       data: {
         userId,
@@ -20,12 +26,6 @@ export class ProductService {
         additionalInfo: dto.additionalInfo,
       },
     });
-
-    const analysis = await this.productAnalysisService.analyze(
-      dto.name,
-      dto.url,
-      dto.additionalInfo,
-    );
 
     const productAnalysis = await this.prisma.productAnalysis.create({
       data: {
