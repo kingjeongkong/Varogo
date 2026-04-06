@@ -54,10 +54,6 @@
           {
             "type": "command",
             "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/frontend/src/.*\\.tsx?$ ]]; then cd /Users/wang/Desktop/Varogo/apps/frontend && npx eslint --fix \"$FILE\" 2>&1; ERRORS=$(npx eslint \"$FILE\" 2>&1); RC=$?; if [ $RC -ne 0 ]; then echo \"[eslint] $FILE\"; echo \"$ERRORS\"; exit 2; fi; fi"
-          },
-          {
-            "type": "command",
-            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/(backend/src/.*\\.(service|controller)\\.ts|frontend/src/.*(use-.*\\.ts|Form\\.tsx))$ ]] && [[ ! \"$FILE\" =~ \\.(spec|test)\\.tsx?$ ]]; then echo '[reminder] This file matches test-writer targets. Consider running test-writer agent after completing this module.'; fi"
           }
         ]
       }
