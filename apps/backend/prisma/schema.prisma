@@ -78,9 +78,28 @@ model ProductAnalysis {
   keywords             String[]
   createdAt            DateTime @default(now()) @map("created_at")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product                Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  channelRecommendations ChannelRecommendation[]
 
   @@index([productId])
   @@map("product_analyses")
+}
+
+model ChannelRecommendation {
+  id                String   @id @default(uuid())
+  productAnalysisId String   @map("product_analysis_id")
+  channelName       String   @map("channel_name")
+  scoreBreakdown    Json     @map("score_breakdown")
+  reason            String
+  effectiveContent  String   @map("effective_content")
+  risk              String
+  effortLevel       String   @map("effort_level")
+  expectedTimeline  String   @map("expected_timeline")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  productAnalysis ProductAnalysis @relation(fields: [productAnalysisId], references: [id], onDelete: Cascade)
+
+  @@index([productAnalysisId])
+  @@map("channel_recommendations")
 }
 
