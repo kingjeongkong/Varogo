@@ -22,3 +22,5 @@ jobs:
             docker build -t varogo-backend -f apps/backend/Dockerfile .
             docker rm -f varogo-backend || true
             docker run -d --name varogo-backend --env-file apps/backend/.env -p 80:3000 varogo-backend
+            sleep 10
+            curl -f http://localhost/health || (echo "Health check failed:" && docker logs varogo-backend --tail 30 && exit 1)
