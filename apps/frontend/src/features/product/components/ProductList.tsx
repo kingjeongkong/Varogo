@@ -38,13 +38,7 @@ export function ProductList() {
   if (!products || products.length === 0) {
     return (
       <div className='glass-card p-8 text-center'>
-        <p className='text-text-muted mb-4'>아직 분석한 제품이 없습니다.</p>
-        <Link
-          href='/product/new'
-          className='inline-block px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover transition-colors'
-        >
-          새 제품 분석하기
-        </Link>
+        <p className='text-text-muted'>아직 분석한 제품이 없습니다.</p>
       </div>
     );
   }

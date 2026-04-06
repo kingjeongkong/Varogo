@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { ProductWithAnalysis } from '@/lib/types'
 
 interface AnalysisResultProps {
@@ -12,7 +13,13 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
   if (!analysis) {
     return (
       <div className="glass-card p-8 text-center">
-        <p className="text-text-muted">분석 결과가 없습니다.</p>
+        <p className="text-text-muted mb-4">분석 결과가 없습니다.</p>
+        <Link
+          href="/"
+          className="inline-block px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover transition-colors"
+        >
+          대시보드로 돌아가기
+        </Link>
       </div>
     )
   }
@@ -27,9 +34,11 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
     keywords
   } = analysis
 
-  // Collect competitor names from the comparison table
+  // Collect unique competitor names from the comparison table
   const competitorNames =
-    comparisonTable.length > 0 ? Object.keys(comparisonTable[0].competitors) : []
+    comparisonTable.length > 0
+      ? [...new Set(comparisonTable.flatMap((row) => row.competitors.map((c) => c.name)))]
+      : []
 
   return (
     <div className="space-y-6">
@@ -185,7 +194,7 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
                     <td className="py-2.5 pr-4 text-text-primary">{row.myProduct}</td>
                     {competitorNames.map((name) => (
                       <td key={name} className="py-2.5 pr-4 text-text-muted">
-                        {row.competitors[name]}
+                        {row.competitors.find((c) => c.name === name)?.value}
                       </td>
                     ))}
                   </tr>
