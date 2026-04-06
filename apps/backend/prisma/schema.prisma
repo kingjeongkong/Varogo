@@ -17,7 +17,6 @@ model User {
   updatedAt    DateTime       @updatedAt @map("updated_at")
   accounts     Account[]
   refreshTokens RefreshToken[]
-  products     Product[]
 
   @@map("users")
 }
@@ -50,31 +49,3 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-model Product {
-  id          String     @id @default(uuid())
-  userId      String     @map("user_id")
-  name        String
-  url         String?
-  description String
-  analyses    Analysis[]
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("products")
-}
-
-model Analysis {
-  id             String   @id @default(uuid())
-  productId      String   @map("product_id")
-  summary        String
-  targetAudience String   @map("target_audience")
-  strategies     Json
-  plan           Json
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("analyses")
-}

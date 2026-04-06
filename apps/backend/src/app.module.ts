@@ -7,8 +7,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { GeminiModule } from './gemini/gemini.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { ProductModule } from './product/product.module';
-import { AnalysisModule } from './analysis/analysis.module';
 
 @Module({
   imports: [
@@ -16,8 +14,6 @@ import { AnalysisModule } from './analysis/analysis.module';
     PrismaModule,
     GeminiModule,
     AuthModule,
-    ProductModule,
-    AnalysisModule,
   ],
   controllers: [AppController],
   providers: [

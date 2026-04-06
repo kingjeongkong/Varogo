@@ -89,12 +89,6 @@ describe('Header', () => {
       expect(screen.getByRole('button', { name: /로그아웃 중/i })).toBeDisabled();
     });
 
-    it('shows loading text on logout button while pending', () => {
-      mockUseAuth.mockReturnValue({ logoutMutation: { mutate: mockLogoutMutate, isPending: true, error: null } });
-      render(<Header />);
-      expect(screen.getByRole('button', { name: /로그아웃 중/i })).toBeInTheDocument();
-    });
-
     it('does not render the skeleton while logged in', () => {
       render(<Header />);
       expect(screen.queryByLabelText('사용자 정보 로딩 중')).not.toBeInTheDocument();
@@ -116,10 +110,6 @@ describe('Header', () => {
       expect(screen.queryByRole('button', { name: /로그아웃/i })).not.toBeInTheDocument();
     });
 
-    it('does not render any user info text', () => {
-      render(<Header />);
-      expect(screen.queryByText(/@/)).not.toBeInTheDocument();
-    });
   });
 
   describe('brand link', () => {
@@ -130,22 +120,6 @@ describe('Header', () => {
     it('always renders a link to "/"', () => {
       render(<Header />);
       expect(screen.getByRole('link', { name: /varogo/i })).toHaveAttribute('href', '/');
-    });
-  });
-
-  describe('showNewProductButton prop', () => {
-    beforeEach(() => {
-      mockUseAuthStore.mockReturnValue({ user: null, isLoading: false });
-    });
-
-    it('does not show the new product link by default', () => {
-      render(<Header />);
-      expect(screen.queryByRole('link', { name: /새 제품 등록/i })).not.toBeInTheDocument();
-    });
-
-    it('shows the new product link when showNewProductButton is true', () => {
-      render(<Header showNewProductButton />);
-      expect(screen.getByRole('link', { name: /새 제품 등록/i })).toHaveAttribute('href', '/products/new');
     });
   });
 });
