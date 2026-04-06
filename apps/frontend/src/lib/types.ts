@@ -24,10 +24,15 @@ export interface Alternative {
   limitations: string[];
 }
 
+export interface CompetitorValue {
+  name: string;
+  value: string;
+}
+
 export interface ComparisonItem {
   aspect: string;
   myProduct: string;
-  competitors: Record<string, string>;
+  competitors: CompetitorValue[];
 }
 
 export interface ProductAnalysis {

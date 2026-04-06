@@ -1,10 +1,16 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { type ResponseSchema, SchemaType } from '@google/generative-ai';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { GeminiService } from '../gemini/gemini.service';
 import type { ProductAnalysisResult } from './types/product-analysis.type';
 
 @Injectable()
 export class ProductAnalysisService {
+  private readonly logger = new Logger(ProductAnalysisService.name);
+
   constructor(private readonly gemini: GeminiService) {}
 
   async analyze(
@@ -14,7 +20,7 @@ export class ProductAnalysisService {
   ): Promise<ProductAnalysisResult> {
     const prompt = this.buildPrompt(name, url, additionalInfo);
     const model = this.gemini.getClient().getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash-lite',
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema: this.responseSchema as ResponseSchema,
@@ -25,7 +31,8 @@ export class ProductAnalysisService {
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       return JSON.parse(text) as ProductAnalysisResult;
-    } catch {
+    } catch (error) {
+      this.logger.error('Gemini API call failed', error);
       throw new InternalServerErrorException('Product analysis failed');
     }
   }
@@ -108,8 +115,15 @@ Respond in Korean. Be specific and actionable.`;
             aspect: { type: SchemaType.STRING },
             myProduct: { type: SchemaType.STRING },
             competitors: {
-              type: SchemaType.OBJECT,
-              additionalProperties: { type: SchemaType.STRING },
+              type: SchemaType.ARRAY,
+              items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  name: { type: SchemaType.STRING },
+                  value: { type: SchemaType.STRING },
+                },
+                required: ['name', 'value'],
+              },
             },
           },
           required: ['aspect', 'myProduct', 'competitors'],

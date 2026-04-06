@@ -35,7 +35,7 @@ const VALID_RESULT: ProductAnalysisResult = {
     {
       aspect: 'Price',
       myProduct: '$9/mo',
-      competitors: { Typefully: '$12/mo' },
+      competitors: [{ name: 'Typefully', value: '$12/mo' }],
     },
   ],
   differentiators: ['AI-powered strategy'],
@@ -78,7 +78,7 @@ describe('ProductAnalysisService', () => {
       expect(mockGeminiService.getClient).toHaveBeenCalled();
       expect(mockGetGenerativeModel).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.0-flash',
+          model: 'gemini-2.5-flash-lite',
           generationConfig: expect.objectContaining({
             responseMimeType: 'application/json',
           }) as Record<string, unknown>,
