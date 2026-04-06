@@ -27,4 +27,6 @@ jobs:
 
       - run: pnpm --filter backend lint
 
+      - run: pnpm --filter backend exec tsc --noEmit
+
       - run: pnpm --filter backend test
