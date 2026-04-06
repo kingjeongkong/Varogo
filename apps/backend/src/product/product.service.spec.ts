@@ -95,6 +95,7 @@ describe('ProductService', () => {
       });
 
       expect(mockProductAnalysisService.analyze).toHaveBeenCalledWith(
+        dto.name,
         dto.url,
         dto.additionalInfo,
       );

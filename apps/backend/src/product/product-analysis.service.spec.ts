@@ -72,7 +72,7 @@ describe('ProductAnalysisService', () => {
         response: { text: () => JSON.stringify(VALID_RESULT) },
       });
 
-      const result = await service.analyze('https://example.com');
+      const result = await service.analyze('MyProduct', 'https://example.com');
 
       expect(result).toEqual(VALID_RESULT);
       expect(mockGeminiService.getClient).toHaveBeenCalled();
@@ -94,13 +94,13 @@ describe('ProductAnalysisService', () => {
         response: { text: () => 'this is not valid json {{{' },
       });
 
-      await expect(service.analyze('https://example.com')).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(
+        service.analyze('MyProduct', 'https://example.com'),
+      ).rejects.toThrow(InternalServerErrorException);
 
-      await expect(service.analyze('https://example.com')).rejects.toThrow(
-        'Failed to parse AI response',
-      );
+      await expect(
+        service.analyze('MyProduct', 'https://example.com'),
+      ).rejects.toThrow('Product analysis failed');
     });
 
     it('includes additionalInfo in prompt when provided', async () => {
@@ -109,6 +109,7 @@ describe('ProductAnalysisService', () => {
       });
 
       await service.analyze(
+        'MyProduct',
         'https://example.com',
         'A tool for scheduling tweets',
       );
@@ -124,7 +125,7 @@ describe('ProductAnalysisService', () => {
         response: { text: () => JSON.stringify(VALID_RESULT) },
       });
 
-      const result = await service.analyze('https://example.com');
+      const result = await service.analyze('MyProduct', 'https://example.com');
 
       expect(result).toEqual(VALID_RESULT);
 

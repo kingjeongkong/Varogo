@@ -22,6 +22,7 @@ export class ProductService {
     });
 
     const analysis = await this.productAnalysisService.analyze(
+      dto.name,
       dto.url,
       dto.additionalInfo,
     );

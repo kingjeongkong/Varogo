@@ -8,10 +8,11 @@ export class ProductAnalysisService {
   constructor(private readonly gemini: GeminiService) {}
 
   async analyze(
+    name: string,
     url: string,
     additionalInfo?: string,
   ): Promise<ProductAnalysisResult> {
-    const prompt = this.buildPrompt(url, additionalInfo);
+    const prompt = this.buildPrompt(name, url, additionalInfo);
     const model = this.gemini.getClient().getGenerativeModel({
       model: 'gemini-2.0-flash',
       generationConfig: {
@@ -20,20 +21,24 @@ export class ProductAnalysisService {
       },
     });
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-
     try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
       return JSON.parse(text) as ProductAnalysisResult;
     } catch {
-      throw new InternalServerErrorException('Failed to parse AI response');
+      throw new InternalServerErrorException('Product analysis failed');
     }
   }
 
-  private buildPrompt(url: string, additionalInfo?: string): string {
+  private buildPrompt(
+    name: string,
+    url: string,
+    additionalInfo?: string,
+  ): string {
     return `You are a product analyst specializing in indie/startup products.
 Analyze the following product and provide a comprehensive marketing analysis.
 
+Product name: ${name}
 Product URL: ${url}
 ${additionalInfo ? `Additional context: ${additionalInfo}` : ''}
 
