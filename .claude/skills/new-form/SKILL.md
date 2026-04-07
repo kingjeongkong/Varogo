@@ -9,88 +9,40 @@ description: Use when creating a form component that submits data to the backend
 
 When adding a form that submits data to the backend (create, update, login, etc.).
 
-## Pattern
+## Rules
 
-Forms use **React Hook Form + Zod + useMutation**. See `features/product/components/ProductForm.tsx` as the reference implementation.
+### Stack
+- React Hook Form + Zod + zodResolver. No exceptions
 
-## Steps
+### Zod Schema
+- Define inline in the component file for single-use forms
+- Extract to `features/<name>/schemas.ts` only if the same schema is reused across multiple components
+- Name the schema `<resource>Schema` (e.g., `productSchema`, `loginSchema`)
+- Derive the form type with `z.infer<typeof schema>` — never write a separate TypeScript interface
 
-1. **Define the Zod schema** — inline in the component file (single-use) or in `features/<name>/schemas.ts` (reused across components)
+### Form State
+- Never use `useState` for form field values — React Hook Form is the sole form state owner
+- Destructure `register`, `handleSubmit`, `formState: { errors }` from `useForm`
+- Use `<form noValidate>` to disable browser validation in favor of Zod
 
-   ```typescript
-   import { z } from 'zod'
+### Mutation Connection
+- Destructure `mutate`, `isPending`, `error` (aliased as `apiError`) from the mutation hook
+- Never add a separate `isLoading` state — `isPending` from `useMutation` is the single source of truth
+- `onSuccess` callback belongs in the `mutate()` call site (for navigation, side effects), not in the hook definition
 
-   const productSchema = z.object({
-     name: z.string().min(1, 'Name is required.'),
-     url: z.string().url('Enter a valid URL.').optional().or(z.literal('')),
-     description: z.string().min(1, 'Description is required.'),
-   })
+### Error Display
+- Field validation errors and API errors are separate concerns — show both
+- Field errors: `errors.fieldName.message` rendered next to each input
+- API errors: `apiError.message` rendered in a distinct container above or below the form
 
-   type ProductFormValues = z.infer<typeof productSchema>
-   ```
+### Accessibility (WCAG 2.1 AA)
+- Every input needs `id` + matching `<label htmlFor>`
+- `aria-invalid={!!errors.fieldName}` on inputs with errors
+- `aria-describedby` pointing to the error message element's `id`
+- Error messages wrapped in elements with `role="alert"`
+- Submit button: `aria-busy={isPending}` and `disabled={isPending}`
 
-   - Name the schema `<resource>Schema`
-   - Derive the type with `z.infer` — never write a separate interface
-
-2. **Set up the form** with `useForm` and `zodResolver`
-
-   ```typescript
-   const {
-     register,
-     handleSubmit,
-     formState: { errors },
-   } = useForm<ProductFormValues>({
-     resolver: zodResolver(productSchema),
-     defaultValues: { name: '', url: '', description: '' },
-   })
-   ```
-
-3. **Connect the mutation hook**
-
-   ```typescript
-   const { mutate, isPending, error: apiError } = useCreateSomething()
-   ```
-
-4. **Submit handler** — transform values if needed, then call mutate
-
-   ```typescript
-   function onSubmit(values: ProductFormValues) {
-     mutate(
-       { name: values.name.trim(), description: values.description.trim() },
-       { onSuccess: (result) => router.push(`/something/${result.id}`) },
-     )
-   }
-   ```
-
-5. **Form JSX structure**
-
-   ```tsx
-   <form onSubmit={handleSubmit(onSubmit)}>
-     {/* API-level error */}
-     {apiError && <div className="...">{apiError.message}</div>}
-
-     {/* Field with validation */}
-     <input {...register('name')} />
-     {errors.name && <p>{errors.name.message}</p>}
-
-     {/* Submit button */}
-     <button type="submit" disabled={isPending}>
-       {isPending ? 'Saving...' : 'Save'}
-     </button>
-   </form>
-   ```
-
-## Zod Schema Conventions
-
-- **Define schemas inline** in the component file for simple, single-use forms
-- **Extract to `features/<name>/schemas.ts`** only if the same schema is used in multiple places
-- Always derive the form type with `z.infer<typeof schema>` — never write a separate type
-- Schema variable names: `<resourceName>Schema` (e.g. `productSchema`, `loginSchema`)
-
-## Rules to enforce
-
-- Never use `useState` for form field values — React Hook Form owns form state
-- Never write a separate TypeScript type for form values — always use `z.infer<typeof schema>`
-- API errors (`apiError`) and field validation errors (`errors.fieldName`) are separate — show both
-- `isPending` from `useMutation` drives the loading state — never add a separate `isLoading` state
-- The `onSuccess` callback belongs in the `mutate()` call (navigation, side effects), not in the hook definition
+## References
+- `apps/frontend/src/features/product/components/ProductForm.tsx` — canonical form (full pattern)
+- `apps/frontend/src/features/auth/components/LoginForm.tsx` — simpler auth form (same pattern)
+- `apps/frontend/src/features/product/hooks/use-product.ts` — mutation hook consumed by form

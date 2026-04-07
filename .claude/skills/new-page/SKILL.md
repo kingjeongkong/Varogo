@@ -9,50 +9,39 @@ description: Use when adding a new route or page to the Next.js frontend (app di
 
 When adding a new route to the frontend (`app/` directory).
 
-## Steps
+## Rules
 
-1. **Create the page file**
-   ```
-   app/<route>/page.tsx
-   ```
-   Default to a Server Component — only add `'use client'` if the page itself needs interactivity (rare).
+### Server vs Client Component
+- Default to Server Component — only add `'use client'` if the page itself needs hooks or event handlers
+- Most pages should be Server Components that compose client components
 
-2. **Keep the page thin** — the page's only jobs are:
-   - Fetch initial data (Server Component) or compose client components
-   - Pass data down as props
-   - Handle routing concerns (`notFound()`, `redirect()`)
+### Thin Page Principle
+- A page's only jobs: fetch initial data, compose feature components, handle route concerns (`notFound()`, `redirect()`)
+- No business logic, no inline state management, no data transformation
+- All presentation and interaction logic lives in feature components and hooks
 
-3. **Data fetching in Server Components**
-   - Import from the relevant feature's `api-client.ts` directly
-   - Never import from `@/lib/http-client` directly in pages
-   - Pass fetched data as `initialData` to client components for TanStack Query seeding
+### Data Fetching (Server Components)
+- Use `serverFetch` from `@/lib/server-http-client` — it forwards auth cookies and handles 401 with redirect
+- Never use `apiFetch` from `@/lib/http-client` in Server Components — that is the client-side fetch
+- Import from the relevant feature's `api-client.ts`, not from `@/lib/` directly
 
-   ```typescript
-   // ✅ correct
-   import { getSomething } from '@/features/something/api-client';
+### Client Page Pattern
+- When a page must be a Client Component (e.g., multiple hooks needed), use `use(params)` to unwrap the async params
+- Call hooks, then pass data to feature components
+- Keep the page as a thin orchestrator — no inline UI logic beyond loading/error/data branching
 
-   export default async function SomethingPage({ params }) {
-     const data = await getSomething(params.id);
-     return <SomethingView data={data} />;
-   }
-   ```
+### Layout
+- Use `<Header />` from `@/components/layout/Header`
+- Wrap content in consistent layout structure (`<main>` with max-width and padding)
 
-4. **No inline business logic**
-   - No transformation logic in the page
-   - No conditional rendering beyond routing (use `notFound()` for missing resources)
-   - All presentation and interaction logic lives in feature components and hooks
+### Error and Loading States
+- Use `notFound()` for missing resources — never return null silently
+- Follow existing loading/error patterns in the project
 
-5. **Shared layout components**
-   - Use `<Header />` from `@/components/layout/Header`
-   - Wrap content in consistent layout structure
-
-6. **Client Components on the page**
-   - If a section needs interactivity, extract it to a feature component with `'use client'`
-   - Pass server-fetched data as `initialData` prop so TanStack Query can seed its cache
-
-## Rules to enforce
-
-- Server Components fetch data — Client Components use hooks
-- No business logic, state, or event handlers at the page level
-- `notFound()` for missing resources, never return null silently
-- Always import layout components from `@/components/layout/`
+## References
+- `apps/frontend/src/app/product/new/page.tsx` — thin Server Component page
+- `apps/frontend/src/app/page.tsx` — list page composing feature components
+- `apps/frontend/src/app/product/[id]/analysis/page.tsx` — Client page with hooks (loading/error/data pattern)
+- `apps/frontend/src/app/product/[id]/channels/page.tsx` — Client page with multiple hooks
+- `apps/frontend/src/lib/server-http-client.ts` — serverFetch (cookie forwarding, 401 redirect)
+- `apps/frontend/src/components/layout/Header.tsx` — shared layout component
