@@ -10,6 +10,7 @@ import {
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload';
 import { ChannelService } from './channel.service';
+import { toChannelRecommendationResponse } from './dto/channel.response';
 
 @Controller('products/:productId/channels')
 export class ChannelController {
@@ -17,26 +18,38 @@ export class ChannelController {
 
   @Post('analyze')
   @HttpCode(HttpStatus.CREATED)
-  analyze(
+  async analyze(
     @CurrentUser() user: JwtPayload,
     @Param('productId', ParseUUIDPipe) productId: string,
   ) {
-    return this.channelService.analyze(productId, user.sub);
+    const recommendations = await this.channelService.analyze(
+      productId,
+      user.sub,
+    );
+    return recommendations.map((r) => toChannelRecommendationResponse(r));
   }
 
   @Get()
-  findAll(
+  async findAll(
     @CurrentUser() user: JwtPayload,
     @Param('productId', ParseUUIDPipe) productId: string,
   ) {
-    return this.channelService.findByProduct(productId, user.sub);
+    const recommendations = await this.channelService.findByProduct(
+      productId,
+      user.sub,
+    );
+    return recommendations.map((r) => toChannelRecommendationResponse(r));
   }
 
   @Get(':channelId')
-  findOne(
+  async findOne(
     @CurrentUser() user: JwtPayload,
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
-    return this.channelService.findOne(channelId, user.sub);
+    const recommendation = await this.channelService.findOne(
+      channelId,
+      user.sub,
+    );
+    return toChannelRecommendationResponse(recommendation);
   }
 }

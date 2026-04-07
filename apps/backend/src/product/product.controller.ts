@@ -10,6 +10,10 @@ import {
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import {
+  toProductResponse,
+  toProductWithAnalysisResponse,
+} from './dto/product.response';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload';
 
@@ -19,20 +23,23 @@ export class ProductController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateProductDto) {
-    return this.productService.create(user.sub, dto);
+  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateProductDto) {
+    const product = await this.productService.create(user.sub, dto);
+    return toProductWithAnalysisResponse(product);
   }
 
   @Get()
-  findAll(@CurrentUser() user: JwtPayload) {
-    return this.productService.findAllByUser(user.sub);
+  async findAll(@CurrentUser() user: JwtPayload) {
+    const products = await this.productService.findAllByUser(user.sub);
+    return products.map((p) => toProductResponse(p));
   }
 
   @Get(':id')
-  findOne(
+  async findOne(
     @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.productService.findOneByUser(id, user.sub);
+    const product = await this.productService.findOneByUser(id, user.sub);
+    return toProductWithAnalysisResponse(product);
   }
 }
