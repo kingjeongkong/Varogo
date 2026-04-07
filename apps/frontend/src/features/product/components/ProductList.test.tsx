@@ -31,6 +31,7 @@ const MOCK_PRODUCTS: Product[] = [
     userId: 'user-1',
     name: 'Varogo',
     url: 'https://varo-go.com',
+    additionalInfo: null,
     createdAt: '2026-03-15T10:00:00.000Z',
     updatedAt: '2026-03-15T10:00:00.000Z',
   },
