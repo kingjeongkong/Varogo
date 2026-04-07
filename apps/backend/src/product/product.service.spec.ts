@@ -14,7 +14,9 @@ const mockTx = {
 };
 
 const mockPrisma = {
-  $transaction: jest.fn((cb: (tx: typeof mockTx) => Promise<unknown>) => cb(mockTx)),
+  $transaction: jest.fn((cb: (tx: typeof mockTx) => Promise<unknown>) =>
+    cb(mockTx),
+  ),
   product: {
     create: jest.fn(),
     findMany: jest.fn(),

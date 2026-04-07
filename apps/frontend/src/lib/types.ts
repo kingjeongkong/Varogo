@@ -5,8 +5,8 @@
 export interface User {
   id: string;
   email: string;
-  name?: string;
-  avatarUrl?: string;
+  name: string | null;
+  avatarUrl: string | null;
   createdAt: string;
 }
 
@@ -53,7 +53,7 @@ export interface Product {
   userId: string;
   name: string;
   url: string;
-  additionalInfo?: string;
+  additionalInfo: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -13,6 +13,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
+import { toUserResponse } from './dto/auth.response';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { JwtPayload } from './types/jwt-payload';
@@ -33,7 +34,7 @@ export class AuthController {
   ) {
     const { user, tokens } = await this.authService.signup(dto);
     this.setTokenCookies(res, tokens.accessToken, tokens.refreshToken);
-    return user;
+    return toUserResponse(user);
   }
 
   @Public()
@@ -45,7 +46,7 @@ export class AuthController {
   ) {
     const { user, tokens } = await this.authService.login(dto);
     this.setTokenCookies(res, tokens.accessToken, tokens.refreshToken);
-    return user;
+    return toUserResponse(user);
   }
 
   @Public()
@@ -74,8 +75,9 @@ export class AuthController {
   }
 
   @Get('me')
-  getMe(@CurrentUser() user: JwtPayload) {
-    return this.authService.getMe(user.sub);
+  async getMe(@CurrentUser() user: JwtPayload) {
+    const me = await this.authService.getMe(user.sub);
+    return toUserResponse(me);
   }
 
   private setTokenCookies(
