@@ -46,7 +46,7 @@ export function ChannelCard({ channel, rank }: ChannelCardProps) {
             <div className="h-1.5 rounded-full bg-surface-elevated overflow-hidden">
               <div
                 className="h-full rounded-full bg-primary/60 transition-all duration-400"
-                style={{ width: `${(item.value / item.max) * 100}%` }}
+                style={{ width: `${Math.min((item.value / item.max) * 100, 100)}%` }}
               />
             </div>
             <p className="text-xs font-mono text-text-secondary mt-1">

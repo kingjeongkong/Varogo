@@ -26,7 +26,9 @@ export function ChannelList({ channels }: ChannelListProps) {
           <button
             key={channel.id}
             role="tab"
+            id={`channel-tab-${channel.id}`}
             aria-selected={i === activeIndex}
+            aria-controls={`channel-panel-${channel.id}`}
             onClick={() => setActiveIndex(i)}
             className={`flex-1 py-2 rounded-md text-sm font-medium transition-all cursor-pointer text-center
               ${
@@ -41,7 +43,13 @@ export function ChannelList({ channels }: ChannelListProps) {
       </div>
 
       {/* Detail Card */}
-      <ChannelCard key={activeChannel.id} channel={activeChannel} rank={activeIndex} />
+      <div
+        role="tabpanel"
+        id={`channel-panel-${activeChannel.id}`}
+        aria-labelledby={`channel-tab-${activeChannel.id}`}
+      >
+        <ChannelCard key={activeChannel.id} channel={activeChannel} rank={activeIndex} />
+      </div>
     </div>
   )
 }
