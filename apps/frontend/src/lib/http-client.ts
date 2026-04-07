@@ -16,8 +16,15 @@ export async function baseFetch<T>(url: string, options: RequestInit): Promise<T
   });
 
   if (!res.ok) {
-    const errorText = await res.text().catch(() => res.statusText);
-    throw new ApiError(errorText || `API error: ${res.status}`, res.status);
+    const errorBody = await res.text().catch(() => '');
+    let message = `API error: ${res.status}`;
+    try {
+      const parsed = JSON.parse(errorBody);
+      message = parsed.message ?? message;
+    } catch {
+      message = errorBody || message;
+    }
+    throw new ApiError(message, res.status);
   }
 
   const text = await res.text();
