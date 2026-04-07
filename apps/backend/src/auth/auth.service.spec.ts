@@ -12,7 +12,6 @@ const mockPrisma = {
   user: {
     findUnique: jest.fn(),
     create: jest.fn(),
-    findUniqueOrThrow: jest.fn(),
   },
 };
 
@@ -225,7 +224,7 @@ describe('AuthService', () => {
         userId: 'user-1',
       });
       mockConfigService.get.mockReturnValue('7');
-      mockPrisma.user.findUniqueOrThrow.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-1',
         email: 'test@example.com',
       });
@@ -239,9 +238,22 @@ describe('AuthService', () => {
         'old-refresh-token',
         expect.any(Date),
       );
-      expect(mockPrisma.user.findUniqueOrThrow).toHaveBeenCalledWith({
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-1' },
       });
+    });
+
+    it('throws UnauthorizedException when user is not found after rotate', async () => {
+      mockRefreshTokenRepo.rotate.mockResolvedValue({
+        token: 'new-refresh-token',
+        userId: 'deleted-user',
+      });
+      mockConfigService.get.mockReturnValue('7');
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.refresh('old-refresh-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -257,7 +269,7 @@ describe('AuthService', () => {
   });
 
   describe('getMe', () => {
-    it('calls prisma with the correct select fields', async () => {
+    it('returns user with the correct select fields', async () => {
       const expectedUser = {
         id: 'user-1',
         email: 'test@example.com',
@@ -265,11 +277,11 @@ describe('AuthService', () => {
         avatarUrl: null,
         createdAt: new Date(),
       };
-      mockPrisma.user.findUniqueOrThrow.mockResolvedValue(expectedUser);
+      mockPrisma.user.findUnique.mockResolvedValue(expectedUser);
 
       const result = await service.getMe('user-1');
 
-      expect(mockPrisma.user.findUniqueOrThrow).toHaveBeenCalledWith({
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         select: {
           id: true,
@@ -280,6 +292,14 @@ describe('AuthService', () => {
         },
       });
       expect(result).toEqual(expectedUser);
+    });
+
+    it('throws UnauthorizedException when user is not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.getMe('deleted-user')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

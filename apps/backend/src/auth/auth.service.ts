@@ -76,9 +76,10 @@ export class AuthService {
     const rotated = await this.refreshTokenRepo.rotate(rawToken, newExpiresAt);
     if (!rotated) throw new UnauthorizedException('Invalid refresh token');
 
-    const user = await this.prisma.user.findUniqueOrThrow({
+    const user = await this.prisma.user.findUnique({
       where: { id: rotated.userId },
     });
+    if (!user) throw new UnauthorizedException('User not found');
 
     const accessToken = this.signAccessToken(user.id, user.email);
     return { accessToken, refreshToken: rotated.token };
@@ -89,7 +90,7 @@ export class AuthService {
   }
 
   async getMe(userId: string) {
-    return this.prisma.user.findUniqueOrThrow({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -99,6 +100,8 @@ export class AuthService {
         createdAt: true,
       },
     });
+    if (!user) throw new UnauthorizedException('User not found');
+    return user;
   }
 
   private async issueTokens(userId: string, email: string) {
