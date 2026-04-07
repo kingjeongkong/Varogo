@@ -76,9 +76,14 @@ docker compose down             # Stop
 
 ## Code Verification
 
-- Before finishing any task: run tsc --noEmit → must have 0 errors
-- If the file is a test-writer target: invoke test-writer agent → confirm tests pass
+Before finishing any task:
 
-## Agent Workflow
+1. Type check: `tsc --noEmit` (in the app you modified) — must have 0 errors
+2. Lint: `pnpm lint` (in the app you modified) — fix all errors before proceeding
+3. Tests: `pnpm test` (in the app you modified) — all tests must pass
 
-See `.claude/WORKFLOW.md` for test-writer invocation rules.
+After completing a service, controller, form component, or hook with logic:
+invoke the test-writer agent to generate tests, then confirm tests pass.
+
+Skip test-writer for: DTOs, Prisma schema changes, config files, decorators,
+simple UI components that only render props.

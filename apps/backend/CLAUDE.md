@@ -4,12 +4,16 @@ See root `CLAUDE.md` for shared conventions, commands, and environment variable 
 
 ## NestJS Rules
 
-- **Controllers**: Handle routing and request/response transformation only — no business logic
-- **Services**: All business logic lives here
+- **Controllers**: Handle routing and `toXxxResponse()` transformation only — no business logic
+- **Services**: All business logic, Prisma calls, and error throwing lives here
 - **DTOs**: Must use `class-validator` decorators for all inputs
-- **Guards**: `JwtAuthGuard` is registered as a global `APP_GUARD` — all endpoints are protected by default. Public endpoints (login, signup, etc.) must be explicitly decorated with `@Public()`. Do NOT add `@UseGuards(AuthGuard)` to protected endpoints; it is redundant.
-- **Errors**: Use NestJS built-in `HttpException` and its subclasses — never throw plain errors
-- **Responses**: All API responses must follow a consistent shape
+- **Response DTOs**: Define interface + `toXxxResponse()` transformer in `dto/` — never return raw Prisma objects from controllers
+- **Guards**: `JwtAuthGuard` is registered as a global `APP_GUARD` — all endpoints are protected by default. Public endpoints must be decorated with `@Public()`. Do NOT add `@UseGuards(AuthGuard)` — it is redundant
+- **User identity**: Use `@CurrentUser()` decorator to extract JWT payload, access user ID via `user.sub`
+- **Ownership**: Filter queries by `userId`, throw `NotFoundException` if not found
+- **DB queries**: Use `findUnique`/`findFirst` + null check — never `findUniqueOrThrow`
+- **Transactions**: Multi-table writes must use `prisma.$transaction()`
+- **Errors**: Use NestJS `HttpException` subclasses only — never throw plain `Error`
 
 ## Prisma
 

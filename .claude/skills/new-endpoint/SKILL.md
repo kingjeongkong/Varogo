@@ -9,58 +9,45 @@ description: Use when adding a new API route to an existing NestJS module, or cr
 
 When adding a new route to an existing NestJS module, or creating a new module with endpoints.
 
-## Steps
+## Rules
 
-1. **Controller** — routing and request/response transformation only
-   - Add the route decorator (`@Get`, `@Post`, `@Patch`, `@Delete`)
-   - Validate input via DTO parameter — no inline validation logic
-   - Call the corresponding service method and return the result
-   - Every endpoint must declare `@UseGuards(AuthGuard)` or `@Public()`
+### Controller
+- Controllers handle routing and `toXxxResponse()` transformation only — zero business logic
+- Auth: global APP_GUARD protects all endpoints by default (secure by default). Use `@Public()` for public endpoints only. **Never use `@UseGuards(AuthGuard)` — it is redundant with the global guard**
+- User identity: use `@CurrentUser()` decorator to extract `JwtPayload`. Access user ID via `user.sub`
+- UUID path params: always use `ParseUUIDPipe`
+- Body params: validated via DTO classes with class-validator decorators
+- Use `@HttpCode()` when the default status code does not match (e.g., POST login returning 200 instead of 201)
 
-   ```typescript
-   @Post()
-   @UseGuards(AuthGuard)
-   create(@Body() dto: CreateSomethingDto, @Request() req) {
-     return this.somethingService.create(dto, req.user.id);
-   }
-   ```
+### Response DTO
+- Define an interface (`XxxResponse`) and a pure transformer function (`toXxxResponse()`) in `dto/xxx.response.ts`
+- Controllers call the transformer before returning — this decouples the Prisma model from the API contract
+- Never return raw Prisma objects directly from controllers
 
-2. **DTO** — define in `dto/` with class-validator decorators
-   - Use `@IsString()`, `@IsOptional()`, `@IsUrl()`, etc.
-   - Never accept raw `any` or unvalidated objects
+### Input DTO
+- Define in `dto/` directory with class-validator decorators on every field (`@IsString()`, `@IsEmail()`, `@IsOptional()`, etc.)
+- Never accept raw `any` or unvalidated objects
+- Global `ValidationPipe` with `whitelist: true` + `forbidNonWhitelisted: true` strips unknown fields automatically
 
-   ```typescript
-   export class CreateSomethingDto {
-     @IsString()
-     @IsNotEmpty()
-     name: string;
+### Service
+- All business logic, Prisma calls, and error throwing lives in services only
+- Ownership check: `findFirst({ where: { id, userId } })` + `NotFoundException` if null. Never use `findUniqueOrThrow`
+- Errors: throw `HttpException` subclasses only (`NotFoundException`, `ConflictException`, `UnauthorizedException`, etc.). Never throw plain `Error`
+- Multi-table writes: wrap in `prisma.$transaction()`. Never split across separate Prisma calls
+- Use Prisma Client exclusively — no raw SQL
 
-     @IsUrl()
-     @IsOptional()
-     url?: string;
-   }
-   ```
+### Module
+- New modules must be registered in `AppModule` imports
+- Export services that other modules need to consume
 
-3. **Service** — all business logic lives here
-   - Use Prisma Client for DB access — no raw SQL
-   - Throw `HttpException` subclasses for errors (`NotFoundException`, `BadRequestException`, etc.)
-   - Never throw plain `Error`
+### API Contract
+- When adding a new endpoint, also add/update the corresponding Response type in the frontend `apps/frontend/src/lib/types.ts`
 
-   ```typescript
-   async create(dto: CreateSomethingDto, userId: string) {
-     return this.prisma.something.create({
-       data: { ...dto, userId },
-     });
-   }
-   ```
-
-4. **Module** — register the new service/controller if creating a new module
-   - Add to `imports` in `AppModule`
-
-## Rules to enforce
-
-- Controllers handle routing and response shape only — zero business logic
-- Every endpoint must have `@UseGuards(AuthGuard)` or `@Public()` — no exceptions
-- All errors via `HttpException` subclasses — never `throw new Error(...)`
-- DTOs must use `class-validator` decorators on every field
-- Use Prisma Client exclusively — no raw SQL or direct DB queries
+## References
+- `apps/backend/src/product/product.controller.ts` — controller pattern
+- `apps/backend/src/product/dto/product.response.ts` — Response DTO (interface + transformer)
+- `apps/backend/src/product/dto/create-product.dto.ts` — Input DTO with class-validator
+- `apps/backend/src/product/product.service.ts` — service pattern (ownership check, $transaction, HttpException)
+- `apps/backend/src/auth/decorators/public.decorator.ts` — @Public() decorator
+- `apps/backend/src/auth/decorators/current-user.decorator.ts` — @CurrentUser() decorator
+- `apps/backend/src/app.module.ts` — module registration
