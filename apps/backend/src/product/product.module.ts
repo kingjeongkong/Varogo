@@ -6,5 +6,6 @@ import { ProductAnalysisService } from './product-analysis.service';
 @Module({
   controllers: [ProductController],
   providers: [ProductService, ProductAnalysisService],
+  exports: [ProductService],
 })
 export class ProductModule {}

@@ -121,15 +121,12 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
       >
         <div className="rounded-xl border border-dashed border-border-hover bg-surface/50 p-6 text-center">
           <p className="text-sm text-text-muted mb-3">다음 단계로 채널 분석을 진행하세요</p>
-          <button
-            disabled
-            className="inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border border-border text-text-muted bg-surface cursor-not-allowed"
+          <Link
+            href={`/product/${product.id}/channels`}
+            className="inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
           >
             채널 분석하기
-            <span className="text-[10px] font-mono uppercase tracking-wider bg-surface-elevated px-2 py-0.5 rounded-md">
-              Coming Soon
-            </span>
-          </button>
+          </Link>
         </div>
       </div>
     </div>

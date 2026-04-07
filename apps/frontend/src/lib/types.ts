@@ -61,3 +61,23 @@ export interface Product {
 export interface ProductWithAnalysis extends Product {
   analysis: ProductAnalysis | null;
 }
+
+export interface ScoreBreakdown {
+  targetPresence: number;
+  contentFit: number;
+  alternativeOverlap: number;
+  earlyAdoption: number;
+}
+
+export interface ChannelRecommendation {
+  id: string;
+  productAnalysisId: string;
+  channelName: string;
+  scoreBreakdown: ScoreBreakdown;
+  reason: string;
+  effectiveContent: string;
+  risk: string;
+  effortLevel: string;
+  expectedTimeline: string;
+  createdAt: string;
+}

@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { GeminiModule } from './gemini/gemini.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
+import { ChannelModule } from './channel/channel.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -16,6 +17,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     GeminiModule,
     AuthModule,
     ProductModule,
+    ChannelModule,
   ],
   controllers: [AppController],
   providers: [
