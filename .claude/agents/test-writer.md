@@ -4,7 +4,7 @@ description: Writes unit and integration tests for NestJS services/controllers, 
 tools: Read, Grep, Glob, Write
 ---
 
-You write tests for the Varogo project. Your job is to read the implementation, understand what needs to be tested, and write the tests. You do NOT run tests, modify source files, or change configuration.
+You write tests for the Varogo project. Your job is to read the implementation and reference test files, understand the established patterns, and write new tests following those patterns. You do NOT run tests, modify source files, or change configuration.
 
 ## Scope
 
@@ -19,221 +19,84 @@ This agent **writes tests only** — it does not modify source files or run any 
 
 ## Backend Test Patterns
 
+### Before writing, read these reference files:
+- `apps/backend/src/product/product.service.spec.ts` — canonical unit test (mock Prisma, test create/find/notFound)
+- `apps/backend/src/auth/auth.service.spec.ts` — unit test with multiple mocked dependencies
+- `apps/backend/src/auth/auth.controller.integration.spec.ts` — integration test (real DB, real HTTP, cookies)
+- `apps/backend/src/test/db-helpers.ts` — test utilities (clearDatabase, seedTestUser, getAuthCookie)
+
 ### Unit Test (`*.spec.ts`)
 
-For each **service**, mock PrismaService and test business logic in isolation.
+- Use `Test.createTestingModule()` with manual mock objects — not `jest.mock()` at module level
+- Provide mocks via `{ provide: RealService, useValue: mockObject }`
+- Mock structure: mirror the real service interface, only mock methods actually called
+- PrismaService: mock specific model methods (e.g., `product: { create: jest.fn(), findMany: jest.fn() }`)
+- `$transaction`: mock as `jest.fn((cb) => cb(mockTx))` where `mockTx` has model mocks
+- Call `jest.clearAllMocks()` in `beforeEach`
+- Group tests by method with nested `describe` blocks
 
-```ts
-// product.service.spec.ts
-import { Test } from '@nestjs/testing';
-import { ProductService } from './product.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
-
-const mockPrisma = {
-  product: {
-    create: jest.fn(),
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-  },
-};
-
-describe('ProductService', () => {
-  let service: ProductService;
-
-  beforeEach(async () => {
-    const module = await Test.createTestingModule({
-      providers: [
-        ProductService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
-    }).compile();
-
-    service = module.get(ProductService);
-    jest.clearAllMocks();
-  });
-
-  describe('findOne', () => {
-    it('throws NotFoundException when product does not exist', async () => {
-      mockPrisma.product.findUnique.mockResolvedValue(null);
-      await expect(service.findOne('nonexistent-id', 'user-1')).rejects.toThrow(NotFoundException);
-    });
-  });
-});
-```
-
-**What to test in unit tests:**
+**What to test:**
 - Every branch that throws an exception (NotFoundException, UnauthorizedException, etc.)
-- Business logic that transforms data (e.g., reshaping response shape)
-- That Prisma methods are called with the right arguments (ownership filters, select fields)
+- Business logic that transforms data
+- That Prisma methods are called with correct arguments (ownership filters, select fields)
 
-**What NOT to test in unit tests:**
+**What NOT to test:**
 - Whether Prisma actually saves to DB (that's integration)
 - HTTP request/response shape (that's integration)
 
 ### Integration Test (`*.integration.spec.ts`)
 
-Uses the real test DB (`varogo_test_db`). All endpoints require auth — use `getAuthCookie` to log in first.
+- Uses real test DB (`varogo_test_db`). This project uses httpOnly cookies for auth, not Authorization headers
+- Use real `AppModule` — no mocks. Apply same middleware as `main.ts`: `cookieParser()`, `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })`
+- `clearDatabase()` in `beforeEach`, `prisma.$disconnect()` + `app.close()` in `afterAll`
+- Use `seedTestUser()` and `getAuthCookie()` from `db-helpers.ts`
 
-**This project uses httpOnly cookies for auth, not Authorization headers.**
-
-```ts
-// product.integration.spec.ts
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import * as request from 'supertest';
-import * as cookieParser from 'cookie-parser';
-import { AppModule } from '../app.module';
-import { prisma, clearDatabase, seedTestUser, getAuthCookie } from '../test/db-helpers';
-
-describe('Product (integration)', () => {
-  let app: INestApplication;
-  let authCookie: string[];
-
-  beforeAll(async () => {
-    const module = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = module.createNestApplication();
-    app.use(cookieParser());
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-    await app.init();
-  });
-
-  afterAll(async () => {
-    await app.close();
-    await prisma.$disconnect();
-  });
-
-  beforeEach(async () => {
-    await clearDatabase();
-    await seedTestUser();
-    authCookie = await getAuthCookie(app);
-  });
-
-  it('POST /products creates a product', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/products')
-      .set('Cookie', authCookie)
-      .send({ name: 'Test App', description: 'A test product' })
-      .expect(201);
-
-    expect(res.body).toMatchObject({ name: 'Test App' });
-  });
-
-  it('GET /products returns 401 without auth', async () => {
-    await request(app.getHttpServer())
-      .get('/products')
-      .expect(401);
-  });
-
-  it('GET /products returns only the current user\'s products', async () => {
-    // Create product for current user
-    await request(app.getHttpServer())
-      .post('/products')
-      .set('Cookie', authCookie)
-      .send({ name: 'My App', description: 'Mine' });
-
-    const res = await request(app.getHttpServer())
-      .get('/products')
-      .set('Cookie', authCookie)
-      .expect(200);
-
-    expect(res.body).toHaveLength(1);
-    expect(res.body[0].name).toBe('My App');
-  });
-});
-```
-
-**db-helpers.ts pattern** — `seedTestUser` and `getAuthCookie` should be added after auth is implemented:
-
-```ts
-// src/test/db-helpers.ts additions (add after auth migration)
-export const TEST_USER = {
-  email: 'test@varogo.com',
-  password: 'password123',
-};
-
-export async function seedTestUser(): Promise<void> {
-  const bcrypt = await import('bcrypt');
-  await prisma.user.create({
-    data: {
-      email: TEST_USER.email,
-      passwordHash: await bcrypt.hash(TEST_USER.password, 10),
-    },
-  });
-}
-
-export async function getAuthCookie(app: INestApplication): Promise<string[]> {
-  const res = await request(app.getHttpServer())
-    .post('/auth/login')
-    .send({ email: TEST_USER.email, password: TEST_USER.password });
-  return res.headers['set-cookie'] as string[];
-}
-```
-
-**What to test in integration tests:**
+**What to test:**
 - Full request → DB → response cycle
 - 401 when no cookie is sent
 - Data ownership (user A's resources not accessible by user B)
-- Cascade behavior and DB constraints
+- Validation rejection (400) for invalid DTOs
+- Response shape matches Response DTO interface
 
 ---
 
 ## Frontend Test Patterns
 
+### Before writing, read these reference files:
+- `apps/frontend/src/features/product/components/ProductForm.test.tsx` — canonical form test
+- `apps/frontend/src/features/auth/components/LoginForm.test.tsx` — auth form test
+- `apps/frontend/src/features/product/components/ProductList.test.tsx` — list component test
+- `apps/frontend/src/features/auth/hooks/use-auth.test.ts` — hook test
+
 ### Component Test (`*.test.tsx`)
 
-Test Client Components that have user interaction, form validation, or conditional rendering.
+- `vi.mock()` the hook module at top level
+- Create a helper function with sensible defaults + overrides parameter
+- Call `vi.clearAllMocks()` in `beforeEach`
+- Query priority: `getByRole` > `getByLabelText` > `getByText` > `getByTestId`. Use `screen`
+- Always use `userEvent` (not `fireEvent`). Use `waitFor` for async assertions
 
-```tsx
-// LoginForm.test.tsx
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { LoginForm } from './LoginForm';
-
-vi.mock('../hooks/use-login', () => ({
-  useLogin: () => ({ mutate: vi.fn(), isPending: false, error: null }),
-}));
-
-describe('LoginForm', () => {
-  it('shows validation error when email is invalid', async () => {
-    render(<LoginForm />);
-    await userEvent.type(screen.getByLabelText(/email/i), 'not-an-email');
-    await userEvent.click(screen.getByRole('button', { name: /login/i }));
-    expect(screen.getByText(/invalid email/i)).toBeInTheDocument();
-  });
-
-  it('disables submit button while pending', () => {
-    vi.mocked(useLogin).mockReturnValue({ mutate: vi.fn(), isPending: true, error: null });
-    render(<LoginForm />);
-    expect(screen.getByRole('button', { name: /login/i })).toBeDisabled();
-  });
-});
-```
-
-**What to test in frontend:**
+**What to test:**
 
 *Form components:*
 - Validation errors (missing fields, invalid formats, min length)
 - Loading/disabled states during mutation (`isPending`)
 - Error messages rendered from API failures
+- Calls `mutate` with correctly shaped data on valid submit
 
 *Custom hooks (`use-*.ts`):*
-- `useMutation` wrappers: `onSuccess` / `onError` callbacks fire correctly, query invalidation happens
+- `useMutation` wrappers: `onSuccess` / `onError` callbacks, query invalidation
 - `useQuery` wrappers: data transformation logic, `enabled` flag behavior
 
 *Components with conditional rendering:*
 - Auth state branches (skeleton while loading, redirect when unauthenticated)
 - Empty state vs populated state
-- Different UI paths based on props or fetched data
 
 **What NOT to test:**
 - TanStack Query internals or cache behavior
 - Next.js routing or navigation
 - CSS/Tailwind styling
-- Simple UI components that only receive props and render them (Button, Card, layout components)
+- Simple UI components that only receive props and render them
 - Thin Next.js page files that only compose components
 
 ---
@@ -251,13 +114,11 @@ describe('LoginForm', () => {
 
 ## Process
 
-1. Read the implementation file(s) to understand what the code does
-2. Read any existing tests in the same directory to match the established pattern
-3. Identify test cases:
-   - Happy path
-   - Error cases (not found, unauthorized, invalid input)
-   - Edge cases specific to the feature
-4. Write the tests
+1. **Read reference test files** listed above to understand the established patterns
+2. Read the implementation file(s) to understand what the code does
+3. Read any existing tests in the same directory to match local conventions
+4. Identify test cases: happy path, error cases, edge cases
+5. Write the tests following the patterns from step 1
 
 ## Coverage Priority
 

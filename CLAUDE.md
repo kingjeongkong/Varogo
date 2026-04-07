@@ -87,3 +87,15 @@ invoke the test-writer agent to generate tests, then confirm tests pass.
 
 Skip test-writer for: DTOs, Prisma schema changes, config files, decorators,
 simple UI components that only render props.
+
+## Skills
+
+Before starting work, read the relevant skill:
+
+- New API endpoint or NestJS module → `.claude/skills/new-endpoint/`
+- New frontend feature module → `.claude/skills/new-feature/`
+- New Next.js page → `.claude/skills/new-page/`
+- New form component → `.claude/skills/new-form/`
+- New or modified Prisma model → `.claude/skills/new-prisma-model/`
+- Writing backend tests → `.claude/skills/new-backend-test/`
+- Writing frontend tests → `.claude/skills/new-frontend-test/`
