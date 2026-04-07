@@ -41,7 +41,7 @@
           },
           {
             "type": "command",
-            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.integration\\.spec\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && pnpm test:integration 2>&1 | tail -10; fi"
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/backend/src/.*\\.integration\\.spec\\.ts$ ]]; then cd /Users/wang/Desktop/Varogo/apps/backend && if ! docker compose -f ../../docker-compose.yml ps postgres 2>/dev/null | grep -q running; then echo '[skip] integration test: postgres container not running'; exit 0; fi && pnpm test:integration 2>&1 | tail -10; fi"
           },
           {
             "type": "command",

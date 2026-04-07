@@ -22,8 +22,7 @@ When adding a new route to the frontend (`app/` directory).
 
 ### Data Fetching (Server Components)
 - Use `serverFetch` from `@/lib/server-http-client` — it forwards auth cookies and handles 401 with redirect
-- Never use `apiFetch` from `@/lib/http-client` in Server Components — that is the client-side fetch
-- Import from the relevant feature's `api-client.ts`, not from `@/lib/` directly
+- Never use `apiFetch` or feature `api-client` in Server Components — those are client-side only
 
 ### Client Page Pattern
 - When a page must be a Client Component (e.g., multiple hooks needed), use `use(params)` to unwrap the async params
@@ -33,6 +32,10 @@ When adding a new route to the frontend (`app/` directory).
 ### Layout
 - Use `<Header />` from `@/components/layout/Header`
 - Wrap content in consistent layout structure (`<main>` with max-width and padding)
+
+### Auth Middleware
+- Public routes (no login required) must be added to `PUBLIC_PATHS` in `apps/frontend/src/middleware.ts`
+- Forgetting this causes unauthenticated users to be redirected to `/login` even on public pages
 
 ### Error and Loading States
 - Use `notFound()` for missing resources — never return null silently

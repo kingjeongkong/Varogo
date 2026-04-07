@@ -26,9 +26,8 @@ When implementing a new domain in the frontend (e.g., `subscription`, `post-draf
 - If two features need the same type, move it to `@/lib/types.ts`
 
 ### hooks/
-- One file per data concern
-- `use-<resource>.ts` for `useQuery` (fetching)
-- `use-create-<resource>.ts`, `use-update-<resource>.ts` for `useMutation`
+- Start with one file per resource (`use-<resource>.ts`) containing both query and mutation hooks
+- Split into separate files only when a single file grows complex or handles clearly distinct concerns
 - Every mutation hook must call `queryClient.invalidateQueries()` on success
 
 ### Query Key Conventions
@@ -41,7 +40,7 @@ When implementing a new domain in the frontend (e.g., `subscription`, `post-draf
 - API calls through hooks only — never import `api-client` directly in components
 
 ### API Access Rules
-- **Server Components** (in `app/`): may call feature `api-client` functions directly for SSR
+- **Server Components** (in `app/`): use `serverFetch` from `@/lib/server-http-client` — never use `apiFetch` or feature `api-client` directly
 - **Client Components**: must go through hooks (`useQuery`/`useMutation`) — never call api-client directly
 
 ### State Management Boundary
@@ -63,5 +62,6 @@ When implementing a new domain in the frontend (e.g., `subscription`, `post-draf
 - `apps/frontend/src/features/auth/` — auth feature (Zustand store integration from hooks)
 - `apps/frontend/src/features/channel/` — read-only feature (no types.ts, utility file)
 - `apps/frontend/src/lib/types.ts` — shared response types
-- `apps/frontend/src/lib/http-client.ts` — apiFetch utility
+- `apps/frontend/src/lib/http-client.ts` — apiFetch utility (Client Components)
+- `apps/frontend/src/lib/server-http-client.ts` — serverFetch utility (Server Components)
 - `apps/frontend/src/stores/auth-store.ts` — Zustand store pattern
