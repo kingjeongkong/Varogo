@@ -18,31 +18,34 @@ export class ProductService {
       dto.additionalInfo,
     );
 
-    const product = await this.prisma.product.create({
-      data: {
-        userId,
-        name: dto.name,
-        url: dto.url,
-        additionalInfo: dto.additionalInfo,
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: {
+          userId,
+          name: dto.name,
+          url: dto.url,
+          additionalInfo: dto.additionalInfo,
+        },
+      });
 
-    const productAnalysis = await this.prisma.productAnalysis.create({
-      data: {
-        productId: product.id,
-        targetAudience:
-          analysis.targetAudience as unknown as Prisma.InputJsonValue,
-        problem: analysis.problem,
-        alternatives: analysis.alternatives as unknown as Prisma.InputJsonValue,
-        comparisonTable:
-          analysis.comparisonTable as unknown as Prisma.InputJsonValue,
-        differentiators: analysis.differentiators,
-        positioningStatement: analysis.positioningStatement,
-        keywords: analysis.keywords,
-      },
-    });
+      const productAnalysis = await tx.productAnalysis.create({
+        data: {
+          productId: product.id,
+          targetAudience:
+            analysis.targetAudience as unknown as Prisma.InputJsonValue,
+          problem: analysis.problem,
+          alternatives:
+            analysis.alternatives as unknown as Prisma.InputJsonValue,
+          comparisonTable:
+            analysis.comparisonTable as unknown as Prisma.InputJsonValue,
+          differentiators: analysis.differentiators,
+          positioningStatement: analysis.positioningStatement,
+          keywords: analysis.keywords,
+        },
+      });
 
-    return { ...product, analysis: productAnalysis };
+      return { ...product, analysis: productAnalysis };
+    });
   }
 
   async findAllByUser(userId: string) {

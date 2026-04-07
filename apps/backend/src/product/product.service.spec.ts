@@ -4,7 +4,17 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProductAnalysisService } from './product-analysis.service';
 import { ProductService } from './product.service';
 
+const mockTx = {
+  product: {
+    create: jest.fn(),
+  },
+  productAnalysis: {
+    create: jest.fn(),
+  },
+};
+
 const mockPrisma = {
+  $transaction: jest.fn((cb: (tx: typeof mockTx) => Promise<unknown>) => cb(mockTx)),
   product: {
     create: jest.fn(),
     findMany: jest.fn(),
@@ -79,13 +89,21 @@ describe('ProductService', () => {
     };
 
     it('creates product, calls analyze, saves analysis, and returns combined result', async () => {
-      mockPrisma.product.create.mockResolvedValue(mockProduct);
+      mockTx.product.create.mockResolvedValue(mockProduct);
       mockProductAnalysisService.analyze.mockResolvedValue(mockAnalysisResult);
-      mockPrisma.productAnalysis.create.mockResolvedValue(mockSavedAnalysis);
+      mockTx.productAnalysis.create.mockResolvedValue(mockSavedAnalysis);
 
       const result = await service.create(userId, dto);
 
-      expect(mockPrisma.product.create).toHaveBeenCalledWith({
+      expect(mockProductAnalysisService.analyze).toHaveBeenCalledWith(
+        dto.name,
+        dto.url,
+        dto.additionalInfo,
+      );
+
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+
+      expect(mockTx.product.create).toHaveBeenCalledWith({
         data: {
           userId,
           name: dto.name,
@@ -94,13 +112,7 @@ describe('ProductService', () => {
         },
       });
 
-      expect(mockProductAnalysisService.analyze).toHaveBeenCalledWith(
-        dto.name,
-        dto.url,
-        dto.additionalInfo,
-      );
-
-      expect(mockPrisma.productAnalysis.create).toHaveBeenCalledWith({
+      expect(mockTx.productAnalysis.create).toHaveBeenCalledWith({
         data: {
           productId: mockProduct.id,
           targetAudience: mockAnalysisResult.targetAudience,
@@ -125,8 +137,7 @@ describe('ProductService', () => {
         'AI service unavailable',
       );
 
-      expect(mockPrisma.product.create).not.toHaveBeenCalled();
-      expect(mockPrisma.productAnalysis.create).not.toHaveBeenCalled();
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
   });
 
