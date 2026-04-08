@@ -56,7 +56,7 @@ docker compose down             # Stop
 - **Backend build**: SWC (`nest-cli.json` builder: swc)
 - **Frontend build**: Turbopack (`next dev --turbopack`)
 - **DB port**: 5432 — Docker container only (local postgresql@14 disabled)
-- **Prisma**: run `npx prisma generate` after schema changes
+- **Prisma**: run `npx prisma generate` after schema changes or `pnpm install` / `node_modules` reinstall
 
 ## Coding Conventions
 
@@ -99,3 +99,4 @@ Before starting work, read the relevant skill:
 - New or modified Prisma model → `.claude/skills/new-prisma-model/`
 - Writing backend tests → `.claude/skills/new-backend-test/`
 - Writing frontend tests → `.claude/skills/new-frontend-test/`
+- Writing frontend UI → `.claude/skills/shared-ui/`
