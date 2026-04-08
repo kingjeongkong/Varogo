@@ -30,8 +30,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='ko' className={`${sora.variable} ${outfit.variable} ${jetbrainsMono.variable} h-full`}>
-      <body className='min-h-full flex flex-col'>
+    <html
+      lang="ko"
+      className={`${sora.variable} ${outfit.variable} ${jetbrainsMono.variable} h-full`}
+    >
+      <body className="min-h-full flex flex-col">
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>
         </QueryProvider>

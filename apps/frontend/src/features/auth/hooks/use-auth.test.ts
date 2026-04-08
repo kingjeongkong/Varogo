@@ -12,8 +12,12 @@ vi.mock('next/navigation', () => ({
 const mockSetUser = vi.fn();
 const mockClearUser = vi.fn();
 vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: (selector: (s: { setUser: typeof mockSetUser; clearUser: typeof mockClearUser }) => unknown) =>
-    selector({ setUser: mockSetUser, clearUser: mockClearUser }),
+  useAuthStore: (
+    selector: (s: {
+      setUser: typeof mockSetUser;
+      clearUser: typeof mockClearUser;
+    }) => unknown,
+  ) => selector({ setUser: mockSetUser, clearUser: mockClearUser }),
 }));
 
 const mockLogin = vi.fn();
@@ -68,9 +72,15 @@ describe('useAuth', () => {
       renderHook(() => useAuth());
 
       const loginOptions = capturedMutations[0];
-      await loginOptions.mutationFn({ email: 'a@b.com', password: 'password123' });
+      await loginOptions.mutationFn({
+        email: 'a@b.com',
+        password: 'password123',
+      });
 
-      expect(mockLogin).toHaveBeenCalledWith({ email: 'a@b.com', password: 'password123' });
+      expect(mockLogin).toHaveBeenCalledWith({
+        email: 'a@b.com',
+        password: 'password123',
+      });
     });
 
     it('calls setUser and navigates to "/" on success', async () => {
@@ -96,9 +106,17 @@ describe('useAuth', () => {
       renderHook(() => useAuth());
 
       const signupOptions = capturedMutations[1];
-      await signupOptions.mutationFn({ email: 'new@b.com', password: 'password123', name: 'Alice' });
+      await signupOptions.mutationFn({
+        email: 'new@b.com',
+        password: 'password123',
+        name: 'Alice',
+      });
 
-      expect(mockSignup).toHaveBeenCalledWith({ email: 'new@b.com', password: 'password123', name: 'Alice' });
+      expect(mockSignup).toHaveBeenCalledWith({
+        email: 'new@b.com',
+        password: 'password123',
+        name: 'Alice',
+      });
     });
 
     it('calls setUser and navigates to "/" on success', async () => {

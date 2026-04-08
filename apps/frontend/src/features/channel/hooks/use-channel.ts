@@ -7,7 +7,9 @@ export function useAnalyzeChannels(productId: string) {
   return useMutation({
     mutationFn: () => analyzeChannels(productId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channelRecommendations', productId] });
+      queryClient.invalidateQueries({
+        queryKey: ['channelRecommendations', productId],
+      });
     },
   });
 }

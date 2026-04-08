@@ -1,13 +1,13 @@
-import { type ComponentPropsWithoutRef } from 'react'
+import { type ComponentPropsWithoutRef } from 'react';
 
-type AlertVariant = 'error'
+type AlertVariant = 'error';
 
 const variantStyles: Record<AlertVariant, string> = {
-  error: 'bg-error-dim border border-error/20 text-error'
-}
+  error: 'bg-error-dim border border-error/20 text-error',
+};
 
 interface AlertProps extends ComponentPropsWithoutRef<'div'> {
-  variant?: AlertVariant
+  variant?: AlertVariant;
 }
 
 export function Alert({
@@ -25,5 +25,5 @@ export function Alert({
     >
       {children}
     </div>
-  )
+  );
 }

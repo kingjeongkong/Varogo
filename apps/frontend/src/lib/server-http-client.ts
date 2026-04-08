@@ -3,7 +3,10 @@ import { redirect } from 'next/navigation';
 import { API_BASE_URL } from './constants';
 import { ApiError, baseFetch } from './http-client';
 
-export async function serverFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function serverFetch<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
   const AUTH_COOKIES = ['access_token', 'refresh_token'];
   const cookieStore = await cookies();
   const cookieHeader = cookieStore

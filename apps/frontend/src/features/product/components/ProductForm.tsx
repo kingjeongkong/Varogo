@@ -1,13 +1,13 @@
-'use client'
+'use client';
 
-import { Alert } from '@/components/ui/Alert'
-import { Button } from '@/components/ui/Button'
-import { FormField } from '@/components/ui/FormField'
-import { Spinner } from '@/components/ui/Spinner'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { useCreateProduct } from '../hooks/use-product'
+import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/Button';
+import { FormField } from '@/components/ui/FormField';
+import { Spinner } from '@/components/ui/Spinner';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { useCreateProduct } from '../hooks/use-product';
 
 const schema = z.object({
   name: z
@@ -18,20 +18,20 @@ const schema = z.object({
     .string()
     .url('유효한 URL을 입력해주세요')
     .refine((v) => v.startsWith('http://') || v.startsWith('https://'), {
-      message: 'http:// 또는 https://로 시작하는 URL을 입력해주세요'
+      message: 'http:// 또는 https://로 시작하는 URL을 입력해주세요',
     }),
-  additionalInfo: z.string().max(2000, '2000자 이내로 입력해주세요').optional()
-})
+  additionalInfo: z.string().max(2000, '2000자 이내로 입력해주세요').optional(),
+});
 
-type FormData = z.infer<typeof schema>
+type FormData = z.infer<typeof schema>;
 
 const ANALYSIS_STEPS = [
   '제품 정보를 수집하고 있습니다',
   '타겟 고객을 분석하고 있습니다',
   '경쟁 제품을 조사하고 있습니다',
   '차별점을 도출하고 있습니다',
-  '포지셔닝 전략을 수립하고 있습니다'
-]
+  '포지셔닝 전략을 수립하고 있습니다',
+];
 
 function AnalyzingOverlay() {
   return (
@@ -64,16 +64,16 @@ function AnalyzingOverlay() {
         <p className="text-xs text-text-muted">약 10~20초 소요됩니다</p>
       </div>
     </div>
-  )
+  );
 }
 
 export function ProductForm() {
-  const { mutate: create, isPending, error } = useCreateProduct()
+  const { mutate: create, isPending, error } = useCreateProduct();
   const {
     register,
     handleSubmit,
-    formState: { errors }
-  } = useForm<FormData>({ resolver: zodResolver(schema) })
+    formState: { errors },
+  } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   return (
     <>
@@ -104,7 +104,8 @@ export function ProductForm() {
           id="additional-info"
           label={
             <>
-              추가 정보 <span className="text-text-muted font-normal">(선택)</span>
+              추가 정보{' '}
+              <span className="text-text-muted font-normal">(선택)</span>
             </>
           }
           as="textarea"
@@ -124,5 +125,5 @@ export function ProductForm() {
         </Button>
       </form>
     </>
-  )
+  );
 }

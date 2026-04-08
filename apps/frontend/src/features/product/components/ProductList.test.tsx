@@ -8,8 +8,14 @@ vi.mock('../hooks/use-product', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: React.PropsWithChildren<{ href: string }>) => (
-    <a href={href} {...props}>{children}</a>
+  default: ({
+    children,
+    href,
+    ...props
+  }: React.PropsWithChildren<{ href: string }>) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -67,8 +73,12 @@ describe('ProductList', () => {
       mockUseProducts({ isLoading: true });
       render(<ProductList />);
 
-      expect(screen.queryByText(/제품 목록을 불러오지 못했습니다/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/아직 분석한 제품이 없습니다/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/제품 목록을 불러오지 못했습니다/),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/아직 분석한 제품이 없습니다/),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -77,7 +87,9 @@ describe('ProductList', () => {
       mockUseProducts({ error: new Error('Network error') });
       render(<ProductList />);
 
-      expect(screen.getByText('제품 목록을 불러오지 못했습니다.')).toBeInTheDocument();
+      expect(
+        screen.getByText('제품 목록을 불러오지 못했습니다.'),
+      ).toBeInTheDocument();
     });
 
     it('does not show skeleton or product cards on error', () => {
@@ -94,14 +106,18 @@ describe('ProductList', () => {
       mockUseProducts({ data: [] });
       render(<ProductList />);
 
-      expect(screen.getByText('아직 분석한 제품이 없습니다.')).toBeInTheDocument();
+      expect(
+        screen.getByText('아직 분석한 제품이 없습니다.'),
+      ).toBeInTheDocument();
     });
 
     it('shows empty message when data is undefined', () => {
       mockUseProducts({ data: undefined });
       render(<ProductList />);
 
-      expect(screen.getByText('아직 분석한 제품이 없습니다.')).toBeInTheDocument();
+      expect(
+        screen.getByText('아직 분석한 제품이 없습니다.'),
+      ).toBeInTheDocument();
     });
   });
 
@@ -147,8 +163,12 @@ describe('ProductList', () => {
     it('does not show error or empty message', () => {
       render(<ProductList />);
 
-      expect(screen.queryByText(/제품 목록을 불러오지 못했습니다/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/아직 분석한 제품이 없습니다/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/제품 목록을 불러오지 못했습니다/),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/아직 분석한 제품이 없습니다/),
+      ).not.toBeInTheDocument();
     });
   });
 });

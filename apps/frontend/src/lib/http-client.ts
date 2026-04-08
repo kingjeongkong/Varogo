@@ -9,7 +9,10 @@ export class ApiError extends Error {
   }
 }
 
-export async function baseFetch<T>(url: string, options: RequestInit): Promise<T> {
+export async function baseFetch<T>(
+  url: string,
+  options: RequestInit,
+): Promise<T> {
   const res = await fetch(url, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -33,7 +36,10 @@ export async function baseFetch<T>(url: string, options: RequestInit): Promise<T
 
 let refreshPromise: Promise<void> | null = null;
 
-export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const opts: RequestInit = { ...options, credentials: 'include' };
 

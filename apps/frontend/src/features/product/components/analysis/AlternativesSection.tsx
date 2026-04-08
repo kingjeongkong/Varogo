@@ -1,11 +1,13 @@
-import type { Alternative } from '@/lib/types'
-import { SectionLabel } from './SectionLabel'
+import type { Alternative } from '@/lib/types';
+import { SectionLabel } from './SectionLabel';
 
 interface AlternativesSectionProps {
-  alternatives: Alternative[]
+  alternatives: Alternative[];
 }
 
-export function AlternativesSection({ alternatives }: AlternativesSectionProps) {
+export function AlternativesSection({
+  alternatives,
+}: AlternativesSectionProps) {
   return (
     <section
       className="animate-slide-up"
@@ -26,13 +28,20 @@ export function AlternativesSection({ alternatives }: AlternativesSectionProps) 
                 {alt.price}
               </span>
             </div>
-            <p className="text-sm text-text-secondary mb-4 leading-relaxed">{alt.problemSolved}</p>
+            <p className="text-sm text-text-secondary mb-4 leading-relaxed">
+              {alt.problemSolved}
+            </p>
             {alt.limitations.length > 0 && (
               <div className="border-t border-border pt-3">
-                <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">한계점</p>
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+                  한계점
+                </p>
                 <ul className="space-y-1.5">
                   {alt.limitations.map((l) => (
-                    <li key={l} className="text-xs text-text-muted flex gap-2 items-start">
+                    <li
+                      key={l}
+                      className="text-xs text-text-muted flex gap-2 items-start"
+                    >
                       <span className="shrink-0 mt-1 w-1 h-1 rounded-full bg-error/60" />
                       {l}
                     </li>
@@ -44,5 +53,5 @@ export function AlternativesSection({ alternatives }: AlternativesSectionProps) 
         ))}
       </div>
     </section>
-  )
+  );
 }

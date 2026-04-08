@@ -1,25 +1,36 @@
-'use client'
+'use client';
 
-import { use, useState } from 'react'
-import Header from '@/components/layout/Header'
-import { useProduct } from '@/features/product/hooks/use-product'
-import { ChannelHero } from '@/features/channel/components/ChannelHero'
-import { ChannelList } from '@/features/channel/components/ChannelList'
-import { useAnalyzeChannels, useChannelRecommendations } from '@/features/channel/hooks/use-channel'
+import { use, useState } from 'react';
+import Header from '@/components/layout/Header';
+import { useProduct } from '@/features/product/hooks/use-product';
+import { ChannelHero } from '@/features/channel/components/ChannelHero';
+import { ChannelList } from '@/features/channel/components/ChannelList';
+import {
+  useAnalyzeChannels,
+  useChannelRecommendations,
+} from '@/features/channel/hooks/use-channel';
 
 export default function ChannelsPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params)
-  const { data: product, isLoading: productLoading, error: productError } = useProduct(id)
-  const { data: channels, isLoading: channelsLoading, error: channelsError } = useChannelRecommendations(id)
-  const { mutate: analyze, isPending } = useAnalyzeChannels(id)
-  const [analyzeError, setAnalyzeError] = useState<string | null>(null)
+  const { id } = use(params);
+  const {
+    data: product,
+    isLoading: productLoading,
+    error: productError,
+  } = useProduct(id);
+  const {
+    data: channels,
+    isLoading: channelsLoading,
+    error: channelsError,
+  } = useChannelRecommendations(id);
+  const { mutate: analyze, isPending } = useAnalyzeChannels(id);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
-  const isLoading = productLoading || channelsLoading
-  const error = productError || channelsError
+  const isLoading = productLoading || channelsLoading;
+  const error = productError || channelsError;
 
   return (
     <div className="min-h-screen">
@@ -37,7 +48,9 @@ export default function ChannelsPage({
 
         {error && (
           <div className="glass-card p-8 text-center">
-            <p className="text-error text-sm">채널 정보를 불러오지 못했습니다.</p>
+            <p className="text-error text-sm">
+              채널 정보를 불러오지 못했습니다.
+            </p>
           </div>
         )}
 
@@ -57,10 +70,13 @@ export default function ChannelsPage({
                 )}
                 <button
                   onClick={() => {
-                    setAnalyzeError(null)
+                    setAnalyzeError(null);
                     analyze(undefined, {
-                      onError: () => setAnalyzeError('채널 분석에 실패했습니다. 다시 시도해주세요.'),
-                    })
+                      onError: () =>
+                        setAnalyzeError(
+                          '채널 분석에 실패했습니다. 다시 시도해주세요.',
+                        ),
+                    });
                   }}
                   disabled={isPending}
                   className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -73,5 +89,5 @@ export default function ChannelsPage({
         )}
       </main>
     </div>
-  )
+  );
 }

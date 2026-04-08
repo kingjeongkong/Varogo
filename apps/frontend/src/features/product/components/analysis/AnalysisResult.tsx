@@ -1,19 +1,19 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
-import type { ProductWithAnalysis } from '@/lib/types'
-import { AnalysisHero } from './AnalysisHero'
-import { TargetAudienceSection } from './TargetAudienceSection'
-import { AlternativesSection } from './AlternativesSection'
-import { ComparisonSection } from './ComparisonSection'
-import { SectionLabel } from './SectionLabel'
+import Link from 'next/link';
+import type { ProductWithAnalysis } from '@/lib/types';
+import { AnalysisHero } from './AnalysisHero';
+import { TargetAudienceSection } from './TargetAudienceSection';
+import { AlternativesSection } from './AlternativesSection';
+import { ComparisonSection } from './ComparisonSection';
+import { SectionLabel } from './SectionLabel';
 
 interface AnalysisResultProps {
-  product: ProductWithAnalysis
+  product: ProductWithAnalysis;
 }
 
 export function AnalysisResult({ product }: AnalysisResultProps) {
-  const analysis = product.analysis
+  const analysis = product.analysis;
 
   if (!analysis) {
     return (
@@ -26,7 +26,7 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
           대시보드로 돌아가기
         </Link>
       </div>
-    )
+    );
   }
 
   const {
@@ -36,8 +36,8 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
     comparisonTable,
     differentiators,
     positioningStatement,
-    keywords
-  } = analysis
+    keywords,
+  } = analysis;
 
   return (
     <div className="space-y-10">
@@ -101,11 +101,12 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
             <span
               key={kw}
               className={`inline-block rounded-lg border font-medium transition-colors cursor-default
-                ${i < 3
-                  ? 'bg-primary-dim border-primary/20 text-primary px-4 py-2 text-sm'
-                  : i < 7
-                    ? 'bg-surface border-border text-text-secondary px-3.5 py-1.5 text-sm hover:border-primary/30'
-                    : 'bg-surface-elevated border-border/50 text-text-muted px-3 py-1.5 text-xs hover:border-border'
+                ${
+                  i < 3
+                    ? 'bg-primary-dim border-primary/20 text-primary px-4 py-2 text-sm'
+                    : i < 7
+                      ? 'bg-surface border-border text-text-secondary px-3.5 py-1.5 text-sm hover:border-primary/30'
+                      : 'bg-surface-elevated border-border/50 text-text-muted px-3 py-1.5 text-xs hover:border-border'
                 }`}
             >
               {kw}
@@ -120,7 +121,9 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
         style={{ animationDelay: '0.35s', opacity: 0 }}
       >
         <div className="rounded-xl border border-dashed border-border-hover bg-surface/50 p-6 text-center">
-          <p className="text-sm text-text-muted mb-3">다음 단계로 채널 분석을 진행하세요</p>
+          <p className="text-sm text-text-muted mb-3">
+            다음 단계로 채널 분석을 진행하세요
+          </p>
           <Link
             href={`/product/${product.id}/channels`}
             className="inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
@@ -130,5 +133,5 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

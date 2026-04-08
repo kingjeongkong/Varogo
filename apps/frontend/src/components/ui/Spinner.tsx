@@ -1,18 +1,23 @@
 import { type ComponentPropsWithoutRef } from 'react';
 
-type SpinnerSize = 'sm' | 'md'
+type SpinnerSize = 'sm' | 'md';
 
-const sizeMap: Record<SpinnerSize, { className: string; strokeWidth: string }> = {
-  sm: { className: 'h-4 w-4', strokeWidth: '4' },
-  md: { className: 'h-6 w-6', strokeWidth: '3' }
-}
+const sizeMap: Record<SpinnerSize, { className: string; strokeWidth: string }> =
+  {
+    sm: { className: 'h-4 w-4', strokeWidth: '4' },
+    md: { className: 'h-6 w-6', strokeWidth: '3' },
+  };
 
 interface SpinnerProps extends ComponentPropsWithoutRef<'svg'> {
-  size?: SpinnerSize
+  size?: SpinnerSize;
 }
 
-export function Spinner({ size = 'sm', className = '', ...props }: SpinnerProps) {
-  const { className: sizeClass, strokeWidth } = sizeMap[size]
+export function Spinner({
+  size = 'sm',
+  className = '',
+  ...props
+}: SpinnerProps) {
+  const { className: sizeClass, strokeWidth } = sizeMap[size];
 
   return (
     <svg
@@ -35,5 +40,5 @@ export function Spinner({ size = 'sm', className = '', ...props }: SpinnerProps)
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
       />
     </svg>
-  )
+  );
 }

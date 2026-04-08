@@ -1,5 +1,5 @@
 interface ChannelHeroProps {
-  productName: string
+  productName: string;
 }
 
 export function ChannelHero({ productName }: ChannelHeroProps) {
@@ -17,5 +17,5 @@ export function ChannelHero({ productName }: ChannelHeroProps) {
         </p>
       </div>
     </section>
-  )
+  );
 }

@@ -1,18 +1,20 @@
-'use client'
+'use client';
 
-import type { ChannelRecommendation } from '@/lib/types'
-import { useState } from 'react'
-import { displayChannelName, getTotalScore } from '../channel-utils'
-import { ChannelCard } from './ChannelCard'
+import type { ChannelRecommendation } from '@/lib/types';
+import { useState } from 'react';
+import { displayChannelName, getTotalScore } from '../channel-utils';
+import { ChannelCard } from './ChannelCard';
 
 interface ChannelListProps {
-  channels: ChannelRecommendation[]
+  channels: ChannelRecommendation[];
 }
 
 export function ChannelList({ channels }: ChannelListProps) {
-  const sorted = [...channels].sort((a, b) => getTotalScore(b) - getTotalScore(a))
-  const [activeIndex, setActiveIndex] = useState(0)
-  const activeChannel = sorted[activeIndex]
+  const sorted = [...channels].sort(
+    (a, b) => getTotalScore(b) - getTotalScore(a),
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeChannel = sorted[activeIndex];
 
   return (
     <div className="space-y-4">
@@ -48,8 +50,12 @@ export function ChannelList({ channels }: ChannelListProps) {
         id={`channel-panel-${activeChannel.id}`}
         aria-labelledby={`channel-tab-${activeChannel.id}`}
       >
-        <ChannelCard key={activeChannel.id} channel={activeChannel} rank={activeIndex} />
+        <ChannelCard
+          key={activeChannel.id}
+          channel={activeChannel}
+          rank={activeIndex}
+        />
       </div>
     </div>
-  )
+  );
 }
