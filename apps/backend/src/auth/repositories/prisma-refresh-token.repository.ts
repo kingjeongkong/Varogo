@@ -31,9 +31,8 @@ export class PrismaRefreshTokenRepository implements IRefreshTokenRepository {
       if (!existing || existing.revokedAt || existing.expiresAt < new Date())
         return null;
 
-      await tx.refreshToken.update({
+      await tx.refreshToken.delete({
         where: { id: existing.id },
-        data: { revokedAt: new Date() },
       });
 
       const raw = randomBytes(40).toString('hex');
@@ -60,6 +59,19 @@ export class PrismaRefreshTokenRepository implements IRefreshTokenRepository {
     await this.prisma.refreshToken.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
+    });
+  }
+
+  async deleteByToken(rawToken: string): Promise<void> {
+    const tokenHash = this.hash(rawToken);
+    await this.prisma.refreshToken.deleteMany({
+      where: { tokenHash },
+    });
+  }
+
+  async deleteAll(userId: string): Promise<void> {
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
     });
   }
 }
