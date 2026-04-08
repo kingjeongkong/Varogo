@@ -53,7 +53,7 @@
           },
           {
             "type": "command",
-            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/frontend/src/.*\\.tsx?$ ]]; then cd /Users/wang/Desktop/Varogo/apps/frontend && npx eslint --fix \"$FILE\" 2>&1; ERRORS=$(npx eslint \"$FILE\" 2>&1); RC=$?; if [ $RC -ne 0 ]; then echo \"[eslint] $FILE\"; echo \"$ERRORS\"; exit 2; fi; fi"
+            "command": "FILE=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // empty'); if [ -n \"$FILE\" ] && [[ \"$FILE\" =~ apps/frontend/src/.*\\.tsx?$ ]]; then cd /Users/wang/Desktop/Varogo/apps/frontend && npx prettier --write \"$FILE\" 2>&1; npx eslint --fix \"$FILE\" 2>&1; ERRORS=$(npx eslint \"$FILE\" 2>&1); RC=$?; if [ $RC -ne 0 ]; then echo \"[eslint] $FILE\"; echo \"$ERRORS\"; exit 2; fi; fi"
           }
         ]
       }
