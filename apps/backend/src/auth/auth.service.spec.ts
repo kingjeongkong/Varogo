@@ -29,6 +29,8 @@ const mockRefreshTokenRepo = {
   rotate: jest.fn(),
   verify: jest.fn(),
   revokeAll: jest.fn(),
+  deleteByToken: jest.fn(),
+  deleteAll: jest.fn(),
 };
 
 describe('AuthService', () => {
@@ -258,13 +260,13 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('calls revokeAll with the correct userId', async () => {
-      mockRefreshTokenRepo.revokeAll.mockResolvedValue(undefined);
+    it('calls deleteAll with the correct userId', async () => {
+      mockRefreshTokenRepo.deleteAll.mockResolvedValue(undefined);
 
       await service.logout('user-1');
 
-      expect(mockRefreshTokenRepo.revokeAll).toHaveBeenCalledWith('user-1');
-      expect(mockRefreshTokenRepo.revokeAll).toHaveBeenCalledTimes(1);
+      expect(mockRefreshTokenRepo.deleteAll).toHaveBeenCalledWith('user-1');
+      expect(mockRefreshTokenRepo.deleteAll).toHaveBeenCalledTimes(1);
     });
   });
 

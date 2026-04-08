@@ -6,4 +6,6 @@ export interface IRefreshTokenRepository {
   ): Promise<{ token: string; userId: string } | null>;
   verify(rawToken: string): Promise<{ userId: string } | null>;
   revokeAll(userId: string): Promise<void>;
+  deleteByToken(rawToken: string): Promise<void>;
+  deleteAll(userId: string): Promise<void>;
 }

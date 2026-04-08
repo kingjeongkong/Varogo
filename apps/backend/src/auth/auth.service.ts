@@ -84,7 +84,7 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    await this.refreshTokenRepo.revokeAll(userId);
+    await this.refreshTokenRepo.deleteAll(userId);
   }
 
   async getMe(userId: string) {
