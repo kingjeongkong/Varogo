@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button'
 import type { ChannelRecommendation } from '@/lib/types'
 import { getTotalScore } from '../channel-utils'
 
@@ -7,14 +8,16 @@ interface ChannelCardProps {
 }
 
 function getEffortColor(effortLevel: string) {
-  if (effortLevel.startsWith('Low')) return 'bg-success-dim text-success border-success/20'
+  if (effortLevel.startsWith('Low'))
+    return 'bg-success-dim text-success border-success/20'
   if (effortLevel.startsWith('High')) return 'bg-error-dim text-error border-error/20'
   return 'bg-warning-dim text-warning border-warning/20'
 }
 
 export function ChannelCard({ channel, rank }: ChannelCardProps) {
   const totalScore = getTotalScore(channel)
-  const { targetPresence, contentFit, alternativeOverlap, earlyAdoption } = channel.scoreBreakdown
+  const { targetPresence, contentFit, alternativeOverlap, earlyAdoption } =
+    channel.scoreBreakdown
   const effortLabel = channel.effortLevel.split(' | ')[0]
 
   return (
@@ -37,7 +40,7 @@ export function ChannelCard({ channel, rank }: ChannelCardProps) {
           { label: 'Target', value: targetPresence, max: 30 },
           { label: 'Content', value: contentFit, max: 25 },
           { label: 'Overlap', value: alternativeOverlap, max: 25 },
-          { label: 'Adoption', value: earlyAdoption, max: 20 },
+          { label: 'Adoption', value: earlyAdoption, max: 20 }
         ].map((item) => (
           <div key={item.label} className="text-center">
             <p className="text-[10px] font-mono text-text-muted uppercase tracking-wider mb-1">
@@ -61,7 +64,9 @@ export function ChannelCard({ channel, rank }: ChannelCardProps) {
 
       {/* Effective Content */}
       <div className="rounded-lg bg-accent-dim border-l-2 border-accent px-4 py-3 mb-3">
-        <p className="text-xs font-mono text-accent uppercase tracking-wider mb-1">Effective Content</p>
+        <p className="text-xs font-mono text-accent uppercase tracking-wider mb-1">
+          Effective Content
+        </p>
         <p className="text-sm text-text-secondary">{channel.effectiveContent}</p>
       </div>
 
@@ -73,23 +78,24 @@ export function ChannelCard({ channel, rank }: ChannelCardProps) {
 
       {/* Footer: Effort + Timeline */}
       <div className="flex items-center justify-between">
-        <span className={`inline-block rounded-md border px-3 py-1 text-xs font-medium ${getEffortColor(channel.effortLevel)}`}>
+        <span
+          className={`inline-block rounded-md border px-3 py-1 text-xs font-medium ${getEffortColor(channel.effortLevel)}`}
+        >
           {effortLabel}
         </span>
-        <span className="text-xs text-text-muted font-mono">{channel.expectedTimeline}</span>
+        <span className="text-xs text-text-muted font-mono">
+          {channel.expectedTimeline}
+        </span>
       </div>
 
       {/* Step 3 CTA */}
       <div className="mt-5 pt-5 border-t border-border/60 text-right">
-        <button
-          disabled
-          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg border border-border text-text-muted bg-surface-elevated cursor-not-allowed opacity-60"
-        >
+        <Button variant="outline" disabled className="px-5 text-sm">
           이 채널로 전략 수립
           <span className="text-[10px] font-mono uppercase tracking-wider bg-surface px-2 py-0.5 rounded-md">
             Step 3
           </span>
-        </button>
+        </Button>
       </div>
     </div>
   )
