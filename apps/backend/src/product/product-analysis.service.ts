@@ -1,10 +1,10 @@
-import { type ResponseSchema, SchemaType } from '@google/generative-ai';
+import { Type } from '@google/genai';
 import {
   Injectable,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { GeminiService } from '../gemini/gemini.service';
+import { GeminiService } from '../llm/gemini.service';
 import type { ProductAnalysisResult } from './types/product-analysis.type';
 
 @Injectable()
@@ -18,38 +18,81 @@ export class ProductAnalysisService {
     url: string,
     additionalInfo?: string,
   ): Promise<ProductAnalysisResult> {
-    const prompt = this.buildPrompt(name, url, additionalInfo);
-    const model = this.gemini.getClient().getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: this.responseSchema as ResponseSchema,
-      },
-    });
-
     try {
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      return JSON.parse(text) as ProductAnalysisResult;
+      const productInfo = await this.fetchProductInfo(
+        name,
+        url,
+        additionalInfo,
+      );
+      return await this.analyzeProduct(name, productInfo);
     } catch (error) {
+      if (error instanceof InternalServerErrorException) throw error;
       this.logger.error('Gemini API call failed', error);
       throw new InternalServerErrorException('Product analysis failed');
     }
   }
 
-  private buildPrompt(
+  private async fetchProductInfo(
+    name: string,
+    url: string,
+    additionalInfo?: string,
+  ): Promise<string> {
+    const prompt = this.buildFetchPrompt(name, url, additionalInfo);
+    const result = await this.gemini.getClient().models.generateContent({
+      model: 'gemini-2.5-flash-lite',
+      contents: prompt,
+      config: {
+        tools: [{ urlContext: {} }],
+      },
+    });
+    return result.text ?? '';
+  }
+
+  private async analyzeProduct(
+    name: string,
+    productInfo: string,
+  ): Promise<ProductAnalysisResult> {
+    const prompt = this.buildAnalysisPrompt(name, productInfo);
+    const result = await this.gemini.getClient().models.generateContent({
+      model: 'gemini-2.5-flash-lite',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: this.responseSchema,
+      },
+    });
+    return JSON.parse(result.text ?? '{}') as ProductAnalysisResult;
+  }
+
+  private buildFetchPrompt(
     name: string,
     url: string,
     additionalInfo?: string,
   ): string {
-    return `You are a product analyst specializing in indie/startup products.
-Analyze the following product and provide a comprehensive marketing analysis.
+    return `Visit the following URL and extract all useful information about the product.
 
 Product name: ${name}
 Product URL: ${url}
 ${additionalInfo ? `Additional context: ${additionalInfo}` : ''}
 
-If you cannot access the URL, analyze based on the domain name, URL path, and any additional context provided.
+Extract and summarize:
+- What the product does
+- Key features and capabilities
+- Target users
+- Pricing information (if available)
+- Any unique selling points
+
+Respond in Korean. Be thorough and factual.`;
+  }
+
+  private buildAnalysisPrompt(name: string, productInfo: string): string {
+    return `You are a product analyst specializing in indie/startup products.
+Based on the product information below, provide a comprehensive marketing analysis.
+
+Product name: ${name}
+
+=== Product Information ===
+${productInfo}
 
 Provide your analysis in the following structure:
 - targetAudience: Who is this product for? Include a clear definition, their behaviors, pain points, and communities where they are active.
@@ -64,23 +107,23 @@ Respond in Korean. Be specific and actionable.`;
   }
 
   private readonly responseSchema = {
-    type: SchemaType.OBJECT,
+    type: Type.OBJECT,
     properties: {
       targetAudience: {
-        type: SchemaType.OBJECT,
+        type: Type.OBJECT,
         properties: {
-          definition: { type: SchemaType.STRING },
+          definition: { type: Type.STRING },
           behaviors: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING },
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
           },
           painPoints: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING },
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
           },
           activeCommunities: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING },
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
           },
         },
         required: [
@@ -90,37 +133,37 @@ Respond in Korean. Be specific and actionable.`;
           'activeCommunities',
         ],
       },
-      problem: { type: SchemaType.STRING },
+      problem: { type: Type.STRING },
       alternatives: {
-        type: SchemaType.ARRAY,
+        type: Type.ARRAY,
         items: {
-          type: SchemaType.OBJECT,
+          type: Type.OBJECT,
           properties: {
-            name: { type: SchemaType.STRING },
-            problemSolved: { type: SchemaType.STRING },
-            price: { type: SchemaType.STRING },
+            name: { type: Type.STRING },
+            problemSolved: { type: Type.STRING },
+            price: { type: Type.STRING },
             limitations: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING },
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
             },
           },
           required: ['name', 'problemSolved', 'price', 'limitations'],
         },
       },
       comparisonTable: {
-        type: SchemaType.ARRAY,
+        type: Type.ARRAY,
         items: {
-          type: SchemaType.OBJECT,
+          type: Type.OBJECT,
           properties: {
-            aspect: { type: SchemaType.STRING },
-            myProduct: { type: SchemaType.STRING },
+            aspect: { type: Type.STRING },
+            myProduct: { type: Type.STRING },
             competitors: {
-              type: SchemaType.ARRAY,
+              type: Type.ARRAY,
               items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                  name: { type: SchemaType.STRING },
-                  value: { type: SchemaType.STRING },
+                  name: { type: Type.STRING },
+                  value: { type: Type.STRING },
                 },
                 required: ['name', 'value'],
               },
@@ -130,13 +173,13 @@ Respond in Korean. Be specific and actionable.`;
         },
       },
       differentiators: {
-        type: SchemaType.ARRAY,
-        items: { type: SchemaType.STRING },
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
       },
-      positioningStatement: { type: SchemaType.STRING },
+      positioningStatement: { type: Type.STRING },
       keywords: {
-        type: SchemaType.ARRAY,
-        items: { type: SchemaType.STRING },
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
       },
     },
     required: [

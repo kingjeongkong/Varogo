@@ -1,18 +1,15 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { GeminiService } from '../gemini/gemini.service';
+import { GeminiService } from '../llm/gemini.service';
 import type { ProductAnalysisResult } from '../product/types/product-analysis.type';
 import { ChannelAnalysisService } from './channel-analysis.service';
 import type { ChannelAnalysisResult } from './types/channel-recommendation.type';
 
 const mockGenerateContent = jest.fn();
-const mockGetGenerativeModel = jest.fn().mockReturnValue({
-  generateContent: mockGenerateContent,
-});
 
 const mockGeminiService = {
   getClient: jest.fn().mockReturnValue({
-    getGenerativeModel: mockGetGenerativeModel,
+    models: { generateContent: mockGenerateContent },
   }),
 };
 
@@ -77,28 +74,25 @@ describe('ChannelAnalysisService', () => {
     service = module.get(ChannelAnalysisService);
     jest.clearAllMocks();
 
-    mockGetGenerativeModel.mockReturnValue({
-      generateContent: mockGenerateContent,
-    });
     mockGeminiService.getClient.mockReturnValue({
-      getGenerativeModel: mockGetGenerativeModel,
+      models: { generateContent: mockGenerateContent },
     });
   });
 
   describe('analyze', () => {
     it('returns parsed ChannelAnalysisResult on success', async () => {
       mockGenerateContent.mockResolvedValue({
-        response: { text: () => JSON.stringify(VALID_RESULT) },
+        text: JSON.stringify(VALID_RESULT),
       });
 
       const result = await service.analyze(PRODUCT_ANALYSIS, 'MyProduct');
 
       expect(result).toEqual(VALID_RESULT);
       expect(mockGeminiService.getClient).toHaveBeenCalled();
-      expect(mockGetGenerativeModel).toHaveBeenCalledWith(
+      expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
           model: 'gemini-2.5-flash-lite',
-          generationConfig: expect.objectContaining({
+          config: expect.objectContaining({
             responseMimeType: 'application/json',
           }) as Record<string, unknown>,
         }),
@@ -107,21 +101,25 @@ describe('ChannelAnalysisService', () => {
 
     it('includes product analysis data in prompt', async () => {
       mockGenerateContent.mockResolvedValue({
-        response: { text: () => JSON.stringify(VALID_RESULT) },
+        text: JSON.stringify(VALID_RESULT),
       });
 
       await service.analyze(PRODUCT_ANALYSIS, 'MyProduct');
 
-      const prompt = (mockGenerateContent.mock.calls as string[][])[0][0];
-      expect(prompt).toContain('MyProduct');
-      expect(prompt).toContain('Indie developers');
-      expect(prompt).toContain('AI-powered strategy');
-      expect(prompt).toContain('The marketing copilot for indie devs.');
+      const calls = mockGenerateContent.mock.calls as Array<
+        [{ contents: string }]
+      >;
+      expect(calls[0][0].contents).toContain('MyProduct');
+      expect(calls[0][0].contents).toContain('Indie developers');
+      expect(calls[0][0].contents).toContain('AI-powered strategy');
+      expect(calls[0][0].contents).toContain(
+        'The marketing copilot for indie devs.',
+      );
     });
 
     it('throws InternalServerErrorException when Gemini returns invalid JSON', async () => {
       mockGenerateContent.mockResolvedValue({
-        response: { text: () => 'not valid json {{{' },
+        text: 'not valid json {{{',
       });
 
       await expect(

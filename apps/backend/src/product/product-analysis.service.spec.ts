@@ -1,17 +1,14 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { GeminiService } from '../gemini/gemini.service';
+import { GeminiService } from '../llm/gemini.service';
 import { ProductAnalysisService } from './product-analysis.service';
 import type { ProductAnalysisResult } from './types/product-analysis.type';
 
 const mockGenerateContent = jest.fn();
-const mockGetGenerativeModel = jest.fn().mockReturnValue({
-  generateContent: mockGenerateContent,
-});
 
 const mockGeminiService = {
   getClient: jest.fn().mockReturnValue({
-    getGenerativeModel: mockGetGenerativeModel,
+    models: { generateContent: mockGenerateContent },
   }),
 };
 
@@ -57,42 +54,39 @@ describe('ProductAnalysisService', () => {
     service = module.get(ProductAnalysisService);
     jest.clearAllMocks();
 
-    // Re-setup chained mocks after clearAllMocks
-    mockGetGenerativeModel.mockReturnValue({
-      generateContent: mockGenerateContent,
-    });
     mockGeminiService.getClient.mockReturnValue({
-      getGenerativeModel: mockGetGenerativeModel,
+      models: { generateContent: mockGenerateContent },
     });
   });
 
   describe('analyze', () => {
-    it('returns parsed ProductAnalysisResult on success', async () => {
-      mockGenerateContent.mockResolvedValue({
-        response: { text: () => JSON.stringify(VALID_RESULT) },
-      });
+    it('fetches product info then returns structured analysis', async () => {
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: 'Product info summary' })
+        .mockResolvedValueOnce({ text: JSON.stringify(VALID_RESULT) });
 
       const result = await service.analyze('MyProduct', 'https://example.com');
 
       expect(result).toEqual(VALID_RESULT);
-      expect(mockGeminiService.getClient).toHaveBeenCalled();
-      expect(mockGetGenerativeModel).toHaveBeenCalledWith(
-        expect.objectContaining({
-          model: 'gemini-2.5-flash-lite',
-          generationConfig: expect.objectContaining({
-            responseMimeType: 'application/json',
-          }) as Record<string, unknown>,
-        }),
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+
+      const calls = mockGenerateContent.mock.calls as Array<
+        [{ config: Record<string, unknown> }]
+      >;
+      // First call: urlContext for fetching
+      expect(calls[0][0].config).toEqual(
+        expect.objectContaining({ tools: [{ urlContext: {} }] }),
       );
-      expect(mockGenerateContent).toHaveBeenCalledWith(
-        expect.stringContaining('https://example.com'),
+      // Second call: structured JSON output
+      expect(calls[1][0].config).toEqual(
+        expect.objectContaining({ responseMimeType: 'application/json' }),
       );
     });
 
-    it('throws InternalServerErrorException when Gemini returns invalid JSON', async () => {
-      mockGenerateContent.mockResolvedValue({
-        response: { text: () => 'this is not valid json {{{' },
-      });
+    it('throws InternalServerErrorException when analysis returns invalid JSON', async () => {
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: 'Product info summary' })
+        .mockResolvedValueOnce({ text: 'not valid json {{{' });
 
       await expect(
         service.analyze('MyProduct', 'https://example.com'),
@@ -103,10 +97,10 @@ describe('ProductAnalysisService', () => {
       ).rejects.toThrow('Product analysis failed');
     });
 
-    it('includes additionalInfo in prompt when provided', async () => {
-      mockGenerateContent.mockResolvedValue({
-        response: { text: () => JSON.stringify(VALID_RESULT) },
-      });
+    it('includes additionalInfo in fetch prompt when provided', async () => {
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: 'Product info summary' })
+        .mockResolvedValueOnce({ text: JSON.stringify(VALID_RESULT) });
 
       await service.analyze(
         'MyProduct',
@@ -114,24 +108,36 @@ describe('ProductAnalysisService', () => {
         'A tool for scheduling tweets',
       );
 
-      const prompt = (mockGenerateContent.mock.calls as string[][])[0][0];
-      expect(prompt).toContain('https://example.com');
-      expect(prompt).toContain('A tool for scheduling tweets');
-      expect(prompt).toContain('Additional context:');
+      const calls = mockGenerateContent.mock.calls as Array<
+        [{ contents: string }]
+      >;
+      expect(calls[0][0].contents).toContain('https://example.com');
+      expect(calls[0][0].contents).toContain('A tool for scheduling tweets');
+      expect(calls[0][0].contents).toContain('Additional context:');
     });
 
     it('works without additionalInfo', async () => {
-      mockGenerateContent.mockResolvedValue({
-        response: { text: () => JSON.stringify(VALID_RESULT) },
-      });
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: 'Product info summary' })
+        .mockResolvedValueOnce({ text: JSON.stringify(VALID_RESULT) });
 
       const result = await service.analyze('MyProduct', 'https://example.com');
 
       expect(result).toEqual(VALID_RESULT);
 
-      const prompt = (mockGenerateContent.mock.calls as string[][])[0][0];
-      expect(prompt).toContain('https://example.com');
-      expect(prompt).not.toContain('Additional context:');
+      const calls = mockGenerateContent.mock.calls as Array<
+        [{ contents: string }]
+      >;
+      expect(calls[0][0].contents).toContain('https://example.com');
+      expect(calls[0][0].contents).not.toContain('Additional context:');
+    });
+
+    it('throws InternalServerErrorException when fetch step fails', async () => {
+      mockGenerateContent.mockRejectedValueOnce(new Error('API timeout'));
+
+      await expect(
+        service.analyze('MyProduct', 'https://example.com'),
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 });
