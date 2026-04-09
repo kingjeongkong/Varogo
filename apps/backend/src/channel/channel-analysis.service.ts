@@ -22,7 +22,7 @@ export class ChannelAnalysisService {
 
     try {
       const result = await this.gemini.getClient().models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-flash-lite',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',

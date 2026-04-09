@@ -39,7 +39,7 @@ export class ProductAnalysisService {
   ): Promise<string> {
     const prompt = this.buildFetchPrompt(name, url, additionalInfo);
     const result = await this.gemini.getClient().models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash-lite',
       contents: prompt,
       config: {
         tools: [{ urlContext: {} }],
@@ -54,7 +54,7 @@ export class ProductAnalysisService {
   ): Promise<ProductAnalysisResult> {
     const prompt = this.buildAnalysisPrompt(name, productInfo);
     const result = await this.gemini.getClient().models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash-lite',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',

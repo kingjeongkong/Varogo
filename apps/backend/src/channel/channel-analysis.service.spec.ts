@@ -91,7 +91,7 @@ describe('ChannelAnalysisService', () => {
       expect(mockGeminiService.getClient).toHaveBeenCalled();
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-2.5-flash-lite',
           config: expect.objectContaining({
             responseMimeType: 'application/json',
           }) as Record<string, unknown>,
