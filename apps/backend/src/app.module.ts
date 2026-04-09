@@ -4,7 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
-import { GeminiModule } from './gemini/gemini.module';
+import { LlmModule } from './llm/llm.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
 import { ChannelModule } from './channel/channel.module';
@@ -14,7 +14,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
-    GeminiModule,
+    LlmModule,
     AuthModule,
     ProductModule,
     ChannelModule,
