@@ -1,10 +1,10 @@
-import { type ResponseSchema, SchemaType } from '@google/generative-ai';
+import { Type } from '@google/genai';
 import {
   Injectable,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { GeminiService } from '../gemini/gemini.service';
+import { GeminiService } from '../llm/gemini.service';
 import type { ProductAnalysisResult } from '../product/types/product-analysis.type';
 import type { ChannelAnalysisResult } from './types/channel-recommendation.type';
 
@@ -19,18 +19,17 @@ export class ChannelAnalysisService {
     productName: string,
   ): Promise<ChannelAnalysisResult> {
     const prompt = this.buildPrompt(productAnalysis, productName);
-    const model = this.gemini.getClient().getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: this.responseSchema as ResponseSchema,
-      },
-    });
 
     try {
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      return JSON.parse(text) as ChannelAnalysisResult;
+      const result = await this.gemini.getClient().models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: this.responseSchema,
+        },
+      });
+      return JSON.parse(result.text ?? '{}') as ChannelAnalysisResult;
     } catch (error) {
       this.logger.error('Gemini API call failed', error);
       throw new InternalServerErrorException('Channel analysis failed');
@@ -76,21 +75,21 @@ Respond in Korean. Be specific and actionable.`;
   }
 
   private readonly responseSchema = {
-    type: SchemaType.OBJECT,
+    type: Type.OBJECT,
     properties: {
       channels: {
-        type: SchemaType.ARRAY,
+        type: Type.ARRAY,
         items: {
-          type: SchemaType.OBJECT,
+          type: Type.OBJECT,
           properties: {
-            channelName: { type: SchemaType.STRING },
+            channelName: { type: Type.STRING },
             scoreBreakdown: {
-              type: SchemaType.OBJECT,
+              type: Type.OBJECT,
               properties: {
-                targetPresence: { type: SchemaType.NUMBER },
-                contentFit: { type: SchemaType.NUMBER },
-                alternativeOverlap: { type: SchemaType.NUMBER },
-                earlyAdoption: { type: SchemaType.NUMBER },
+                targetPresence: { type: Type.NUMBER },
+                contentFit: { type: Type.NUMBER },
+                alternativeOverlap: { type: Type.NUMBER },
+                earlyAdoption: { type: Type.NUMBER },
               },
               required: [
                 'targetPresence',
@@ -99,11 +98,11 @@ Respond in Korean. Be specific and actionable.`;
                 'earlyAdoption',
               ],
             },
-            reason: { type: SchemaType.STRING },
-            effectiveContent: { type: SchemaType.STRING },
-            risk: { type: SchemaType.STRING },
-            effortLevel: { type: SchemaType.STRING },
-            expectedTimeline: { type: SchemaType.STRING },
+            reason: { type: Type.STRING },
+            effectiveContent: { type: Type.STRING },
+            risk: { type: Type.STRING },
+            effortLevel: { type: Type.STRING },
+            expectedTimeline: { type: Type.STRING },
           },
           required: [
             'channelName',
