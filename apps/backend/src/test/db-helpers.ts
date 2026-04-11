@@ -14,10 +14,13 @@ export const TEST_USER = {
  * Delete all rows in reverse dependency order.
  * Update this list after each schema migration that adds new models.
  *
- * Current order (as of auth):
- *   RefreshToken → Account → User
+ * Current order:
+ *   StrategyContentTemplate → Strategy → RefreshToken → Account → User
+ *   (cascade deletes handle ChannelRecommendation, ProductAnalysis, Product)
  */
 export async function clearDatabase(): Promise<void> {
+  await prisma.strategyContentTemplate.deleteMany();
+  await prisma.strategy.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.account.deleteMany();
   await prisma.user.deleteMany();
