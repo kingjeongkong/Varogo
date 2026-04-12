@@ -59,7 +59,7 @@ export default function ChannelsPage({
             <ChannelHero productName={product.name} />
 
             {channels && channels.length > 0 ? (
-              <ChannelList channels={channels} />
+              <ChannelList channels={channels} productId={id} />
             ) : (
               <div className="rounded-xl border border-dashed border-border-hover bg-surface/50 p-10 text-center">
                 <p className="text-text-muted mb-4">
