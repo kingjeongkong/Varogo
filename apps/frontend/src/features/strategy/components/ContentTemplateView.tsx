@@ -1,12 +1,17 @@
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import type { ContentTemplateResponse, StrategyResponse } from '@/lib/types';
 
 interface ContentTemplateViewProps {
+  productId: string;
+  channelId: string;
   strategy: StrategyResponse;
   template: ContentTemplateResponse;
 }
 
 export function ContentTemplateView({
+  productId,
+  channelId,
   strategy,
   template,
 }: ContentTemplateViewProps) {
@@ -64,14 +69,16 @@ export function ContentTemplateView({
         </div>
       </div>
 
-      {/* Step 4 CTA (placeholder) */}
+      {/* Step 4 CTA */}
       <div className="pt-4 border-t border-border/60 text-right">
-        <Button variant="outline" disabled className="px-5 text-sm">
-          콘텐츠 작성 시작
-          <span className="text-[10px] font-mono uppercase tracking-wider bg-surface px-2 py-0.5 rounded-md">
-            Step 4
-          </span>
-        </Button>
+        <Link href={`/product/${productId}/channels/${channelId}/content`}>
+          <Button className="px-6 text-sm">
+            콘텐츠 작성 시작
+            <span className="text-[10px] font-mono uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md">
+              Step 4
+            </span>
+          </Button>
+        </Link>
       </div>
     </div>
   );
