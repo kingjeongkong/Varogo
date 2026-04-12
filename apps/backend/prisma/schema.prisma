@@ -123,6 +123,7 @@ model Strategy {
 
   channelRecommendation ChannelRecommendation    @relation(fields: [channelRecommendationId], references: [id], onDelete: Cascade)
   contentTemplate       StrategyContentTemplate?
+  content               Content?
 
   @@index([channelRecommendationId])
   @@map("strategies")
@@ -139,5 +140,16 @@ model StrategyContentTemplate {
   strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
 
   @@map("strategy_content_templates")
+}
+
+model Content {
+  id         String   @id @default(uuid())
+  strategyId String   @unique @map("strategy_id")
+  body       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+
+  @@map("contents")
 }
 

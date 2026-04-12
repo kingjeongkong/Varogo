@@ -68,6 +68,8 @@ export default function StrategyTemplatePage({
               channelName={channel?.channelName ?? ''}
             />
             <ContentTemplateView
+              productId={id}
+              channelId={channelId}
               strategy={templateData.strategy}
               template={templateData.template}
             />

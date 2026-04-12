@@ -120,3 +120,11 @@ export interface SelectedStrategyResponse {
   strategy: StrategyResponse;
   template: ContentTemplateResponse;
 }
+
+export interface ContentResponse {
+  id: string;
+  strategyId: string;
+  body: string;
+  characterCount: number;
+  createdAt: string;
+}

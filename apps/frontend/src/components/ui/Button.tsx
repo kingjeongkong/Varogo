@@ -5,9 +5,9 @@ type ButtonVariant = 'primary' | 'outline';
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'text-white bg-primary hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed',
+    'text-white bg-primary hover:bg-primary-hover hover:shadow-md hover:shadow-primary/20 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100',
   outline:
-    'border border-border text-text-muted bg-surface-elevated disabled:opacity-60 disabled:cursor-not-allowed',
+    'border border-border text-text-secondary bg-surface-elevated hover:border-border-hover hover:bg-surface-hover hover:text-text-primary active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-surface-elevated disabled:hover:border-border disabled:hover:text-text-muted disabled:active:scale-100',
 };
 
 interface ButtonProps extends ComponentPropsWithRef<'button'> {
@@ -34,7 +34,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
-        className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-base font-medium transition-colors ${variantStyles[variant]} ${className}`}
+        className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-base font-medium transition-all duration-200 ${variantStyles[variant]} ${className}`}
         {...props}
       >
         {loading && <Spinner />}
