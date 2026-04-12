@@ -52,7 +52,7 @@ export default function ContentPage({
           </div>
         )}
 
-        {generateMutation.isError && (
+        {generateMutation.isError && !content && (
           <div className="glass-card p-8 text-center">
             <p className="text-error text-sm">
               콘텐츠 생성에 실패했습니다. 다시 시도해 주세요.

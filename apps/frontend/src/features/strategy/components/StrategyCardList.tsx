@@ -16,6 +16,9 @@ export function StrategyCardList({
   onSelect,
 }: StrategyCardListProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+
+  if (strategies.length === 0) return null;
+
   const activeStrategy = strategies[activeIndex];
 
   return (

@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@/components/ui/Button';
 import type { ChannelRecommendation } from '@/lib/types';
 import { useRouter } from 'next/navigation';
