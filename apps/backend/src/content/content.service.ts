@@ -24,15 +24,14 @@ export class ContentService {
   ): Promise<ContentResponse> {
     await this.validateChannel(productId, channelId, userId);
 
-    const template = await this.prisma.strategyContentTemplate.findFirst({
+    const content = await this.prisma.content.findFirst({
       where: { strategy: { channelRecommendationId: channelId } },
-      include: { strategy: { include: { content: true } } },
     });
-    if (!template || !template.strategy.content) {
+    if (!content) {
       throw new NotFoundException('Content not found');
     }
 
-    return toContentResponse(template.strategy.content, template.lengthGuide);
+    return toContentResponse(content);
   }
 
   async generateContent(
@@ -54,7 +53,7 @@ export class ContentService {
       where: { strategyId: template.strategy.id },
     });
     if (existing) {
-      return toContentResponse(existing, template.lengthGuide);
+      return toContentResponse(existing);
     }
 
     const productAnalysis =
@@ -89,8 +88,7 @@ export class ContentService {
       },
     };
 
-    const result =
-      await this.contentGenerationService.generateContent(input);
+    const result = await this.contentGenerationService.generateContent(input);
 
     const content = await this.prisma.$transaction((tx) =>
       tx.content.create({
@@ -101,7 +99,7 @@ export class ContentService {
       }),
     );
 
-    return toContentResponse(content, template.lengthGuide);
+    return toContentResponse(content);
   }
 
   private async validateChannel(

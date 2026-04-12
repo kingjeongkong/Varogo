@@ -19,6 +19,7 @@ const mockPrisma = {
     findFirst: jest.fn(),
   },
   content: {
+    findFirst: jest.fn(),
     findUnique: jest.fn(),
   },
 };
@@ -125,16 +126,7 @@ describe('ContentService', () => {
 
   describe('getContent', () => {
     it('returns ContentResponse when content exists', async () => {
-      const templateWithContent = {
-        ...TEMPLATE_FIXTURE,
-        strategy: {
-          ...TEMPLATE_FIXTURE.strategy,
-          content: CONTENT_FIXTURE,
-        },
-      };
-      mockPrisma.strategyContentTemplate.findFirst.mockResolvedValue(
-        templateWithContent,
-      );
+      mockPrisma.content.findFirst.mockResolvedValue(CONTENT_FIXTURE);
 
       const result = await service.getContent(PRODUCT_ID, CHANNEL_ID, USER_ID);
 
@@ -142,41 +134,20 @@ describe('ContentService', () => {
         CHANNEL_ID,
         USER_ID,
       );
-      expect(mockPrisma.strategyContentTemplate.findFirst).toHaveBeenCalledWith(
-        {
-          where: { strategy: { channelRecommendationId: CHANNEL_ID } },
-          include: { strategy: { include: { content: true } } },
-        },
-      );
+      expect(mockPrisma.content.findFirst).toHaveBeenCalledWith({
+        where: { strategy: { channelRecommendationId: CHANNEL_ID } },
+      });
       expect(result).toEqual({
         id: CONTENT_FIXTURE.id,
         strategyId: CONTENT_FIXTURE.strategyId,
         body: CONTENT_FIXTURE.body,
         characterCount: CONTENT_FIXTURE.body.length,
-        lengthGuide: TEMPLATE_FIXTURE.lengthGuide,
         createdAt: CONTENT_FIXTURE.createdAt,
       });
     });
 
-    it('throws NotFoundException when no template found', async () => {
-      mockPrisma.strategyContentTemplate.findFirst.mockResolvedValue(null);
-
-      await expect(
-        service.getContent(PRODUCT_ID, CHANNEL_ID, USER_ID),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('throws NotFoundException when template exists but no content', async () => {
-      const templateWithoutContent = {
-        ...TEMPLATE_FIXTURE,
-        strategy: {
-          ...TEMPLATE_FIXTURE.strategy,
-          content: null,
-        },
-      };
-      mockPrisma.strategyContentTemplate.findFirst.mockResolvedValue(
-        templateWithoutContent,
-      );
+    it('throws NotFoundException when no content found', async () => {
+      mockPrisma.content.findFirst.mockResolvedValue(null);
 
       await expect(
         service.getContent(PRODUCT_ID, CHANNEL_ID, USER_ID),
@@ -223,7 +194,6 @@ describe('ContentService', () => {
         strategyId: CONTENT_FIXTURE.strategyId,
         body: CONTENT_FIXTURE.body,
         characterCount: CONTENT_FIXTURE.body.length,
-        lengthGuide: TEMPLATE_FIXTURE.lengthGuide,
         createdAt: CONTENT_FIXTURE.createdAt,
       });
     });
@@ -252,9 +222,7 @@ describe('ContentService', () => {
         USER_ID,
       );
 
-      expect(
-        mockContentGenerationService.generateContent,
-      ).toHaveBeenCalledWith(
+      expect(mockContentGenerationService.generateContent).toHaveBeenCalledWith(
         expect.objectContaining({
           productAnalysis: expect.objectContaining({
             targetAudience: CHANNEL_FIXTURE.productAnalysis
@@ -286,7 +254,6 @@ describe('ContentService', () => {
         strategyId: createdContent.strategyId,
         body: createdContent.body,
         characterCount: generatedBody.length,
-        lengthGuide: TEMPLATE_FIXTURE.lengthGuide,
         createdAt: createdContent.createdAt,
       });
     });
