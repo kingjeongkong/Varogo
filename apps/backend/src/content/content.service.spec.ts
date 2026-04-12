@@ -5,20 +5,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ContentGenerationService } from './content-generation.service';
 import { ContentService } from './content.service';
 
-const mockTx = {
-  content: {
-    create: jest.fn(),
-  },
-};
-
 const mockPrisma = {
-  $transaction: jest.fn((cb: (tx: typeof mockTx) => Promise<unknown>) =>
-    cb(mockTx),
-  ),
   strategyContentTemplate: {
     findFirst: jest.fn(),
   },
   content: {
+    create: jest.fn(),
     findFirst: jest.fn(),
     findUnique: jest.fn(),
   },
@@ -188,7 +180,7 @@ describe('ContentService', () => {
       expect(
         mockContentGenerationService.generateContent,
       ).not.toHaveBeenCalled();
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockPrisma.content.create).not.toHaveBeenCalled();
       expect(result).toEqual({
         id: CONTENT_FIXTURE.id,
         strategyId: CONTENT_FIXTURE.strategyId,
@@ -214,7 +206,7 @@ describe('ContentService', () => {
         body: generatedBody,
         createdAt: new Date('2026-04-13'),
       };
-      mockTx.content.create.mockResolvedValue(createdContent);
+      mockPrisma.content.create.mockResolvedValue(createdContent);
 
       const result = await service.generateContent(
         PRODUCT_ID,
@@ -242,8 +234,7 @@ describe('ContentService', () => {
           }) as Record<string, unknown>,
         }),
       );
-      expect(mockPrisma.$transaction).toHaveBeenCalled();
-      expect(mockTx.content.create).toHaveBeenCalledWith({
+      expect(mockPrisma.content.create).toHaveBeenCalledWith({
         data: {
           strategyId: STRATEGY_ID,
           body: generatedBody,
@@ -281,8 +272,7 @@ describe('ContentService', () => {
       await expect(
         service.generateContent(PRODUCT_ID, CHANNEL_ID, USER_ID),
       ).rejects.toThrow('llm fail');
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
-      expect(mockTx.content.create).not.toHaveBeenCalled();
+      expect(mockPrisma.content.create).not.toHaveBeenCalled();
     });
   });
 });

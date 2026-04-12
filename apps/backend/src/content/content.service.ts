@@ -90,14 +90,12 @@ export class ContentService {
 
     const result = await this.contentGenerationService.generateContent(input);
 
-    const content = await this.prisma.$transaction((tx) =>
-      tx.content.create({
-        data: {
-          strategyId: template.strategy.id,
-          body: result.body,
-        },
-      }),
-    );
+    const content = await this.prisma.content.create({
+      data: {
+        strategyId: template.strategy.id,
+        body: result.body,
+      },
+    });
 
     return toContentResponse(content);
   }
