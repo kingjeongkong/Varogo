@@ -5,6 +5,7 @@ export function useContent(productId: string, channelId: string) {
   return useQuery({
     queryKey: ['content', productId, channelId],
     queryFn: () => fetchContent(productId, channelId),
+    retry: false,
   });
 }
 

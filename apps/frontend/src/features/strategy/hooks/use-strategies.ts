@@ -34,6 +34,7 @@ export function useSelectStrategy(productId: string, channelId: string) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ['strategies', productId, channelId],
+        exact: true,
       });
       queryClient.setQueryData(
         ['strategies', productId, channelId, 'template'],
