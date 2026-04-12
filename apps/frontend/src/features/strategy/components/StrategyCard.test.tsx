@@ -1,0 +1,95 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { StrategyCard } from './StrategyCard';
+import type { StrategyResponse } from '@/lib/types';
+
+const MOCK_STRATEGY: StrategyResponse = {
+  id: 'strat-1',
+  channelRecommendationId: 'ch-1',
+  title: '스토리 기반',
+  description: '창업 여정과 개인 경험을 중심으로 독자와 감정적 공감대를 형성',
+  coreMessage: '진짜 창업자가 겪는 고민을 공유한다',
+  approach: '일인칭 시점, 실패와 학습을 솔직하게 드러내기',
+  whyItFits: 'Reddit indiehackers는 진정성 있는 스토리에 강한 반응',
+  contentTypeTitle: '개인 경험 쓰레드',
+  contentTypeDescription: '창업 여정의 한 장면을 8~12개 포스트로 풀어냄',
+  createdAt: '2026-04-10T00:00:00.000Z',
+};
+
+describe('StrategyCard', () => {
+  const onSelect = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('rendering', () => {
+    it('renders strategy direction fields', () => {
+      render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
+
+      expect(screen.getByText('스토리 기반')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          '창업 여정과 개인 경험을 중심으로 독자와 감정적 공감대를 형성',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('진짜 창업자가 겪는 고민을 공유한다'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('일인칭 시점, 실패와 학습을 솔직하게 드러내기'),
+      ).toBeInTheDocument();
+    });
+
+    it('renders content type fields', () => {
+      render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
+
+      expect(screen.getByText('개인 경험 쓰레드')).toBeInTheDocument();
+      expect(
+        screen.getByText('창업 여정의 한 장면을 8~12개 포스트로 풀어냄'),
+      ).toBeInTheDocument();
+    });
+
+    it('renders as a button with accessible label', () => {
+      render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
+
+      expect(
+        screen.getByRole('button', { name: '전략 선택: 스토리 기반' }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('interaction', () => {
+    it('calls onSelect with strategy id on click', async () => {
+      const user = userEvent.setup();
+      render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
+
+      await user.click(
+        screen.getByRole('button', { name: '전략 선택: 스토리 기반' }),
+      );
+
+      expect(onSelect).toHaveBeenCalledWith('strat-1');
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call onSelect when disabled', async () => {
+      const user = userEvent.setup();
+      render(
+        <StrategyCard
+          strategy={MOCK_STRATEGY}
+          disabled
+          onSelect={onSelect}
+        />,
+      );
+
+      const button = screen.getByRole('button', {
+        name: '전략 선택: 스토리 기반',
+      });
+      expect(button).toBeDisabled();
+
+      await user.click(button);
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+  });
+});
