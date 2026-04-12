@@ -92,4 +92,28 @@ describe('StrategyCard', () => {
       expect(onSelect).not.toHaveBeenCalled();
     });
   });
+
+  describe('pending state', () => {
+    it('shows loading text when isPending', () => {
+      render(
+        <StrategyCard
+          strategy={MOCK_STRATEGY}
+          isPending
+          onSelect={onSelect}
+        />,
+      );
+
+      expect(screen.getByText('템플릿 생성 중...')).toBeInTheDocument();
+      expect(screen.queryByText('이 전략 선택')).not.toBeInTheDocument();
+    });
+
+    it('shows default CTA text when not pending', () => {
+      render(
+        <StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />,
+      );
+
+      expect(screen.getByText('이 전략 선택')).toBeInTheDocument();
+      expect(screen.queryByText('템플릿 생성 중...')).not.toBeInTheDocument();
+    });
+  });
 });

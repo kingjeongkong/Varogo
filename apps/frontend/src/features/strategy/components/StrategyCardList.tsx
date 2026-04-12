@@ -56,6 +56,7 @@ export function StrategyCardList({
           key={activeStrategy.id}
           strategy={activeStrategy}
           disabled={isPending}
+          isPending={isPending}
           onSelect={onSelect}
         />
       </div>

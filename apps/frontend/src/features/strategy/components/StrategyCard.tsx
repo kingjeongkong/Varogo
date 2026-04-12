@@ -1,20 +1,24 @@
+import { Spinner } from '@/components/ui/Spinner';
 import type { StrategyResponse } from '@/lib/types';
 
 interface StrategyCardProps {
   strategy: StrategyResponse;
   disabled?: boolean;
+  isPending?: boolean;
   onSelect: (strategyId: string) => void;
 }
 
 export function StrategyCard({
   strategy,
   disabled = false,
+  isPending = false,
   onSelect,
 }: StrategyCardProps) {
   return (
     <button
       type="button"
       disabled={disabled}
+      aria-busy={isPending || undefined}
       onClick={() => onSelect(strategy.id)}
       aria-label={`전략 선택: ${strategy.title}`}
       className="w-full text-left rounded-xl border border-border/60 bg-surface p-6 transition-all hover:border-primary/40 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-border/60 disabled:hover:shadow-none"
@@ -59,6 +63,14 @@ export function StrategyCard({
         <p className="text-xs text-text-muted mt-0.5">
           {strategy.contentTypeDescription}
         </p>
+      </div>
+
+      {/* Select CTA */}
+      <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-end gap-2">
+        {isPending && <Spinner />}
+        <span className="text-sm font-medium text-primary">
+          {isPending ? '템플릿 생성 중...' : '이 전략 선택'}
+        </span>
       </div>
     </button>
   );
