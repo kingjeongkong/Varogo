@@ -98,8 +98,46 @@ model ChannelRecommendation {
   createdAt         DateTime @default(now()) @map("created_at")
 
   productAnalysis ProductAnalysis @relation(fields: [productAnalysisId], references: [id], onDelete: Cascade)
+  strategies      Strategy[]
 
   @@index([productAnalysisId])
   @@map("channel_recommendations")
+}
+
+model Strategy {
+  id                      String   @id @default(uuid())
+  channelRecommendationId String   @map("channel_recommendation_id")
+
+  // 전략 방향
+  title       String
+  description String
+  coreMessage String @map("core_message")
+  approach    String
+  whyItFits   String @map("why_it_fits")
+
+  // 콘텐츠 타입 (Phase 1: Strategy와 1:1 매칭)
+  contentTypeTitle       String @map("content_type_title")
+  contentTypeDescription String @map("content_type_description")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  channelRecommendation ChannelRecommendation    @relation(fields: [channelRecommendationId], references: [id], onDelete: Cascade)
+  contentTemplate       StrategyContentTemplate?
+
+  @@index([channelRecommendationId])
+  @@map("strategies")
+}
+
+model StrategyContentTemplate {
+  id          String   @id @default(uuid())
+  strategyId  String   @unique @map("strategy_id")
+  sections    Json
+  overallTone String   @map("overall_tone")
+  lengthGuide String   @map("length_guide")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+
+  @@map("strategy_content_templates")
 }
 

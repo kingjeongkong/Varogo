@@ -7,9 +7,10 @@ import { ChannelCard } from './ChannelCard';
 
 interface ChannelListProps {
   channels: ChannelRecommendation[];
+  productId: string;
 }
 
-export function ChannelList({ channels }: ChannelListProps) {
+export function ChannelList({ channels, productId }: ChannelListProps) {
   const sorted = [...channels].sort(
     (a, b) => getTotalScore(b) - getTotalScore(a),
   );
@@ -54,6 +55,7 @@ export function ChannelList({ channels }: ChannelListProps) {
           key={activeChannel.id}
           channel={activeChannel}
           rank={activeIndex}
+          productId={productId}
         />
       </div>
     </div>

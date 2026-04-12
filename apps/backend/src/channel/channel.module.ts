@@ -8,5 +8,6 @@ import { ChannelService } from './channel.service';
   imports: [ProductModule],
   controllers: [ChannelController],
   providers: [ChannelService, ChannelAnalysisService],
+  exports: [ChannelService],
 })
 export class ChannelModule {}

@@ -1,10 +1,12 @@
 import { Button } from '@/components/ui/Button';
 import type { ChannelRecommendation } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 import { getTotalScore } from '../channel-utils';
 
 interface ChannelCardProps {
   channel: ChannelRecommendation;
   rank: number;
+  productId: string;
 }
 
 function getEffortColor(effortLevel: string) {
@@ -15,7 +17,8 @@ function getEffortColor(effortLevel: string) {
   return 'bg-warning-dim text-warning border-warning/20';
 }
 
-export function ChannelCard({ channel, rank }: ChannelCardProps) {
+export function ChannelCard({ channel, rank, productId }: ChannelCardProps) {
+  const router = useRouter();
   const totalScore = getTotalScore(channel);
   const { targetPresence, contentFit, alternativeOverlap, earlyAdoption } =
     channel.scoreBreakdown;
@@ -101,9 +104,17 @@ export function ChannelCard({ channel, rank }: ChannelCardProps) {
 
       {/* Step 3 CTA */}
       <div className="mt-5 pt-5 border-t border-border/60 text-right">
-        <Button variant="outline" disabled className="px-5 text-sm">
+        <Button
+          variant="primary"
+          className="px-5 text-sm"
+          onClick={() =>
+            router.push(
+              `/product/${productId}/channels/${channel.id}/strategy`,
+            )
+          }
+        >
           이 채널로 전략 수립
-          <span className="text-[10px] font-mono uppercase tracking-wider bg-surface px-2 py-0.5 rounded-md">
+          <span className="text-[10px] font-mono uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md">
             Step 3
           </span>
         </Button>
