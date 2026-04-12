@@ -105,7 +105,7 @@ export function ChannelCard({ channel, rank, productId }: ChannelCardProps) {
       {/* Step 3 CTA */}
       <div className="mt-5 pt-5 border-t border-border/60 text-right">
         <Button
-          variant="outline"
+          variant="primary"
           className="px-5 text-sm"
           onClick={() =>
             router.push(
@@ -114,7 +114,7 @@ export function ChannelCard({ channel, rank, productId }: ChannelCardProps) {
           }
         >
           이 채널로 전략 수립
-          <span className="text-[10px] font-mono uppercase tracking-wider bg-surface px-2 py-0.5 rounded-md">
+          <span className="text-[10px] font-mono uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md">
             Step 3
           </span>
         </Button>
