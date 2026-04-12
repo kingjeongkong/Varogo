@@ -129,13 +129,7 @@ describe('ContentService', () => {
       expect(mockPrisma.content.findFirst).toHaveBeenCalledWith({
         where: { strategy: { channelRecommendationId: CHANNEL_ID } },
       });
-      expect(result).toEqual({
-        id: CONTENT_FIXTURE.id,
-        strategyId: CONTENT_FIXTURE.strategyId,
-        body: CONTENT_FIXTURE.body,
-        characterCount: CONTENT_FIXTURE.body.length,
-        createdAt: CONTENT_FIXTURE.createdAt,
-      });
+      expect(result).toEqual(CONTENT_FIXTURE);
     });
 
     it('throws NotFoundException when no content found', async () => {
@@ -181,16 +175,10 @@ describe('ContentService', () => {
         mockContentGenerationService.generateContent,
       ).not.toHaveBeenCalled();
       expect(mockPrisma.content.create).not.toHaveBeenCalled();
-      expect(result).toEqual({
-        id: CONTENT_FIXTURE.id,
-        strategyId: CONTENT_FIXTURE.strategyId,
-        body: CONTENT_FIXTURE.body,
-        characterCount: CONTENT_FIXTURE.body.length,
-        createdAt: CONTENT_FIXTURE.createdAt,
-      });
+      expect(result).toEqual(CONTENT_FIXTURE);
     });
 
-    it('calls LLM and creates content in transaction when none exists', async () => {
+    it('calls LLM and creates content when none exists', async () => {
       mockPrisma.strategyContentTemplate.findFirst.mockResolvedValue(
         TEMPLATE_FIXTURE,
       );
@@ -240,13 +228,7 @@ describe('ContentService', () => {
           body: generatedBody,
         },
       });
-      expect(result).toEqual({
-        id: createdContent.id,
-        strategyId: createdContent.strategyId,
-        body: createdContent.body,
-        characterCount: generatedBody.length,
-        createdAt: createdContent.createdAt,
-      });
+      expect(result).toEqual(createdContent);
     });
 
     it('throws NotFoundException when no strategy template found', async () => {

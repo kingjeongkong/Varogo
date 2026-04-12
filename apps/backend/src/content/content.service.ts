@@ -3,10 +3,6 @@ import { ChannelService } from '../channel/channel.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ProductAnalysisResult } from '../product/types/product-analysis.type';
 import { ContentGenerationService } from './content-generation.service';
-import {
-  type ContentResponse,
-  toContentResponse,
-} from './dto/content.response';
 import type { GenerateContentInput } from './types/content-generation.type';
 
 @Injectable()
@@ -17,11 +13,7 @@ export class ContentService {
     private readonly contentGenerationService: ContentGenerationService,
   ) {}
 
-  async getContent(
-    productId: string,
-    channelId: string,
-    userId: string,
-  ): Promise<ContentResponse> {
+  async getContent(productId: string, channelId: string, userId: string) {
     await this.validateChannel(productId, channelId, userId);
 
     const content = await this.prisma.content.findFirst({
@@ -31,14 +23,10 @@ export class ContentService {
       throw new NotFoundException('Content not found');
     }
 
-    return toContentResponse(content);
+    return content;
   }
 
-  async generateContent(
-    productId: string,
-    channelId: string,
-    userId: string,
-  ): Promise<ContentResponse> {
+  async generateContent(productId: string, channelId: string, userId: string) {
     const channel = await this.validateChannel(productId, channelId, userId);
 
     const template = await this.prisma.strategyContentTemplate.findFirst({
@@ -53,7 +41,7 @@ export class ContentService {
       where: { strategyId: template.strategy.id },
     });
     if (existing) {
-      return toContentResponse(existing);
+      return existing;
     }
 
     const productAnalysis =
@@ -90,14 +78,26 @@ export class ContentService {
 
     const result = await this.contentGenerationService.generateContent(input);
 
-    const content = await this.prisma.content.create({
-      data: {
-        strategyId: template.strategy.id,
-        body: result.body,
-      },
-    });
-
-    return toContentResponse(content);
+    try {
+      return await this.prisma.content.create({
+        data: {
+          strategyId: template.strategy.id,
+          body: result.body,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2002'
+      ) {
+        const existing = await this.prisma.content.findUnique({
+          where: { strategyId: template.strategy.id },
+        });
+        if (existing) return existing;
+      }
+      throw error;
+    }
   }
 
   private async validateChannel(

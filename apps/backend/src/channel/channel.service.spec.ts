@@ -93,9 +93,9 @@ describe('ChannelService', () => {
     it('calls AI, saves recommendations, and returns them', async () => {
       mockProductService.findOneByUser.mockResolvedValue(mockProduct);
       mockChannelAnalysisService.analyze.mockResolvedValue(mockChannelResult);
-      mockPrisma.channelRecommendation.findMany.mockResolvedValue(
-        mockSavedRecommendations,
-      );
+      mockPrisma.channelRecommendation.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(mockSavedRecommendations);
 
       const result = await service.analyze('product-1', 'user-1');
 

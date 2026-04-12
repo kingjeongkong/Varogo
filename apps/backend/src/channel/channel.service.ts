@@ -21,6 +21,12 @@ export class ChannelService {
       throw new NotFoundException('Product analysis not found');
     }
 
+    const existing = await this.prisma.channelRecommendation.findMany({
+      where: { productAnalysisId: product.analysis.id },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (existing.length > 0) return existing;
+
     const result = await this.channelAnalysisService.analyze(
       product.analysis as unknown as ProductAnalysisResult,
       product.name,
