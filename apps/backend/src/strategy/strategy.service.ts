@@ -3,12 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { ChannelService } from '../channel/channel.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ProductAnalysisResult } from '../product/types/product-analysis.type';
-import {
-  SelectedStrategyResponse,
-  StrategyListResponse,
-  toSelectedStrategyResponse,
-  toStrategyListResponse,
-} from './dto/strategy.response';
+import type { StrategyStatus } from './dto/strategy.response';
 import {
   GenerateCardsInput,
   StrategyChannelContext,
@@ -25,11 +20,7 @@ export class StrategyService {
     private readonly strategyGenerationService: StrategyGenerationService,
   ) {}
 
-  async listForChannel(
-    productId: string,
-    channelId: string,
-    userId: string,
-  ): Promise<StrategyListResponse> {
+  async listForChannel(productId: string, channelId: string, userId: string) {
     await this.loadChannel(productId, channelId, userId);
 
     const [strategies, templateCount] = await Promise.all([
@@ -42,14 +33,17 @@ export class StrategyService {
       }),
     ]);
 
-    return toStrategyListResponse(strategies, templateCount > 0);
+    const status: StrategyStatus =
+      strategies.length === 0
+        ? 'not_started'
+        : templateCount > 0
+          ? 'completed'
+          : 'cards_generated';
+
+    return { strategies, hasAnyTemplate: templateCount > 0, status };
   }
 
-  async generateCards(
-    productId: string,
-    channelId: string,
-    userId: string,
-  ): Promise<StrategyListResponse> {
+  async generateCards(productId: string, channelId: string, userId: string) {
     const channel = await this.loadChannel(productId, channelId, userId);
 
     const existing = await this.prisma.strategy.findMany({
@@ -60,7 +54,7 @@ export class StrategyService {
       const templateCount = await this.prisma.strategyContentTemplate.count({
         where: { strategy: { channelRecommendationId: channelId } },
       });
-      return toStrategyListResponse(existing, templateCount > 0);
+      return { strategies: existing, hasAnyTemplate: templateCount > 0 };
     }
 
     const llmInput = this.buildGenerationInput(channel);
@@ -81,7 +75,7 @@ export class StrategyService {
       tx.strategy.createManyAndReturn({ data }),
     );
 
-    return toStrategyListResponse(strategies, false);
+    return { strategies, hasAnyTemplate: false };
   }
 
   async selectStrategy(
@@ -89,7 +83,7 @@ export class StrategyService {
     channelId: string,
     strategyId: string,
     userId: string,
-  ): Promise<SelectedStrategyResponse> {
+  ) {
     const channel = await this.loadChannel(productId, channelId, userId);
 
     const strategy = await this.prisma.strategy.findFirst({
@@ -101,7 +95,7 @@ export class StrategyService {
     }
 
     if (strategy.contentTemplate) {
-      return toSelectedStrategyResponse(strategy, strategy.contentTemplate);
+      return { strategy, template: strategy.contentTemplate };
     }
 
     const templateResult =
@@ -110,25 +104,23 @@ export class StrategyService {
         strategy,
       });
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      return tx.strategyContentTemplate.create({
-        data: {
-          strategyId: strategy.id,
-          sections: templateResult.sections as unknown as Prisma.InputJsonValue,
-          overallTone: templateResult.overallTone,
-          lengthGuide: templateResult.lengthGuide,
-        },
-      });
+    const created = await this.prisma.strategyContentTemplate.create({
+      data: {
+        strategyId: strategy.id,
+        sections: templateResult.sections as unknown as Prisma.InputJsonValue,
+        overallTone: templateResult.overallTone,
+        lengthGuide: templateResult.lengthGuide,
+      },
     });
 
-    return toSelectedStrategyResponse(strategy, created);
+    return { strategy, template: created };
   }
 
   async getSelectedTemplate(
     productId: string,
     channelId: string,
     userId: string,
-  ): Promise<SelectedStrategyResponse> {
+  ) {
     await this.loadChannel(productId, channelId, userId);
 
     const template = await this.prisma.strategyContentTemplate.findFirst({
@@ -140,7 +132,7 @@ export class StrategyService {
       throw new NotFoundException('Selected strategy template not found');
     }
 
-    return toSelectedStrategyResponse(template.strategy, template);
+    return { strategy: template.strategy, template };
   }
 
   private async loadChannel(

@@ -25,6 +25,7 @@ const mockPrisma = {
   strategyContentTemplate: {
     count: jest.fn(),
     findFirst: jest.fn(),
+    create: jest.fn(),
   },
 };
 
@@ -232,7 +233,7 @@ describe('StrategyService', () => {
 
       expect(mockGenerationService.generateCards).not.toHaveBeenCalled();
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
-      expect(result.status).toBe('cards_generated');
+      expect(result.hasAnyTemplate).toBe(false);
       expect(result.strategies).toHaveLength(2);
     });
 
@@ -270,7 +271,7 @@ describe('StrategyService', () => {
           }) as Record<string, unknown>,
         ]) as unknown[],
       });
-      expect(result.status).toBe('cards_generated');
+      expect(result.hasAnyTemplate).toBe(false);
       expect(result.strategies).toHaveLength(2);
     });
 
@@ -327,7 +328,7 @@ describe('StrategyService', () => {
       expect(result.template.id).toBe('tmpl-1');
     });
 
-    it('calls LLM outside tx and creates template inside tx on happy path', async () => {
+    it('calls LLM and creates template on happy path', async () => {
       const strategy = makeStrategy(STRATEGY_ID);
       mockPrisma.strategy.findFirst.mockResolvedValue({
         ...strategy,
@@ -344,7 +345,9 @@ describe('StrategyService', () => {
         lengthGuide: GENERATED_TEMPLATE.lengthGuide,
         createdAt: new Date('2026-04-12'),
       };
-      mockTx.strategyContentTemplate.create.mockResolvedValue(createdTemplate);
+      mockPrisma.strategyContentTemplate.create.mockResolvedValue(
+        createdTemplate,
+      );
 
       const result = await service.selectStrategy(
         PRODUCT_ID,
@@ -352,12 +355,6 @@ describe('StrategyService', () => {
         STRATEGY_ID,
         USER_ID,
       );
-
-      // LLM call happens BEFORE tx
-      const llmCallOrder =
-        mockGenerationService.generateTemplate.mock.invocationCallOrder[0];
-      const txCallOrder = mockPrisma.$transaction.mock.invocationCallOrder[0];
-      expect(llmCallOrder).toBeLessThan(txCallOrder);
 
       expect(mockGenerationService.generateTemplate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -367,7 +364,7 @@ describe('StrategyService', () => {
           }) as Record<string, unknown>,
         }),
       );
-      expect(mockTx.strategyContentTemplate.create).toHaveBeenCalledWith({
+      expect(mockPrisma.strategyContentTemplate.create).toHaveBeenCalledWith({
         data: {
           strategyId: STRATEGY_ID,
           sections: GENERATED_TEMPLATE.sections,
@@ -392,8 +389,7 @@ describe('StrategyService', () => {
       await expect(
         service.selectStrategy(PRODUCT_ID, CHANNEL_ID, STRATEGY_ID, USER_ID),
       ).rejects.toThrow('llm fail');
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
-      expect(mockTx.strategyContentTemplate.create).not.toHaveBeenCalled();
+      expect(mockPrisma.strategyContentTemplate.create).not.toHaveBeenCalled();
     });
   });
 

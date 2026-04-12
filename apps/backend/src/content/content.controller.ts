@@ -10,6 +10,7 @@ import {
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload';
 import { ContentService } from './content.service';
+import { toContentResponse } from './dto/content.response';
 
 @Controller('products/:productId/channels/:channelId/content')
 export class ContentController {
@@ -21,7 +22,12 @@ export class ContentController {
     @Param('productId', ParseUUIDPipe) productId: string,
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
-    return this.contentService.getContent(productId, channelId, user.sub);
+    const content = await this.contentService.getContent(
+      productId,
+      channelId,
+      user.sub,
+    );
+    return toContentResponse(content);
   }
 
   @Post('generate')
@@ -31,6 +37,11 @@ export class ContentController {
     @Param('productId', ParseUUIDPipe) productId: string,
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
-    return this.contentService.generateContent(productId, channelId, user.sub);
+    const content = await this.contentService.generateContent(
+      productId,
+      channelId,
+      user.sub,
+    );
+    return toContentResponse(content);
   }
 }

@@ -9,6 +9,10 @@ import {
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload';
+import {
+  toSelectedStrategyResponse,
+  toStrategyListResponse,
+} from './dto/strategy.response';
 import { StrategyService } from './strategy.service';
 
 @Controller('products/:productId/channels/:channelId/strategies')
@@ -21,7 +25,12 @@ export class StrategyController {
     @Param('productId', ParseUUIDPipe) productId: string,
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
-    return this.strategyService.listForChannel(productId, channelId, user.sub);
+    const result = await this.strategyService.listForChannel(
+      productId,
+      channelId,
+      user.sub,
+    );
+    return toStrategyListResponse(result.strategies, result.hasAnyTemplate);
   }
 
   @Get('template')
@@ -30,11 +39,12 @@ export class StrategyController {
     @Param('productId', ParseUUIDPipe) productId: string,
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
-    return this.strategyService.getSelectedTemplate(
+    const result = await this.strategyService.getSelectedTemplate(
       productId,
       channelId,
       user.sub,
     );
+    return toSelectedStrategyResponse(result.strategy, result.template);
   }
 
   @Post('generate')
@@ -44,7 +54,12 @@ export class StrategyController {
     @Param('productId', ParseUUIDPipe) productId: string,
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
-    return this.strategyService.generateCards(productId, channelId, user.sub);
+    const result = await this.strategyService.generateCards(
+      productId,
+      channelId,
+      user.sub,
+    );
+    return toStrategyListResponse(result.strategies, result.hasAnyTemplate);
   }
 
   @Post(':strategyId/select')
@@ -55,11 +70,12 @@ export class StrategyController {
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Param('strategyId', ParseUUIDPipe) strategyId: string,
   ) {
-    return this.strategyService.selectStrategy(
+    const result = await this.strategyService.selectStrategy(
       productId,
       channelId,
       strategyId,
       user.sub,
     );
+    return toSelectedStrategyResponse(result.strategy, result.template);
   }
 }
