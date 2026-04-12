@@ -19,6 +19,7 @@ export const TEST_USER = {
  *   (cascade deletes handle ChannelRecommendation, ProductAnalysis, Product)
  */
 export async function clearDatabase(): Promise<void> {
+  await prisma.content.deleteMany();
   await prisma.strategyContentTemplate.deleteMany();
   await prisma.strategy.deleteMany();
   await prisma.refreshToken.deleteMany();
