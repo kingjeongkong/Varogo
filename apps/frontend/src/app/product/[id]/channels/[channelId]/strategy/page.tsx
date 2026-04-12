@@ -1,6 +1,7 @@
 'use client';
 
 import Header from '@/components/layout/Header';
+import { Button } from '@/components/ui/Button';
 import { useChannelRecommendations } from '@/features/channel/hooks/use-channel';
 import { useProduct } from '@/features/product/hooks/use-product';
 import { StrategyCardList } from '@/features/strategy/components/StrategyCardList';
@@ -90,13 +91,13 @@ export default function StrategyPage({
                     전략 생성에 실패했습니다. 다시 시도해주세요.
                   </p>
                 )}
-                <button
+                <Button
                   onClick={() => generate()}
-                  disabled={generatePending}
-                  className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  loading={generatePending}
+                  loadingText="전략 생성 중..."
                 >
-                  {generatePending ? '전략 생성 중...' : '전략 생성 시작'}
-                </button>
+                  전략 생성 시작
+                </Button>
               </div>
             )}
 

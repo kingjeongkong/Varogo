@@ -2,6 +2,7 @@
 
 import { use, useState } from 'react';
 import Header from '@/components/layout/Header';
+import { Button } from '@/components/ui/Button';
 import { useProduct } from '@/features/product/hooks/use-product';
 import { ChannelHero } from '@/features/channel/components/ChannelHero';
 import { ChannelList } from '@/features/channel/components/ChannelList';
@@ -68,7 +69,7 @@ export default function ChannelsPage({
                 {analyzeError && (
                   <p className="text-error text-sm mb-4">{analyzeError}</p>
                 )}
-                <button
+                <Button
                   onClick={() => {
                     setAnalyzeError(null);
                     analyze(undefined, {
@@ -78,11 +79,11 @@ export default function ChannelsPage({
                         ),
                     });
                   }}
-                  disabled={isPending}
-                  className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  loading={isPending}
+                  loadingText="분석 중..."
                 >
-                  {isPending ? '분석 중...' : '채널 분석 시작'}
-                </button>
+                  채널 분석 시작
+                </Button>
               </div>
             )}
           </div>
