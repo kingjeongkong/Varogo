@@ -81,3 +81,42 @@ export interface ChannelRecommendation {
   expectedTimeline: string;
   createdAt: string;
 }
+
+export type StrategyStatus = 'not_started' | 'cards_generated' | 'completed';
+
+export interface StrategyResponse {
+  id: string;
+  channelRecommendationId: string;
+  title: string;
+  description: string;
+  coreMessage: string;
+  approach: string;
+  whyItFits: string;
+  contentTypeTitle: string;
+  contentTypeDescription: string;
+  createdAt: string;
+}
+
+export interface TemplateSection {
+  name: string;
+  guide: string;
+}
+
+export interface ContentTemplateResponse {
+  id: string;
+  strategyId: string;
+  sections: TemplateSection[];
+  overallTone: string;
+  lengthGuide: string;
+  createdAt: string;
+}
+
+export interface StrategyListResponse {
+  status: StrategyStatus;
+  strategies: StrategyResponse[];
+}
+
+export interface SelectedStrategyResponse {
+  strategy: StrategyResponse;
+  template: ContentTemplateResponse;
+}
