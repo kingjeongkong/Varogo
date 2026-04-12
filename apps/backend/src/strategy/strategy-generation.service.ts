@@ -54,9 +54,12 @@ export class StrategyGenerationService {
         response_format: { type: 'json_object' },
       });
       const content = completion.choices[0]?.message?.content ?? '{}';
-      return JSON.parse(content) as StrategyGenerationResult;
+      const parsed = JSON.parse(content) as StrategyGenerationResult;
+      this.validateCardsResult(parsed);
+      return parsed;
     } catch (error) {
       this.logger.error('OpenAI cards generation failed', error);
+      if (error instanceof InternalServerErrorException) throw error;
       throw new InternalServerErrorException('Strategy generation failed');
     }
   }
@@ -73,10 +76,65 @@ export class StrategyGenerationService {
         response_format: { type: 'json_object' },
       });
       const content = completion.choices[0]?.message?.content ?? '{}';
-      return JSON.parse(content) as ContentTemplateResult;
+      const parsed = JSON.parse(content) as ContentTemplateResult;
+      this.validateTemplateResult(parsed);
+      return parsed;
     } catch (error) {
       this.logger.error('OpenAI template generation failed', error);
+      if (error instanceof InternalServerErrorException) throw error;
       throw new InternalServerErrorException('Strategy generation failed');
+    }
+  }
+
+  private validateCardsResult(result: StrategyGenerationResult): void {
+    if (!Array.isArray(result.cards) || result.cards.length === 0) {
+      throw new InternalServerErrorException(
+        'Invalid LLM response: cards must be a non-empty array',
+      );
+    }
+    const requiredFields = [
+      'title',
+      'description',
+      'coreMessage',
+      'approach',
+      'whyItFits',
+      'contentTypeTitle',
+      'contentTypeDescription',
+    ] as const;
+    for (const card of result.cards) {
+      for (const field of requiredFields) {
+        if (typeof card[field] !== 'string' || card[field].trim() === '') {
+          throw new InternalServerErrorException(
+            `Invalid LLM response: card missing field "${field}"`,
+          );
+        }
+      }
+    }
+  }
+
+  private validateTemplateResult(result: ContentTemplateResult): void {
+    if (!Array.isArray(result.sections) || result.sections.length < 3) {
+      throw new InternalServerErrorException(
+        'Invalid LLM response: sections must have at least 3 items',
+      );
+    }
+    for (const section of result.sections) {
+      if (
+        typeof section.name !== 'string' ||
+        typeof section.guide !== 'string'
+      ) {
+        throw new InternalServerErrorException(
+          'Invalid LLM response: each section must have name and guide',
+        );
+      }
+    }
+    if (
+      typeof result.overallTone !== 'string' ||
+      typeof result.lengthGuide !== 'string'
+    ) {
+      throw new InternalServerErrorException(
+        'Invalid LLM response: missing overallTone or lengthGuide',
+      );
     }
   }
 

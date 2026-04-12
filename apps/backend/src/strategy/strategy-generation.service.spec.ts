@@ -223,6 +223,34 @@ describe('StrategyGenerationService', () => {
         }),
       ).rejects.toThrow(InternalServerErrorException);
     });
+
+    it('throws InternalServerErrorException when cards array is missing', async () => {
+      mockCreate.mockResolvedValue(buildChatResponse({ noCards: [] }));
+
+      await expect(
+        service.generateCards({
+          productName: 'Varogo',
+          productAnalysis: PRODUCT_ANALYSIS,
+          channel: CHANNEL_INPUT,
+        }),
+      ).rejects.toThrow('cards must be a non-empty array');
+    });
+
+    it('throws InternalServerErrorException when card is missing required fields', async () => {
+      mockCreate.mockResolvedValue(
+        buildChatResponse({
+          cards: [{ title: '스토리 기반' }],
+        }),
+      );
+
+      await expect(
+        service.generateCards({
+          productName: 'Varogo',
+          productAnalysis: PRODUCT_ANALYSIS,
+          channel: CHANNEL_INPUT,
+        }),
+      ).rejects.toThrow('card missing field');
+    });
   });
 
   describe('generateTemplate', () => {
@@ -283,6 +311,43 @@ describe('StrategyGenerationService', () => {
           strategy: SELECTED_STRATEGY,
         }),
       ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('throws InternalServerErrorException when sections are missing', async () => {
+      mockCreate.mockResolvedValue(
+        buildChatResponse({ overallTone: 'casual', lengthGuide: '200자' }),
+      );
+
+      await expect(
+        service.generateTemplate({
+          productName: 'Varogo',
+          productAnalysis: PRODUCT_ANALYSIS,
+          channel: CHANNEL_INPUT,
+          strategy: SELECTED_STRATEGY,
+        }),
+      ).rejects.toThrow('sections must have at least 3 items');
+    });
+
+    it('throws InternalServerErrorException when overallTone is missing', async () => {
+      mockCreate.mockResolvedValue(
+        buildChatResponse({
+          sections: [
+            { name: 'a', guide: 'b' },
+            { name: 'c', guide: 'd' },
+            { name: 'e', guide: 'f' },
+          ],
+          lengthGuide: '200자',
+        }),
+      );
+
+      await expect(
+        service.generateTemplate({
+          productName: 'Varogo',
+          productAnalysis: PRODUCT_ANALYSIS,
+          channel: CHANNEL_INPUT,
+          strategy: SELECTED_STRATEGY,
+        }),
+      ).rejects.toThrow('missing overallTone or lengthGuide');
     });
   });
 });
