@@ -8,6 +8,7 @@ import { LlmModule } from './llm/llm.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
 import { ChannelModule } from './channel/channel.module';
+import { StrategyModule } from './strategy/strategy.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     AuthModule,
     ProductModule,
     ChannelModule,
+    StrategyModule,
   ],
   controllers: [AppController],
   providers: [
