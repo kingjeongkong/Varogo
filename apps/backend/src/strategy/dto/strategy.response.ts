@@ -1,5 +1,6 @@
 import type { JsonValue } from '@prisma/client/runtime/library';
-import type { TemplateSection } from '../types/content-template.type';
+import type { BodySection } from '../types/content-template.type';
+import type { CampaignGoal } from '../types/strategy-card.type';
 
 export type StrategyStatus = 'not_started' | 'cards_generated' | 'completed';
 
@@ -9,19 +10,25 @@ export interface StrategyResponse {
   title: string;
   description: string;
   coreMessage: string;
-  approach: string;
-  whyItFits: string;
-  contentTypeTitle: string;
-  contentTypeDescription: string;
+  campaignGoal: CampaignGoal;
+  hookAngle: string;
+  callToAction: string;
+  contentFormat: string;
+  contentFrequency: string;
   createdAt: Date;
 }
 
 export interface ContentTemplateResponse {
   id: string;
   strategyId: string;
-  sections: TemplateSection[];
-  overallTone: string;
+  contentPattern: 'series' | 'standalone' | 'one-off';
+  hookGuide: string;
+  bodyStructure: BodySection[];
+  ctaGuide: string;
+  toneGuide: string;
   lengthGuide: string;
+  platformTips: string[];
+  dontDoList: string[];
   createdAt: Date;
 }
 
@@ -35,19 +42,30 @@ export interface SelectedStrategyResponse {
   template: ContentTemplateResponse;
 }
 
-export function toStrategyResponse(
-  strategy: StrategyResponse,
-): StrategyResponse {
+export function toStrategyResponse(strategy: {
+  id: string;
+  channelRecommendationId: string;
+  title: string;
+  description: string;
+  coreMessage: string;
+  campaignGoal: JsonValue;
+  hookAngle: string;
+  callToAction: string;
+  contentFormat: string;
+  contentFrequency: string;
+  createdAt: Date;
+}): StrategyResponse {
   return {
     id: strategy.id,
     channelRecommendationId: strategy.channelRecommendationId,
     title: strategy.title,
     description: strategy.description,
     coreMessage: strategy.coreMessage,
-    approach: strategy.approach,
-    whyItFits: strategy.whyItFits,
-    contentTypeTitle: strategy.contentTypeTitle,
-    contentTypeDescription: strategy.contentTypeDescription,
+    campaignGoal: strategy.campaignGoal as unknown as CampaignGoal,
+    hookAngle: strategy.hookAngle,
+    callToAction: strategy.callToAction,
+    contentFormat: strategy.contentFormat,
+    contentFrequency: strategy.contentFrequency,
     createdAt: strategy.createdAt,
   };
 }
@@ -55,29 +73,34 @@ export function toStrategyResponse(
 export function toContentTemplateResponse(template: {
   id: string;
   strategyId: string;
-  sections: JsonValue;
-  overallTone: string;
+  contentPattern: string;
+  hookGuide: string;
+  bodyStructure: JsonValue;
+  ctaGuide: string;
+  toneGuide: string;
   lengthGuide: string;
+  platformTips: JsonValue;
+  dontDoList: JsonValue;
   createdAt: Date;
 }): ContentTemplateResponse {
   return {
     id: template.id,
     strategyId: template.strategyId,
-    sections: template.sections as unknown as TemplateSection[],
-    overallTone: template.overallTone,
+    contentPattern:
+      template.contentPattern as ContentTemplateResponse['contentPattern'],
+    hookGuide: template.hookGuide,
+    bodyStructure: template.bodyStructure as unknown as BodySection[],
+    ctaGuide: template.ctaGuide,
+    toneGuide: template.toneGuide,
     lengthGuide: template.lengthGuide,
+    platformTips: template.platformTips as unknown as string[],
+    dontDoList: template.dontDoList as unknown as string[],
     createdAt: template.createdAt,
   };
 }
 
-/**
- * Derive the list response. `hasAnyTemplate` indicates whether any strategy
- * under this channel has an attached `StrategyContentTemplate`. The caller
- * (service layer) computes this separately so the list payload itself stays
- * free of template data.
- */
 export function toStrategyListResponse(
-  strategies: StrategyResponse[],
+  strategies: Parameters<typeof toStrategyResponse>[0][],
   hasAnyTemplate: boolean,
 ): StrategyListResponse {
   const status: StrategyStatus =
@@ -94,7 +117,7 @@ export function toStrategyListResponse(
 }
 
 export function toSelectedStrategyResponse(
-  strategy: StrategyResponse,
+  strategy: Parameters<typeof toStrategyResponse>[0],
   template: Parameters<typeof toContentTemplateResponse>[0],
 ): SelectedStrategyResponse {
   return {

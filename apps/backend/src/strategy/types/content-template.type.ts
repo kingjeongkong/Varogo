@@ -1,14 +1,16 @@
-/**
- * Shape of the content template returned by the LLM for a selected strategy.
- * Stored on StrategyContentTemplate — `sections` is persisted as a JSON column.
- */
-export interface TemplateSection {
+export interface BodySection {
   name: string;
   guide: string;
+  exampleSnippet: string;
 }
 
 export interface ContentTemplateResult {
-  sections: TemplateSection[];
-  overallTone: string;
+  contentPattern: 'series' | 'standalone' | 'one-off';
+  hookGuide: string;
+  bodyStructure: BodySection[];
+  ctaGuide: string;
+  toneGuide: string;
   lengthGuide: string;
+  platformTips: string[];
+  dontDoList: string[];
 }
