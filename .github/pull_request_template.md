@@ -1,10 +1,12 @@
 ## Summary
-<!-- What changed and why (1-3 lines) -->
+<!-- 1-2줄 핵심 요약 -->
 
+## Background
+<!-- 어떤 상황이었고, 왜 이 작업이 필요했고, 뭘 했고, 결과가 어떤지 -->
 
-## Changes
-<!-- Key changes grouped by feature -->
+## Scope
+<!-- 리뷰어가 diff 보기 전에 큰 그림을 잡을 수 있는 수준으로 -->
 -
 
 ## Screenshots
-<!-- Attach if UI changed, otherwise remove this section -->
+<!-- UI 변경 시 첨부, 없으면 섹션 삭제 -->
