@@ -120,12 +120,13 @@ model Strategy {
   title       String
   description String
   coreMessage String @map("core_message")
-  approach    String
-  whyItFits   String @map("why_it_fits")
 
-  // 콘텐츠 타입 (Phase 1: Strategy와 1:1 매칭)
-  contentTypeTitle       String @map("content_type_title")
-  contentTypeDescription String @map("content_type_description")
+  // 전략 핵심 요소
+  campaignGoal     Json   @map("campaign_goal")
+  hookAngle        String @map("hook_angle")
+  callToAction     String @map("call_to_action")
+  contentFormat    String @map("content_format")
+  contentFrequency String @map("content_frequency")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -140,9 +141,14 @@ model Strategy {
 model StrategyContentTemplate {
   id          String   @id @default(uuid())
   strategyId  String   @unique @map("strategy_id")
-  sections    Json
-  overallTone String   @map("overall_tone")
-  lengthGuide String   @map("length_guide")
+  contentPattern String @map("content_pattern")
+  hookGuide      String @map("hook_guide")
+  bodyStructure  Json   @map("body_structure")
+  ctaGuide       String @map("cta_guide")
+  toneGuide      String @map("tone_guide")
+  lengthGuide    String @map("length_guide")
+  platformTips   Json   @map("platform_tips")
+  dontDoList     Json   @map("dont_do_list")
   createdAt   DateTime @default(now()) @map("created_at")
 
   strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
