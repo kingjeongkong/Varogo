@@ -79,6 +79,20 @@ export function ChannelCard({ channel, rank, productId }: ChannelCardProps) {
         ))}
       </div>
 
+      {/* Target Communities */}
+      {channel.targetCommunities.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {channel.targetCommunities.map((community) => (
+            <span
+              key={community}
+              className="inline-block rounded-md bg-surface-elevated border border-border/60 px-2.5 py-1 text-xs font-mono text-text-secondary"
+            >
+              {community}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Why This Channel */}
       <p className="text-sm text-text-secondary leading-relaxed mb-4">
         {channel.whyThisChannel}

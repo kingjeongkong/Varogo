@@ -46,6 +46,7 @@ const CHANNEL_FIXTURE = {
   id: CHANNEL_ID,
   productAnalysisId: 'analysis-1',
   channelName: 'X (Twitter)',
+  targetCommunities: ['#buildinpublic', '#indiehackers'],
   tier: 'primary',
   whyThisChannel: 'indie community',
   distributionMethod: 'hashtags and threads',

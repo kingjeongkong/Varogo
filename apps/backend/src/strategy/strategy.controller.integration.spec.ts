@@ -152,6 +152,7 @@ describe('StrategyController (integration)', () => {
       data: {
         productAnalysisId: analysis.id,
         channelName: 'X (Twitter)',
+        targetCommunities: ['#buildinpublic', '#indiehackers'],
         tier: 'primary',
         scoreBreakdown: {
           targetPresence: 25,
