@@ -6,7 +6,7 @@ export interface GenerateContentInput {
     problem: string;
     differentiators: string[];
     positioningStatement: string;
-    keywords: string[];
+    keywords: { primary: string[]; secondary: string[] };
   };
   channel: {
     channelName: string;

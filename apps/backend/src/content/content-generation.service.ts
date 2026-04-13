@@ -70,7 +70,7 @@ export class ContentGenerationService {
 핵심 문제: ${productAnalysis.problem}
 차별점: ${productAnalysis.differentiators.join(', ')}
 포지셔닝: ${productAnalysis.positioningStatement}
-키워드: ${productAnalysis.keywords.join(', ')}
+키워드: ${[...productAnalysis.keywords.primary, ...productAnalysis.keywords.secondary].join(', ')}
 
 === 채널 정보 ===
 채널명: ${channel.channelName}
