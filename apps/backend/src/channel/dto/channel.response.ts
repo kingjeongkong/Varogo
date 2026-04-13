@@ -5,12 +5,17 @@ export interface ChannelRecommendationResponse {
   id: string;
   productAnalysisId: string;
   channelName: string;
+  targetCommunities: string[];
+  tier: 'primary' | 'secondary';
   scoreBreakdown: ScoreBreakdown;
-  reason: string;
-  effectiveContent: string;
+  whyThisChannel: string;
+  distributionMethod: string;
+  contentAngle: string;
   risk: string;
-  effortLevel: string;
+  effortLevel: 'low' | 'medium' | 'high';
+  effortDetail: string;
   expectedTimeline: string;
+  successMetric: string;
   createdAt: Date;
 }
 
@@ -18,12 +23,17 @@ export function toChannelRecommendationResponse(recommendation: {
   id: string;
   productAnalysisId: string;
   channelName: string;
+  targetCommunities: string[];
+  tier: string;
   scoreBreakdown: JsonValue;
-  reason: string;
-  effectiveContent: string;
+  whyThisChannel: string;
+  distributionMethod: string;
+  contentAngle: string;
   risk: string;
   effortLevel: string;
+  effortDetail: string;
   expectedTimeline: string;
+  successMetric: string;
   createdAt: Date;
 }): ChannelRecommendationResponse {
   const scoreBreakdown =
@@ -32,12 +42,17 @@ export function toChannelRecommendationResponse(recommendation: {
     id: recommendation.id,
     productAnalysisId: recommendation.productAnalysisId,
     channelName: recommendation.channelName,
+    targetCommunities: recommendation.targetCommunities,
+    tier: recommendation.tier as 'primary' | 'secondary',
     scoreBreakdown,
-    reason: recommendation.reason,
-    effectiveContent: recommendation.effectiveContent,
+    whyThisChannel: recommendation.whyThisChannel,
+    distributionMethod: recommendation.distributionMethod,
+    contentAngle: recommendation.contentAngle,
     risk: recommendation.risk,
-    effortLevel: recommendation.effortLevel,
+    effortLevel: recommendation.effortLevel as 'low' | 'medium' | 'high',
+    effortDetail: recommendation.effortDetail,
     expectedTimeline: recommendation.expectedTimeline,
+    successMetric: recommendation.successMetric,
     createdAt: recommendation.createdAt,
   };
 }

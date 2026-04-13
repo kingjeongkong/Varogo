@@ -67,7 +67,7 @@ export interface ProductWithAnalysis extends Product {
 export interface ScoreBreakdown {
   targetPresence: number;
   contentFit: number;
-  alternativeOverlap: number;
+  conversionPotential: number;
   earlyAdoption: number;
 }
 
@@ -75,11 +75,16 @@ export interface ChannelRecommendation {
   id: string;
   productAnalysisId: string;
   channelName: string;
+  targetCommunities: string[];
+  tier: 'primary' | 'secondary';
   scoreBreakdown: ScoreBreakdown;
-  reason: string;
-  effectiveContent: string;
+  whyThisChannel: string;
+  contentAngle: string;
+  distributionMethod: string;
   risk: string;
-  effortLevel: string;
+  effortLevel: 'low' | 'medium' | 'high';
+  effortDetail: string;
+  successMetric: string;
   expectedTimeline: string;
   createdAt: string;
 }

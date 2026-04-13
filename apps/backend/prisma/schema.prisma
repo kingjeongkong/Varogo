@@ -89,16 +89,21 @@ model ProductAnalysis {
 }
 
 model ChannelRecommendation {
-  id                String   @id @default(uuid())
-  productAnalysisId String   @map("product_analysis_id")
-  channelName       String   @map("channel_name")
-  scoreBreakdown    Json     @map("score_breakdown")
-  reason            String
-  effectiveContent  String   @map("effective_content")
-  risk              String
-  effortLevel       String   @map("effort_level")
-  expectedTimeline  String   @map("expected_timeline")
-  createdAt         DateTime @default(now()) @map("created_at")
+  id                 String   @id @default(uuid())
+  productAnalysisId  String   @map("product_analysis_id")
+  channelName         String   @map("channel_name")
+  targetCommunities   String[] @map("target_communities")
+  tier                String
+  scoreBreakdown     Json     @map("score_breakdown")
+  whyThisChannel     String   @map("why_this_channel")
+  distributionMethod String   @map("distribution_method")
+  contentAngle       String   @map("content_angle")
+  risk               String
+  effortLevel        String   @map("effort_level")
+  effortDetail       String   @map("effort_detail")
+  expectedTimeline   String   @map("expected_timeline")
+  successMetric      String   @map("success_metric")
+  createdAt          DateTime @default(now()) @map("created_at")
 
   productAnalysis ProductAnalysis @relation(fields: [productAnalysisId], references: [id], onDelete: Cascade)
   strategies      Strategy[]

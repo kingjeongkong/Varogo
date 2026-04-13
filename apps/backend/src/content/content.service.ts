@@ -57,7 +57,7 @@ export class ContentService {
       },
       channel: {
         channelName: channel.channelName,
-        effectiveContent: channel.effectiveContent,
+        contentAngle: channel.contentAngle,
         risk: channel.risk,
       },
       strategy: {

@@ -46,11 +46,16 @@ const CHANNEL_FIXTURE = {
   id: CHANNEL_ID,
   productAnalysisId: 'analysis-1',
   channelName: 'X (Twitter)',
-  reason: 'indie community',
-  effectiveContent: 'building in public',
+  targetCommunities: ['#buildinpublic', '#indiehackers'],
+  tier: 'primary',
+  whyThisChannel: 'indie community',
+  distributionMethod: 'hashtags and threads',
+  contentAngle: 'building in public',
   risk: 'algo risk',
-  effortLevel: 'Medium',
+  effortLevel: 'medium',
+  effortDetail: 'consistent content needed',
   expectedTimeline: '2-4w',
+  successMetric: 'follower growth rate',
   scoreBreakdown: {},
   createdAt: new Date('2026-04-10'),
   productAnalysis: {
@@ -259,7 +264,7 @@ describe('StrategyService', () => {
         }) as Record<string, unknown>,
         channel: expect.objectContaining({
           channelName: 'X (Twitter)',
-          reason: 'indie community',
+          whyThisChannel: 'indie community',
         }) as Record<string, unknown>,
       });
       expect(mockPrisma.$transaction).toHaveBeenCalled();

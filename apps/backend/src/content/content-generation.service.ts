@@ -74,7 +74,7 @@ export class ContentGenerationService {
 
 === 채널 정보 ===
 채널명: ${channel.channelName}
-효과적인 콘텐츠: ${channel.effectiveContent}
+효과적인 콘텐츠: ${channel.contentAngle}
 리스크: ${channel.risk}
 
 === 전략 정보 ===

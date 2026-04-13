@@ -14,8 +14,8 @@ import type {
 
 export interface StrategyChannelContext {
   channelName: string;
-  reason: string;
-  effectiveContent: string;
+  whyThisChannel: string;
+  contentAngle: string;
   risk: string;
 }
 
@@ -155,8 +155,8 @@ export class StrategyGenerationService {
 
 === 채널 정보 ===
 채널명: ${channel.channelName}
-추천 이유: ${channel.reason}
-효과적인 콘텐츠: ${channel.effectiveContent}
+추천 이유: ${channel.whyThisChannel}
+효과적인 콘텐츠: ${channel.contentAngle}
 리스크: ${channel.risk}
 
 === 지시사항 ===
@@ -202,7 +202,7 @@ JSON 형식으로만 응답하세요. 최상위 키는 "cards"이며 값은 위 
 
 === 채널 정보 ===
 채널명: ${channel.channelName}
-효과적인 콘텐츠: ${channel.effectiveContent}
+효과적인 콘텐츠: ${channel.contentAngle}
 
 === 선택된 전략 ===
 제목: ${strategy.title}
