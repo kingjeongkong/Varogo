@@ -1,34 +1,27 @@
 export interface TargetAudience {
   definition: string;
-  behaviors: string[];
   painPoints: string[];
+  buyingTriggers: string[];
   activeCommunities: string[];
 }
 
 export interface Alternative {
   name: string;
-  problemSolved: string;
-  price: string;
-  limitations: string[];
+  description: string;
+  weaknessWeExploit: string;
 }
 
-export interface CompetitorValue {
-  name: string;
-  value: string;
-}
-
-export interface ComparisonItem {
-  aspect: string;
-  myProduct: string;
-  competitors: CompetitorValue[];
+export interface Keywords {
+  primary: string[];
+  secondary: string[];
 }
 
 export interface ProductAnalysisResult {
   targetAudience: TargetAudience;
   problem: string;
+  valueProposition: string;
   alternatives: Alternative[];
-  comparisonTable: ComparisonItem[];
   differentiators: string[];
   positioningStatement: string;
-  keywords: string[];
+  keywords: Keywords;
 }
