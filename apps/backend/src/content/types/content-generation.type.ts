@@ -10,7 +10,7 @@ export interface GenerateContentInput {
   };
   channel: {
     channelName: string;
-    effectiveContent: string;
+    contentAngle: string;
     risk: string;
   };
   strategy: {

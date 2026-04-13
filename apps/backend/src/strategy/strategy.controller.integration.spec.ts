@@ -152,17 +152,21 @@ describe('StrategyController (integration)', () => {
       data: {
         productAnalysisId: analysis.id,
         channelName: 'X (Twitter)',
+        tier: 'primary',
         scoreBreakdown: {
           targetPresence: 25,
           contentFit: 20,
-          alternativeOverlap: 15,
+          conversionPotential: 15,
           earlyAdoption: 18,
         },
-        reason: 'indie community',
-        effectiveContent: 'building in public',
+        whyThisChannel: 'indie community',
+        distributionMethod: 'hashtags and threads',
+        contentAngle: 'building in public',
         risk: 'algo risk',
-        effortLevel: 'Medium',
+        effortLevel: 'medium',
+        effortDetail: 'consistent content needed',
         expectedTimeline: '2-4w',
+        successMetric: 'follower growth rate',
       },
     });
     channelId = channel.id;

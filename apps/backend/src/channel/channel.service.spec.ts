@@ -50,17 +50,21 @@ const mockChannelResult = {
   channels: [
     {
       channelName: 'X (Twitter)',
+      tier: 'primary',
       scoreBreakdown: {
         targetPresence: 25,
         contentFit: 20,
-        alternativeOverlap: 15,
+        conversionPotential: 15,
         earlyAdoption: 18,
       },
-      reason: '인디 개발자 활발',
-      effectiveContent: '빌딩 인 퍼블릭',
+      whyThisChannel: '인디 개발자 활발',
+      distributionMethod: '해시태그와 스레드 활용',
+      contentAngle: '빌딩 인 퍼블릭',
       risk: '알고리즘 변경',
-      effortLevel: 'Medium | 꾸준한 콘텐츠',
+      effortLevel: 'medium',
+      effortDetail: '꾸준한 콘텐츠',
       expectedTimeline: '2-4주',
+      successMetric: '팔로워 증가율',
     },
   ],
 };

@@ -35,12 +35,16 @@ export class ChannelService {
     const data = result.channels.map((ch: ChannelRecommendationResult) => ({
       productAnalysisId: product.analysis.id,
       channelName: ch.channelName,
+      tier: ch.tier,
       scoreBreakdown: ch.scoreBreakdown as unknown as Prisma.InputJsonValue,
-      reason: ch.reason,
-      effectiveContent: ch.effectiveContent,
+      whyThisChannel: ch.whyThisChannel,
+      distributionMethod: ch.distributionMethod,
+      contentAngle: ch.contentAngle,
       risk: ch.risk,
       effortLevel: ch.effortLevel,
+      effortDetail: ch.effortDetail,
       expectedTimeline: ch.expectedTimeline,
+      successMetric: ch.successMetric,
     }));
 
     await this.prisma.channelRecommendation.createMany({ data });

@@ -39,17 +39,21 @@ const VALID_RESULT: ChannelAnalysisResult = {
   channels: [
     {
       channelName: 'X (Twitter)',
+      tier: 'primary',
       scoreBreakdown: {
         targetPresence: 25,
         contentFit: 20,
-        alternativeOverlap: 15,
+        conversionPotential: 15,
         earlyAdoption: 18,
       },
-      reason: '인디 개발자 커뮤니티가 활발하게 활동하는 채널',
-      effectiveContent: '개발 과정 공유, 빌딩 인 퍼블릭 스레드',
+      whyThisChannel: '인디 개발자 커뮤니티가 활발하게 활동하는 채널',
+      distributionMethod: '해시태그와 스레드를 활용한 유기적 도달',
+      contentAngle: '개발 과정 공유, 빌딩 인 퍼블릭 스레드',
       risk: '알고리즘 변경으로 도달률 변동 가능',
-      effortLevel: 'Medium | 꾸준한 콘텐츠 생산 필요',
+      effortLevel: 'medium',
+      effortDetail: '꾸준한 콘텐츠 생산 필요',
       expectedTimeline: '2-4주',
+      successMetric: '팔로워 증가율 및 프로필 클릭 수',
     },
   ],
 };

@@ -30,7 +30,7 @@ const VALID_INPUT: GenerateContentInput = {
   },
   channel: {
     channelName: 'X (Twitter)',
-    effectiveContent: '빌딩 인 퍼블릭 스레드',
+    contentAngle: '빌딩 인 퍼블릭 스레드',
     risk: '알고리즘 변경 위험',
   },
   strategy: {

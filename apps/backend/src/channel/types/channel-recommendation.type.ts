@@ -1,18 +1,22 @@
 export interface ScoreBreakdown {
   targetPresence: number;
   contentFit: number;
-  alternativeOverlap: number;
+  conversionPotential: number;
   earlyAdoption: number;
 }
 
 export interface ChannelRecommendationResult {
   channelName: string;
+  tier: 'primary' | 'secondary';
   scoreBreakdown: ScoreBreakdown;
-  reason: string;
-  effectiveContent: string;
+  whyThisChannel: string;
+  distributionMethod: string;
+  contentAngle: string;
   risk: string;
-  effortLevel: string;
+  effortLevel: 'low' | 'medium' | 'high';
+  effortDetail: string;
   expectedTimeline: string;
+  successMetric: string;
 }
 
 export interface ChannelAnalysisResult {

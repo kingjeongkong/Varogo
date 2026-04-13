@@ -152,8 +152,8 @@ export class StrategyService {
   ): GenerateCardsInput {
     const channelContext: StrategyChannelContext = {
       channelName: channel.channelName,
-      reason: channel.reason,
-      effectiveContent: channel.effectiveContent,
+      whyThisChannel: channel.whyThisChannel,
+      contentAngle: channel.contentAngle,
       risk: channel.risk,
     };
 

@@ -46,8 +46,8 @@ const PRODUCT_ANALYSIS: ProductAnalysisResult = {
 
 const CHANNEL_INPUT = {
   channelName: 'X (Twitter)',
-  reason: '인디 개발자 커뮤니티가 활발',
-  effectiveContent: '빌딩 인 퍼블릭 스레드',
+  whyThisChannel: '인디 개발자 커뮤니티가 활발',
+  contentAngle: '빌딩 인 퍼블릭 스레드',
   risk: '알고리즘 변경 위험',
 };
 
