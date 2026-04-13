@@ -1,4 +1,5 @@
-import type { TemplateSection } from '../../strategy/types/content-template.type';
+import type { BodySection } from '../../strategy/types/content-template.type';
+import type { CampaignGoal } from '../../strategy/types/strategy-card.type';
 
 export interface GenerateContentInput {
   productAnalysis: {
@@ -17,14 +18,20 @@ export interface GenerateContentInput {
     title: string;
     description: string;
     coreMessage: string;
-    approach: string;
-    contentTypeTitle: string;
-    contentTypeDescription: string;
+    campaignGoal: CampaignGoal;
+    hookAngle: string;
+    callToAction: string;
+    contentFormat: string;
   };
   template: {
-    sections: TemplateSection[];
-    overallTone: string;
+    contentPattern: string;
+    hookGuide: string;
+    bodyStructure: BodySection[];
+    ctaGuide: string;
+    toneGuide: string;
     lengthGuide: string;
+    platformTips: string[];
+    dontDoList: string[];
   };
 }
 

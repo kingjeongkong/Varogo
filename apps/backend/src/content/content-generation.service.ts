@@ -59,9 +59,15 @@ export class ContentGenerationService {
       definition: string;
     };
 
-    const sectionsGuide = template.sections
+    const bodyStructureGuide = template.bodyStructure
       .map((s) => `- ${s.name}: ${s.guide}`)
       .join('\n');
+
+    const platformTipsGuide = template.platformTips
+      .map((t) => `- ${t}`)
+      .join('\n');
+
+    const dontDoGuide = template.dontDoList.map((t) => `- ${t}`).join('\n');
 
     return `당신은 인디 개발자 제품의 마케팅 콘텐츠 작성 전문가입니다. 아래 정보를 바탕으로, 해당 채널에 바로 게시할 수 있는 완성된 콘텐츠를 작성해주세요.
 
@@ -80,14 +86,23 @@ export class ContentGenerationService {
 === 전략 정보 ===
 전략 방향: ${strategy.title} — ${strategy.description}
 핵심 메시지: ${strategy.coreMessage}
-접근 방식: ${strategy.approach}
-콘텐츠 타입: ${strategy.contentTypeTitle} — ${strategy.contentTypeDescription}
+캠페인 목표: ${strategy.campaignGoal.type} — ${strategy.campaignGoal.description}
+훅 각도: ${strategy.hookAngle}
+콜투액션: ${strategy.callToAction}
+콘텐츠 포맷: ${strategy.contentFormat}
 
 === 콘텐츠 템플릿 ===
-톤: ${template.overallTone}
+패턴: ${template.contentPattern}
+훅 가이드: ${template.hookGuide}
+톤: ${template.toneGuide}
 권장 길이: ${template.lengthGuide}
-구성:
-${sectionsGuide}
+본문 구조:
+${bodyStructureGuide}
+CTA 가이드: ${template.ctaGuide}
+플랫폼 팁:
+${platformTipsGuide}
+피해야 할 것:
+${dontDoGuide}
 
 === 지시사항 ===
 위 템플릿의 구성을 참고하되, 섹션 구분 없이 하나의 자연스럽게 연결된 글로 작성하세요.
