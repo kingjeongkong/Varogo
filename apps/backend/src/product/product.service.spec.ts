@@ -55,6 +55,9 @@ describe('ProductService', () => {
     const dto = {
       name: 'Test Product',
       url: 'https://example.com',
+      oneLiner: 'A test product for devs',
+      stage: 'just-launched',
+      currentTraction: { users: 'under-100', revenue: 'none' },
       additionalInfo: 'Some extra info',
     };
 
@@ -63,6 +66,9 @@ describe('ProductService', () => {
       userId,
       name: dto.name,
       url: dto.url,
+      oneLiner: dto.oneLiner,
+      stage: dto.stage,
+      currentTraction: dto.currentTraction,
       additionalInfo: dto.additionalInfo,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -71,16 +77,16 @@ describe('ProductService', () => {
     const mockAnalysisResult = {
       targetAudience: {
         definition: 'Indie developers',
-        behaviors: ['build side projects'],
         painPoints: ['no marketing skills'],
+        buyingTriggers: ['When launching a side project'],
         activeCommunities: ['Twitter'],
       },
       problem: 'Marketing is hard for devs',
+      valueProposition: 'Get a marketing strategy in 5 minutes.',
       alternatives: [],
-      comparisonTable: [],
       differentiators: ['AI-powered'],
       positioningStatement: 'The marketing tool for devs',
-      keywords: ['indie', 'marketing'],
+      keywords: { primary: ['indie'], secondary: ['marketing'] },
     };
 
     const mockSavedAnalysis = {
@@ -97,11 +103,14 @@ describe('ProductService', () => {
 
       const result = await service.create(userId, dto);
 
-      expect(mockProductAnalysisService.analyze).toHaveBeenCalledWith(
-        dto.name,
-        dto.url,
-        dto.additionalInfo,
-      );
+      expect(mockProductAnalysisService.analyze).toHaveBeenCalledWith({
+        name: dto.name,
+        url: dto.url,
+        oneLiner: dto.oneLiner,
+        stage: dto.stage,
+        currentTraction: dto.currentTraction,
+        additionalInfo: dto.additionalInfo,
+      });
 
       expect(mockPrisma.$transaction).toHaveBeenCalled();
 
@@ -110,6 +119,9 @@ describe('ProductService', () => {
           userId,
           name: dto.name,
           url: dto.url,
+          oneLiner: dto.oneLiner,
+          stage: dto.stage,
+          currentTraction: dto.currentTraction,
           additionalInfo: dto.additionalInfo,
         },
       });
@@ -119,8 +131,8 @@ describe('ProductService', () => {
           productId: mockProduct.id,
           targetAudience: mockAnalysisResult.targetAudience,
           problem: mockAnalysisResult.problem,
+          valueProposition: mockAnalysisResult.valueProposition,
           alternatives: mockAnalysisResult.alternatives,
-          comparisonTable: mockAnalysisResult.comparisonTable,
           differentiators: mockAnalysisResult.differentiators,
           positioningStatement: mockAnalysisResult.positioningStatement,
           keywords: mockAnalysisResult.keywords,

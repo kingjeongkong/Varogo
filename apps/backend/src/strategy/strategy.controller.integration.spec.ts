@@ -123,6 +123,9 @@ describe('StrategyController (integration)', () => {
         userId: user!.id,
         name: 'TestProduct',
         url: 'https://example.com',
+        oneLiner: 'A test product',
+        stage: 'just-launched',
+        currentTraction: { users: 'under-100', revenue: 'none' },
       },
     });
     productId = product.id;
@@ -132,16 +135,16 @@ describe('StrategyController (integration)', () => {
         productId: product.id,
         targetAudience: {
           definition: 'Indie devs',
-          behaviors: [],
           painPoints: [],
+          buyingTriggers: [],
           activeCommunities: [],
         },
         problem: 'marketing hard',
+        valueProposition: 'Get a strategy in 5 minutes.',
         alternatives: [],
-        comparisonTable: [],
         differentiators: ['AI'],
         positioningStatement: 'copilot',
-        keywords: ['indie'],
+        keywords: { primary: ['indie'], secondary: [] },
       },
     });
 
@@ -307,6 +310,9 @@ describe('StrategyController (integration)', () => {
           userId: user!.id,
           name: 'NoAnalysis',
           url: 'https://example.com',
+          oneLiner: 'No analysis product',
+          stage: 'pre-launch',
+          currentTraction: { users: 'none', revenue: 'none' },
         },
       });
 
