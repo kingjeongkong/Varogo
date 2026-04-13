@@ -88,10 +88,11 @@ function makeStrategy(id: string) {
     title: `title-${id}`,
     description: `desc-${id}`,
     coreMessage: `core-${id}`,
-    approach: `approach-${id}`,
-    whyItFits: `fit-${id}`,
-    contentTypeTitle: `type-${id}`,
-    contentTypeDescription: `typedesc-${id}`,
+    campaignGoal: { type: 'awareness', description: `goal-${id}` },
+    hookAngle: `hook-${id}`,
+    callToAction: `cta-${id}`,
+    contentFormat: `format-${id}`,
+    contentFrequency: `freq-${id}`,
     createdAt: new Date('2026-04-10'),
   };
 }
@@ -102,31 +103,38 @@ const GENERATED_CARDS = {
       title: 'Story',
       description: 'desc',
       coreMessage: 'core',
-      approach: 'approach',
-      whyItFits: 'fit',
-      contentTypeTitle: 'type',
-      contentTypeDescription: 'typedesc',
+      campaignGoal: { type: 'community', description: 'goal' },
+      hookAngle: 'hook',
+      callToAction: 'cta',
+      contentFormat: 'format',
+      contentFrequency: 'freq',
     },
     {
       title: 'Education',
       description: 'desc2',
       coreMessage: 'core2',
-      approach: 'approach2',
-      whyItFits: 'fit2',
-      contentTypeTitle: 'type2',
-      contentTypeDescription: 'typedesc2',
+      campaignGoal: { type: 'traffic', description: 'goal2' },
+      hookAngle: 'hook2',
+      callToAction: 'cta2',
+      contentFormat: 'format2',
+      contentFrequency: 'freq2',
     },
   ],
 };
 
 const GENERATED_TEMPLATE = {
-  sections: [
-    { name: '제목', guide: '호기심' },
-    { name: '도입', guide: '경험' },
-    { name: '본문', guide: '학습' },
+  contentPattern: 'series',
+  hookGuide: '훅 가이드',
+  bodyStructure: [
+    { name: '도입', guide: '경험', exampleSnippet: '예시1' },
+    { name: '본문', guide: '학습', exampleSnippet: '예시2' },
+    { name: '마무리', guide: 'CTA', exampleSnippet: '예시3' },
   ],
-  overallTone: '캐주얼',
+  ctaGuide: 'CTA 가이드',
+  toneGuide: '캐주얼',
   lengthGuide: '180자',
+  platformTips: ['팁1', '팁2', '팁3'],
+  dontDoList: ['금지1', '금지2', '금지3'],
 };
 
 describe('StrategyService', () => {
@@ -310,9 +318,14 @@ describe('StrategyService', () => {
       const existingTemplate = {
         id: 'tmpl-1',
         strategyId: STRATEGY_ID,
-        sections: GENERATED_TEMPLATE.sections,
-        overallTone: GENERATED_TEMPLATE.overallTone,
+        contentPattern: GENERATED_TEMPLATE.contentPattern,
+        hookGuide: GENERATED_TEMPLATE.hookGuide,
+        bodyStructure: GENERATED_TEMPLATE.bodyStructure,
+        ctaGuide: GENERATED_TEMPLATE.ctaGuide,
+        toneGuide: GENERATED_TEMPLATE.toneGuide,
         lengthGuide: GENERATED_TEMPLATE.lengthGuide,
+        platformTips: GENERATED_TEMPLATE.platformTips,
+        dontDoList: GENERATED_TEMPLATE.dontDoList,
         createdAt: new Date('2026-04-11'),
       };
       mockPrisma.strategy.findFirst.mockResolvedValue({
@@ -345,9 +358,14 @@ describe('StrategyService', () => {
       const createdTemplate = {
         id: 'tmpl-new',
         strategyId: STRATEGY_ID,
-        sections: GENERATED_TEMPLATE.sections,
-        overallTone: GENERATED_TEMPLATE.overallTone,
+        contentPattern: GENERATED_TEMPLATE.contentPattern,
+        hookGuide: GENERATED_TEMPLATE.hookGuide,
+        bodyStructure: GENERATED_TEMPLATE.bodyStructure,
+        ctaGuide: GENERATED_TEMPLATE.ctaGuide,
+        toneGuide: GENERATED_TEMPLATE.toneGuide,
         lengthGuide: GENERATED_TEMPLATE.lengthGuide,
+        platformTips: GENERATED_TEMPLATE.platformTips,
+        dontDoList: GENERATED_TEMPLATE.dontDoList,
         createdAt: new Date('2026-04-12'),
       };
       mockPrisma.strategyContentTemplate.create.mockResolvedValue(
@@ -372,9 +390,14 @@ describe('StrategyService', () => {
       expect(mockPrisma.strategyContentTemplate.create).toHaveBeenCalledWith({
         data: {
           strategyId: STRATEGY_ID,
-          sections: GENERATED_TEMPLATE.sections,
-          overallTone: GENERATED_TEMPLATE.overallTone,
+          contentPattern: GENERATED_TEMPLATE.contentPattern,
+          hookGuide: GENERATED_TEMPLATE.hookGuide,
+          bodyStructure: GENERATED_TEMPLATE.bodyStructure,
+          ctaGuide: GENERATED_TEMPLATE.ctaGuide,
+          toneGuide: GENERATED_TEMPLATE.toneGuide,
           lengthGuide: GENERATED_TEMPLATE.lengthGuide,
+          platformTips: GENERATED_TEMPLATE.platformTips,
+          dontDoList: GENERATED_TEMPLATE.dontDoList,
         },
       });
       expect(result.strategy.id).toBe(STRATEGY_ID);
@@ -404,9 +427,14 @@ describe('StrategyService', () => {
       const template = {
         id: 'tmpl-1',
         strategyId: 's1',
-        sections: GENERATED_TEMPLATE.sections,
-        overallTone: GENERATED_TEMPLATE.overallTone,
+        contentPattern: GENERATED_TEMPLATE.contentPattern,
+        hookGuide: GENERATED_TEMPLATE.hookGuide,
+        bodyStructure: GENERATED_TEMPLATE.bodyStructure,
+        ctaGuide: GENERATED_TEMPLATE.ctaGuide,
+        toneGuide: GENERATED_TEMPLATE.toneGuide,
         lengthGuide: GENERATED_TEMPLATE.lengthGuide,
+        platformTips: GENERATED_TEMPLATE.platformTips,
+        dontDoList: GENERATED_TEMPLATE.dontDoList,
         createdAt: new Date('2026-04-12'),
         strategy,
       };

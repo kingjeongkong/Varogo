@@ -37,18 +37,39 @@ const VALID_INPUT: GenerateContentInput = {
     title: '스토리 기반',
     description: '창업 여정을 공유하여 공감대 형성',
     coreMessage: '진짜 창업자의 고민을 공유한다',
-    approach: '일인칭 시점, 실패와 학습 공유',
-    contentTypeTitle: '개인 경험 쓰레드',
-    contentTypeDescription: '창업 여정의 한 장면을 쓰레드로 풀어냄',
+    campaignGoal: {
+      type: 'community',
+      description: '인디 개발자 커뮤니티 내 인지도 구축',
+    },
+    hookAngle: '실패 경험 공개형 빌딩 저널',
+    callToAction: '댓글로 경험 공유해 주세요',
+    contentFormat: '개인 경험 쓰레드',
   },
   template: {
-    sections: [
-      { name: '제목', guide: '호기심 유발형 한 문장' },
-      { name: '도입', guide: '본인 경험 2~3문장' },
-      { name: '본문', guide: '실패와 학습 공유' },
+    contentPattern: 'series',
+    hookGuide: '실패 경험을 구체적 수치와 함께 제시',
+    bodyStructure: [
+      {
+        name: '제목',
+        guide: '호기심 유발형 한 문장',
+        exampleSnippet: '3개월간 매출 0원',
+      },
+      {
+        name: '도입',
+        guide: '본인 경험 2~3문장',
+        exampleSnippet: '그래서 전략을 바꿨습니다',
+      },
+      {
+        name: '본문',
+        guide: '실패와 학습 공유',
+        exampleSnippet: '배운 점은 이것입니다',
+      },
     ],
-    overallTone: '캐주얼하지만 진지, 과장 없이',
+    ctaGuide: '피드백 요청으로 자연스럽게',
+    toneGuide: '캐주얼하지만 진지, 과장 없이',
     lengthGuide: '각 포스트 180~240자, 총 8~10개 포스트',
+    platformTips: ['해시태그 2~3개', '이미지 첨부', '오전 게시'],
+    dontDoList: ['직접 홍보 금지', '과장 금지', '링크만 금지'],
   },
 };
 
@@ -141,7 +162,7 @@ describe('ContentGenerationService', () => {
       expect(prompt).toContain('X (Twitter)');
       expect(prompt).toContain('스토리 기반');
       expect(prompt).toContain('진짜 창업자의 고민을 공유한다');
-      expect(prompt).toContain('개인 경험 쓰레드');
+      expect(prompt).toContain('실패 경험 공개형 빌딩 저널');
       expect(prompt).toContain('캐주얼하지만 진지, 과장 없이');
     });
 
