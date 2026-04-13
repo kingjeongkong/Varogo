@@ -24,13 +24,18 @@ const mockChannelAnalysisService = {
 const mockAnalysis = {
   id: 'analysis-1',
   productId: 'product-1',
-  targetAudience: { definition: 'Indie developers' },
+  targetAudience: {
+    definition: 'Indie developers',
+    painPoints: [],
+    buyingTriggers: [],
+    activeCommunities: [],
+  },
   problem: 'Marketing is hard',
+  valueProposition: 'Get a strategy in 5 minutes.',
   alternatives: [],
-  comparisonTable: [],
   differentiators: ['AI-powered'],
   positioningStatement: 'Marketing copilot',
-  keywords: ['indie'],
+  keywords: { primary: ['indie'], secondary: [] },
 };
 
 const mockProduct = {
