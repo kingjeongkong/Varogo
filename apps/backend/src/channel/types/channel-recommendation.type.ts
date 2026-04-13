@@ -7,6 +7,7 @@ export interface ScoreBreakdown {
 
 export interface ChannelRecommendationResult {
   channelName: string;
+  targetCommunities: string[];
   tier: 'primary' | 'secondary';
   scoreBreakdown: ScoreBreakdown;
   whyThisChannel: string;

@@ -59,7 +59,8 @@ Alternatives: ${analysis.alternatives.map((a) => a.name).join(', ')}
 Recommend exactly 3 marketing channels: 2 primary channels and 1 secondary channel. Choose the best channels based on the product analysis.
 
 For each channel, provide:
-- channelName: The channel name
+- channelName: The channel name (platform level, e.g. "Reddit", "X (Twitter)")
+- targetCommunities: Specific sub-communities to target (e.g. "r/SideProject", "#buildinpublic"). 2-3 items. Empty array if the channel has no sub-communities (e.g. Product Hunt, Hacker News).
 - tier: "primary" for the 2 main channels, "secondary" for the 1 supplementary channel
 - scoreBreakdown: Score the channel on 4 dimensions:
   - targetPresence (0-30): How present is the target audience on this channel?
@@ -87,6 +88,10 @@ Respond in Korean. Be specific and actionable.`;
           type: Type.OBJECT,
           properties: {
             channelName: { type: Type.STRING },
+            targetCommunities: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
             tier: { type: Type.STRING },
             scoreBreakdown: {
               type: Type.OBJECT,
@@ -114,6 +119,7 @@ Respond in Korean. Be specific and actionable.`;
           },
           required: [
             'channelName',
+            'targetCommunities',
             'tier',
             'scoreBreakdown',
             'whyThisChannel',

@@ -75,6 +75,7 @@ export interface ChannelRecommendation {
   id: string;
   productAnalysisId: string;
   channelName: string;
+  targetCommunities: string[];
   tier: 'primary' | 'secondary';
   scoreBreakdown: ScoreBreakdown;
   whyThisChannel: string;

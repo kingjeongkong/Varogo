@@ -5,6 +5,7 @@ export interface ChannelRecommendationResponse {
   id: string;
   productAnalysisId: string;
   channelName: string;
+  targetCommunities: string[];
   tier: 'primary' | 'secondary';
   scoreBreakdown: ScoreBreakdown;
   whyThisChannel: string;
@@ -22,6 +23,7 @@ export function toChannelRecommendationResponse(recommendation: {
   id: string;
   productAnalysisId: string;
   channelName: string;
+  targetCommunities: string[];
   tier: string;
   scoreBreakdown: JsonValue;
   whyThisChannel: string;
@@ -40,6 +42,7 @@ export function toChannelRecommendationResponse(recommendation: {
     id: recommendation.id,
     productAnalysisId: recommendation.productAnalysisId,
     channelName: recommendation.channelName,
+    targetCommunities: recommendation.targetCommunities,
     tier: recommendation.tier as 'primary' | 'secondary',
     scoreBreakdown,
     whyThisChannel: recommendation.whyThisChannel,

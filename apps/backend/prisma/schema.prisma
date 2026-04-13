@@ -91,8 +91,9 @@ model ProductAnalysis {
 model ChannelRecommendation {
   id                 String   @id @default(uuid())
   productAnalysisId  String   @map("product_analysis_id")
-  channelName        String   @map("channel_name")
-  tier               String
+  channelName         String   @map("channel_name")
+  targetCommunities   String[] @map("target_communities")
+  tier                String
   scoreBreakdown     Json     @map("score_breakdown")
   whyThisChannel     String   @map("why_this_channel")
   distributionMethod String   @map("distribution_method")

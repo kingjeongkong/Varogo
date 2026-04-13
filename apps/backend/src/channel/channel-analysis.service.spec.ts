@@ -39,6 +39,7 @@ const VALID_RESULT: ChannelAnalysisResult = {
   channels: [
     {
       channelName: 'X (Twitter)',
+      targetCommunities: ['#buildinpublic', '#indiehackers'],
       tier: 'primary',
       scoreBreakdown: {
         targetPresence: 25,

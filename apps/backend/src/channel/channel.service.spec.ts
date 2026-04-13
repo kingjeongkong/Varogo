@@ -50,6 +50,7 @@ const mockChannelResult = {
   channels: [
     {
       channelName: 'X (Twitter)',
+      targetCommunities: ['#buildinpublic', '#indiehackers'],
       tier: 'primary',
       scoreBreakdown: {
         targetPresence: 25,

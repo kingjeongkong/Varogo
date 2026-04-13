@@ -35,6 +35,7 @@ export class ChannelService {
     const data = result.channels.map((ch: ChannelRecommendationResult) => ({
       productAnalysisId: product.analysis.id,
       channelName: ch.channelName,
+      targetCommunities: ch.targetCommunities,
       tier: ch.tier,
       scoreBreakdown: ch.scoreBreakdown as unknown as Prisma.InputJsonValue,
       whyThisChannel: ch.whyThisChannel,
