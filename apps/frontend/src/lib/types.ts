@@ -12,27 +12,26 @@ export interface User {
 
 export interface TargetAudience {
   definition: string;
-  behaviors: string[];
   painPoints: string[];
+  buyingTriggers: string[];
   activeCommunities: string[];
 }
 
 export interface Alternative {
   name: string;
-  problemSolved: string;
-  price: string;
-  limitations: string[];
+  description: string;
+  weaknessWeExploit: string;
 }
 
-export interface CompetitorValue {
-  name: string;
-  value: string;
+export interface Keywords {
+  primary: string[];
+  secondary: string[];
 }
 
-export interface ComparisonItem {
-  aspect: string;
-  myProduct: string;
-  competitors: CompetitorValue[];
+export interface CurrentTraction {
+  users: string;
+  revenue: string;
+  socialProof?: string | null;
 }
 
 export interface ProductAnalysis {
@@ -40,11 +39,11 @@ export interface ProductAnalysis {
   productId: string;
   targetAudience: TargetAudience;
   problem: string;
+  valueProposition: string;
   alternatives: Alternative[];
-  comparisonTable: ComparisonItem[];
   differentiators: string[];
   positioningStatement: string;
-  keywords: string[];
+  keywords: Keywords;
   createdAt: string;
 }
 
@@ -53,6 +52,9 @@ export interface Product {
   userId: string;
   name: string;
   url: string;
+  oneLiner: string;
+  stage: string;
+  currentTraction: CurrentTraction;
   additionalInfo: string | null;
   createdAt: string;
   updatedAt: string;

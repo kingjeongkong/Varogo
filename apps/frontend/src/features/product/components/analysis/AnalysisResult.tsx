@@ -5,7 +5,6 @@ import type { ProductWithAnalysis } from '@/lib/types';
 import { AnalysisHero } from './AnalysisHero';
 import { TargetAudienceSection } from './TargetAudienceSection';
 import { AlternativesSection } from './AlternativesSection';
-import { ComparisonSection } from './ComparisonSection';
 import { SectionLabel } from './SectionLabel';
 
 interface AnalysisResultProps {
@@ -32,8 +31,8 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
   const {
     targetAudience,
     problem,
+    valueProposition,
     alternatives,
-    comparisonTable,
     differentiators,
     positioningStatement,
     keywords,
@@ -60,14 +59,20 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
         </div>
       </section>
 
-      <AlternativesSection alternatives={alternatives} />
+      {/* ── Value Proposition ── */}
+      <section
+        className="animate-slide-up"
+        style={{ animationDelay: '0.12s', opacity: 0 }}
+      >
+        <SectionLabel number="03" title="가치 제안" />
+        <div className="relative rounded-xl border-l-4 border-primary bg-primary-dim/50 px-6 py-5">
+          <p className="text-text-secondary leading-relaxed">
+            {valueProposition}
+          </p>
+        </div>
+      </section>
 
-      {comparisonTable.length > 0 && (
-        <ComparisonSection
-          productName={product.name}
-          comparisonTable={comparisonTable}
-        />
-      )}
+      <AlternativesSection alternatives={alternatives} />
 
       {/* ── Differentiators ── */}
       <section
@@ -96,22 +101,37 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
         style={{ animationDelay: '0.3s', opacity: 0 }}
       >
         <SectionLabel number="06" title="마케팅 키워드" />
-        <div className="flex flex-wrap gap-2.5">
-          {keywords.map((kw, i) => (
-            <span
-              key={kw}
-              className={`inline-block rounded-lg border font-medium transition-colors cursor-default
-                ${
-                  i < 3
-                    ? 'bg-primary-dim border-primary/20 text-primary px-4 py-2 text-sm'
-                    : i < 7
-                      ? 'bg-surface border-border text-text-secondary px-3.5 py-1.5 text-sm hover:border-primary/30'
-                      : 'bg-surface-elevated border-border/50 text-text-muted px-3 py-1.5 text-xs hover:border-border'
-                }`}
-            >
-              {kw}
-            </span>
-          ))}
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">
+              Primary
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {keywords.primary.map((kw) => (
+                <span
+                  key={kw}
+                  className="inline-block rounded-lg border bg-primary-dim border-primary/20 text-primary px-4 py-2 text-sm font-medium cursor-default"
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+              Secondary
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {keywords.secondary.map((kw) => (
+                <span
+                  key={kw}
+                  className="inline-block rounded-lg border bg-surface border-border text-text-secondary px-3.5 py-1.5 text-sm font-medium cursor-default hover:border-primary/30 transition-colors"
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
