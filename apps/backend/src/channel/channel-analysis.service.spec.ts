@@ -137,5 +137,31 @@ describe('ChannelAnalysisService', () => {
         service.analyze(PRODUCT_ANALYSIS, 'MyProduct'),
       ).rejects.toThrow(InternalServerErrorException);
     });
+
+    it('throws InternalServerErrorException when tier is invalid', async () => {
+      const invalid = {
+        channels: [{ ...VALID_RESULT.channels[0], tier: 'gold' }],
+      };
+      mockGenerateContent.mockResolvedValue({
+        text: JSON.stringify(invalid),
+      });
+
+      await expect(
+        service.analyze(PRODUCT_ANALYSIS, 'MyProduct'),
+      ).rejects.toThrow('tier must be primary or secondary');
+    });
+
+    it('throws InternalServerErrorException when effortLevel is invalid', async () => {
+      const invalid = {
+        channels: [{ ...VALID_RESULT.channels[0], effortLevel: 'extreme' }],
+      };
+      mockGenerateContent.mockResolvedValue({
+        text: JSON.stringify(invalid),
+      });
+
+      await expect(
+        service.analyze(PRODUCT_ANALYSIS, 'MyProduct'),
+      ).rejects.toThrow('effortLevel must be low, medium, or high');
+    });
   });
 });

@@ -57,19 +57,27 @@ const VALID_CARDS_RESULT: StrategyGenerationResult = {
       title: '스토리 기반',
       description: '창업 여정을 공유하여 공감대 형성',
       coreMessage: '진짜 창업자의 고민을 공유한다',
-      approach: '일인칭 시점, 실패와 학습 공유',
-      whyItFits: 'X는 진정성 있는 스토리에 강한 반응',
-      contentTypeTitle: '개인 경험 쓰레드',
-      contentTypeDescription: '창업 여정의 한 장면을 쓰레드로 풀어냄',
+      campaignGoal: {
+        type: 'community',
+        description: '인디 개발자 커뮤니티 내 인지도 구축',
+      },
+      hookAngle: '실패 경험 공개형 빌딩 저널',
+      callToAction: '댓글로 경험 공유해 주세요',
+      contentFormat: '개인 경험 쓰레드',
+      contentFrequency: '주 2~3회',
     },
     {
       title: '교육 기반',
       description: '실용 팁을 공유하여 전문성 구축',
       coreMessage: '마케팅을 쉽게 설명한다',
-      approach: '구조화된 팁 제공',
-      whyItFits: 'X 인디 커뮤니티는 실용 팁에 반응',
-      contentTypeTitle: '교육 쓰레드',
-      contentTypeDescription: '단계별 가이드 쓰레드',
+      campaignGoal: {
+        type: 'traffic',
+        description: '랜딩페이지 유입 확보',
+      },
+      hookAngle: '단계별 실용 팁 제공',
+      callToAction: '지금 무료로 시작해보세요',
+      contentFormat: '교육 쓰레드',
+      contentFrequency: '주 1~2회',
     },
   ],
 };
@@ -77,13 +85,38 @@ const VALID_CARDS_RESULT: StrategyGenerationResult = {
 const SELECTED_STRATEGY: StrategyCardResult = VALID_CARDS_RESULT.cards[0];
 
 const VALID_TEMPLATE_RESULT: ContentTemplateResult = {
-  sections: [
-    { name: '제목', guide: '호기심 유발형 한 문장' },
-    { name: '도입', guide: '본인 경험 2~3문장' },
-    { name: '본문', guide: '실패와 학습 공유' },
+  contentPattern: 'series',
+  hookGuide: '실패 경험을 구체적 수치와 함께 제시',
+  bodyStructure: [
+    {
+      name: '도입',
+      guide: '본인 경험 2~3문장',
+      exampleSnippet: '3개월간 매출 0원이었습니다.',
+    },
+    {
+      name: '본문',
+      guide: '실패와 학습 공유',
+      exampleSnippet: '그래서 저는 전략을 바꿨습니다.',
+    },
+    {
+      name: '마무리',
+      guide: 'CTA로 자연스럽게 연결',
+      exampleSnippet: '여러분은 어떻게 하시나요?',
+    },
   ],
-  overallTone: '캐주얼하지만 진지, 과장 없이',
+  ctaGuide: '피드백 요청 프레이밍으로 자연스럽게',
+  toneGuide: '캐주얼하지만 진지, 과장 없이',
   lengthGuide: '각 포스트 180~240자, 총 8~10개 포스트',
+  platformTips: [
+    '해시태그 2~3개 사용',
+    '이미지 첨부 시 노출 증가',
+    '오전 9시 게시 권장',
+  ],
+  dontDoList: [
+    '직접적 홍보 금지',
+    '과장된 수치 사용 금지',
+    '링크만 던지기 금지',
+  ],
 };
 
 function buildChatResponse(payload: unknown) {
@@ -245,6 +278,33 @@ describe('StrategyGenerationService', () => {
         }),
       ).rejects.toThrow('card missing field');
     });
+
+    it('throws InternalServerErrorException when campaignGoal has invalid type', async () => {
+      mockCreate.mockResolvedValue(
+        buildChatResponse({
+          cards: [
+            {
+              title: '스토리 기반',
+              description: 'desc',
+              coreMessage: 'core',
+              campaignGoal: { type: 'engagement', description: 'invalid type' },
+              hookAngle: 'hook',
+              callToAction: 'cta',
+              contentFormat: 'format',
+              contentFrequency: 'freq',
+            },
+          ],
+        }),
+      );
+
+      await expect(
+        service.generateCards({
+          productName: 'Varogo',
+          productAnalysis: PRODUCT_ANALYSIS,
+          channel: CHANNEL_INPUT,
+        }),
+      ).rejects.toThrow('card missing field "campaignGoal"');
+    });
   });
 
   describe('generateTemplate', () => {
@@ -277,7 +337,7 @@ describe('StrategyGenerationService', () => {
       const prompt = calls[0][0].messages[0].content;
       expect(prompt).toContain(SELECTED_STRATEGY.title);
       expect(prompt).toContain(SELECTED_STRATEGY.coreMessage);
-      expect(prompt).toContain(SELECTED_STRATEGY.contentTypeTitle);
+      expect(prompt).toContain(SELECTED_STRATEGY.hookAngle);
       expect(prompt).toContain('X (Twitter)');
     });
 
@@ -307,30 +367,16 @@ describe('StrategyGenerationService', () => {
       ).rejects.toThrow(InternalServerErrorException);
     });
 
-    it('throws InternalServerErrorException when sections are missing', async () => {
-      mockCreate.mockResolvedValue(
-        buildChatResponse({ overallTone: 'casual', lengthGuide: '200자' }),
-      );
-
-      await expect(
-        service.generateTemplate({
-          productName: 'Varogo',
-          productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
-          strategy: SELECTED_STRATEGY,
-        }),
-      ).rejects.toThrow('sections must have at least 3 items');
-    });
-
-    it('throws InternalServerErrorException when overallTone is missing', async () => {
+    it('throws InternalServerErrorException when bodyStructure is missing', async () => {
       mockCreate.mockResolvedValue(
         buildChatResponse({
-          sections: [
-            { name: 'a', guide: 'b' },
-            { name: 'c', guide: 'd' },
-            { name: 'e', guide: 'f' },
-          ],
+          contentPattern: 'series',
+          hookGuide: 'hook',
+          ctaGuide: 'cta',
+          toneGuide: 'tone',
           lengthGuide: '200자',
+          platformTips: ['a', 'b', 'c'],
+          dontDoList: ['x', 'y', 'z'],
         }),
       );
 
@@ -341,7 +387,34 @@ describe('StrategyGenerationService', () => {
           channel: CHANNEL_INPUT,
           strategy: SELECTED_STRATEGY,
         }),
-      ).rejects.toThrow('missing overallTone or lengthGuide');
+      ).rejects.toThrow('bodyStructure must have at least 3 items');
+    });
+
+    it('throws InternalServerErrorException when toneGuide is missing', async () => {
+      mockCreate.mockResolvedValue(
+        buildChatResponse({
+          contentPattern: 'series',
+          hookGuide: 'hook',
+          bodyStructure: [
+            { name: 'a', guide: 'b', exampleSnippet: 'c' },
+            { name: 'd', guide: 'e', exampleSnippet: 'f' },
+            { name: 'g', guide: 'h', exampleSnippet: 'i' },
+          ],
+          ctaGuide: 'cta',
+          lengthGuide: '200자',
+          platformTips: ['a', 'b', 'c'],
+          dontDoList: ['x', 'y', 'z'],
+        }),
+      );
+
+      await expect(
+        service.generateTemplate({
+          productName: 'Varogo',
+          productAnalysis: PRODUCT_ANALYSIS,
+          channel: CHANNEL_INPUT,
+          strategy: SELECTED_STRATEGY,
+        }),
+      ).rejects.toThrow('missing toneGuide');
     });
   });
 });

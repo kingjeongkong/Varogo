@@ -10,10 +10,14 @@ const MOCK_STRATEGY: StrategyResponse = {
   title: '스토리 기반',
   description: '창업 여정과 개인 경험을 중심으로 독자와 감정적 공감대를 형성',
   coreMessage: '진짜 창업자가 겪는 고민을 공유한다',
-  approach: '일인칭 시점, 실패와 학습을 솔직하게 드러내기',
-  whyItFits: 'Reddit indiehackers는 진정성 있는 스토리에 강한 반응',
-  contentTypeTitle: '개인 경험 쓰레드',
-  contentTypeDescription: '창업 여정의 한 장면을 8~12개 포스트로 풀어냄',
+  campaignGoal: {
+    type: 'community',
+    description: 'Reddit indiehackers 커뮤니티 내 인지도 구축',
+  },
+  hookAngle: '일인칭 시점, 실패와 학습을 솔직하게 드러내기',
+  callToAction: '댓글로 여러분의 경험도 공유해 주세요',
+  contentFormat: '개인 경험 쓰레드',
+  contentFrequency: '주 2회',
   createdAt: '2026-04-10T00:00:00.000Z',
 };
 
@@ -42,13 +46,30 @@ describe('StrategyCard', () => {
       ).toBeInTheDocument();
     });
 
-    it('renders content type fields', () => {
+    it('renders campaign goal with type badge and description', () => {
+      render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
+
+      expect(screen.getByText('커뮤니티')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Reddit indiehackers 커뮤니티 내 인지도 구축',
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('renders call to action', () => {
+      render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
+
+      expect(
+        screen.getByText('댓글로 여러분의 경험도 공유해 주세요'),
+      ).toBeInTheDocument();
+    });
+
+    it('renders content format and frequency', () => {
       render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
 
       expect(screen.getByText('개인 경험 쓰레드')).toBeInTheDocument();
-      expect(
-        screen.getByText('창업 여정의 한 장면을 8~12개 포스트로 풀어냄'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('주 2회')).toBeInTheDocument();
     });
 
     it('renders as a button with accessible label', () => {

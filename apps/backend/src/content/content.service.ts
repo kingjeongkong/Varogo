@@ -64,15 +64,22 @@ export class ContentService {
         title: template.strategy.title,
         description: template.strategy.description,
         coreMessage: template.strategy.coreMessage,
-        approach: template.strategy.approach,
-        contentTypeTitle: template.strategy.contentTypeTitle,
-        contentTypeDescription: template.strategy.contentTypeDescription,
+        campaignGoal: template.strategy
+          .campaignGoal as unknown as GenerateContentInput['strategy']['campaignGoal'],
+        hookAngle: template.strategy.hookAngle,
+        callToAction: template.strategy.callToAction,
+        contentFormat: template.strategy.contentFormat,
       },
       template: {
-        sections:
-          template.sections as unknown as GenerateContentInput['template']['sections'],
-        overallTone: template.overallTone,
+        contentPattern: template.contentPattern,
+        hookGuide: template.hookGuide,
+        bodyStructure:
+          template.bodyStructure as unknown as GenerateContentInput['template']['bodyStructure'],
+        ctaGuide: template.ctaGuide,
+        toneGuide: template.toneGuide,
         lengthGuide: template.lengthGuide,
+        platformTips: template.platformTips as unknown as string[],
+        dontDoList: template.dontDoList as unknown as string[],
       },
     };
 

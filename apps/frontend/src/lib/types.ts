@@ -97,24 +97,34 @@ export interface StrategyResponse {
   title: string;
   description: string;
   coreMessage: string;
-  approach: string;
-  whyItFits: string;
-  contentTypeTitle: string;
-  contentTypeDescription: string;
+  campaignGoal: {
+    type: 'awareness' | 'traffic' | 'conversion' | 'community';
+    description: string;
+  };
+  hookAngle: string;
+  callToAction: string;
+  contentFormat: string;
+  contentFrequency: string;
   createdAt: string;
 }
 
-export interface TemplateSection {
+export interface BodySection {
   name: string;
   guide: string;
+  exampleSnippet: string;
 }
 
 export interface ContentTemplateResponse {
   id: string;
   strategyId: string;
-  sections: TemplateSection[];
-  overallTone: string;
+  contentPattern: 'series' | 'standalone' | 'one-off';
+  hookGuide: string;
+  bodyStructure: BodySection[];
+  ctaGuide: string;
+  toneGuide: string;
   lengthGuide: string;
+  platformTips: string[];
+  dontDoList: string[];
   createdAt: string;
 }
 

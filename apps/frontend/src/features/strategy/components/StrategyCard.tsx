@@ -1,6 +1,16 @@
 import { Spinner } from '@/components/ui/Spinner';
 import type { StrategyResponse } from '@/lib/types';
 
+const GOAL_TYPE_LABEL: Record<
+  StrategyResponse['campaignGoal']['type'],
+  string
+> = {
+  awareness: '인지도',
+  traffic: '트래픽',
+  conversion: '전환',
+  community: '커뮤니티',
+};
+
 interface StrategyCardProps {
   strategy: StrategyResponse;
   disabled?: boolean;
@@ -39,30 +49,55 @@ export function StrategyCard({
         <p className="text-sm text-text-secondary">{strategy.coreMessage}</p>
       </div>
 
-      {/* Approach */}
-      <div className="rounded-lg bg-accent-dim border-l-2 border-accent px-4 py-3 mb-4">
+      {/* Campaign Goal */}
+      <div className="rounded-lg bg-accent-dim border-l-2 border-accent px-4 py-3 mb-3">
         <p className="text-xs font-mono text-accent uppercase tracking-wider mb-1">
-          Approach
+          Campaign Goal
         </p>
-        <p className="text-sm text-text-secondary">{strategy.approach}</p>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="rounded-md bg-accent/10 border border-accent/30 px-2 py-0.5 text-xs font-medium text-accent">
+            {GOAL_TYPE_LABEL[strategy.campaignGoal.type]}
+          </span>
+        </div>
+        <p className="text-sm text-text-secondary">
+          {strategy.campaignGoal.description}
+        </p>
       </div>
 
-      {/* Why It Fits */}
-      <p className="text-xs text-text-muted leading-relaxed mb-4">
-        {strategy.whyItFits}
-      </p>
-
-      {/* Content Type */}
-      <div className="rounded-md border border-border/40 bg-surface-elevated px-4 py-3">
+      {/* Hook Angle */}
+      <div className="rounded-lg bg-surface-elevated border-l-2 border-border/60 px-4 py-3 mb-3">
         <p className="text-xs font-mono text-text-muted uppercase tracking-wider mb-1">
-          Content Type
+          Hook Angle
         </p>
-        <p className="text-sm font-medium text-text-primary">
-          {strategy.contentTypeTitle}
+        <p className="text-sm text-text-secondary">{strategy.hookAngle}</p>
+      </div>
+
+      {/* Call to Action */}
+      <div className="rounded-lg bg-surface-elevated border-l-2 border-border/60 px-4 py-3 mb-4">
+        <p className="text-xs font-mono text-text-muted uppercase tracking-wider mb-1">
+          Call to Action
         </p>
-        <p className="text-xs text-text-muted mt-0.5">
-          {strategy.contentTypeDescription}
-        </p>
+        <p className="text-sm text-text-secondary">{strategy.callToAction}</p>
+      </div>
+
+      {/* Content Format + Frequency */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-md border border-border/40 bg-surface-elevated px-4 py-3">
+          <p className="text-xs font-mono text-text-muted uppercase tracking-wider mb-1">
+            Format
+          </p>
+          <p className="text-sm font-medium text-text-primary">
+            {strategy.contentFormat}
+          </p>
+        </div>
+        <div className="rounded-md border border-border/40 bg-surface-elevated px-4 py-3">
+          <p className="text-xs font-mono text-text-muted uppercase tracking-wider mb-1">
+            Frequency
+          </p>
+          <p className="text-sm font-medium text-text-primary">
+            {strategy.contentFrequency}
+          </p>
+        </div>
       </div>
 
       {/* Select CTA */}

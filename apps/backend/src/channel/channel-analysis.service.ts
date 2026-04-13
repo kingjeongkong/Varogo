@@ -29,9 +29,12 @@ export class ChannelAnalysisService {
           responseSchema: this.responseSchema,
         },
       });
-      return JSON.parse(result.text ?? '{}') as ChannelAnalysisResult;
+      const parsed = JSON.parse(result.text ?? '{}') as ChannelAnalysisResult;
+      this.validateResult(parsed);
+      return parsed;
     } catch (error) {
       this.logger.error('Gemini API call failed', error);
+      if (error instanceof InternalServerErrorException) throw error;
       throw new InternalServerErrorException('Channel analysis failed');
     }
   }
@@ -77,6 +80,23 @@ For each channel, provide:
 - successMetric: Key metric to track success on this channel (1 sentence)
 
 Respond in Korean. Be specific and actionable.`;
+  }
+
+  private validateResult(result: ChannelAnalysisResult): void {
+    const validTiers = ['primary', 'secondary'];
+    const validEffortLevels = ['low', 'medium', 'high'];
+    for (const channel of result.channels) {
+      if (!validTiers.includes(channel.tier)) {
+        throw new InternalServerErrorException(
+          `Invalid LLM response: tier must be primary or secondary, got "${channel.tier}"`,
+        );
+      }
+      if (!validEffortLevels.includes(channel.effortLevel)) {
+        throw new InternalServerErrorException(
+          `Invalid LLM response: effortLevel must be low, medium, or high, got "${channel.effortLevel}"`,
+        );
+      }
+    }
   }
 
   private readonly responseSchema = {

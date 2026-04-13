@@ -32,31 +32,38 @@ const CARDS_RESULT = {
       title: '스토리 기반',
       description: '창업 여정 공유',
       coreMessage: '진짜 창업자의 고민',
-      approach: '일인칭 시점',
-      whyItFits: '진정성 있는 스토리 반응',
-      contentTypeTitle: '경험 쓰레드',
-      contentTypeDescription: '여정 쓰레드',
+      campaignGoal: { type: 'community', description: '커뮤니티 인지도 구축' },
+      hookAngle: '실패 경험 공개형 빌딩 저널',
+      callToAction: '댓글로 경험 공유해 주세요',
+      contentFormat: '경험 쓰레드',
+      contentFrequency: '주 2~3회',
     },
     {
       title: '교육 기반',
       description: '실용 팁 공유',
       coreMessage: '마케팅을 쉽게',
-      approach: '구조화된 팁',
-      whyItFits: '실용 팁 반응',
-      contentTypeTitle: '교육 쓰레드',
-      contentTypeDescription: '단계별 가이드',
+      campaignGoal: { type: 'traffic', description: '랜딩페이지 유입 확보' },
+      hookAngle: '단계별 실용 팁 제공',
+      callToAction: '지금 무료로 시작해보세요',
+      contentFormat: '교육 쓰레드',
+      contentFrequency: '주 1~2회',
     },
   ],
 };
 
 const TEMPLATE_RESULT = {
-  sections: [
-    { name: '제목', guide: '호기심 유발' },
-    { name: '도입', guide: '경험 공유' },
-    { name: '본문', guide: '학습 공유' },
+  contentPattern: 'series',
+  hookGuide: '실패 경험을 구체적 수치와 함께 제시',
+  bodyStructure: [
+    { name: '도입', guide: '경험 공유', exampleSnippet: '3개월간 매출 0원' },
+    { name: '본문', guide: '학습 공유', exampleSnippet: '전략을 바꿨습니다' },
+    { name: '마무리', guide: 'CTA 연결', exampleSnippet: '여러분은 어떠세요?' },
   ],
-  overallTone: '캐주얼',
+  ctaGuide: '피드백 요청으로 자연스럽게',
+  toneGuide: '캐주얼',
   lengthGuide: '180~240자',
+  platformTips: ['해시태그 2~3개', '이미지 첨부', '오전 게시'],
+  dontDoList: ['직접 홍보 금지', '과장 금지', '링크만 금지'],
 };
 
 const mockGenerationService = {
@@ -252,10 +259,14 @@ describe('StrategyController (integration)', () => {
         title: '스토리 기반',
         description: '창업 여정 공유',
         coreMessage: '진짜 창업자의 고민',
-        approach: '일인칭 시점',
-        whyItFits: '진정성 있는 스토리 반응',
-        contentTypeTitle: '경험 쓰레드',
-        contentTypeDescription: '여정 쓰레드',
+        campaignGoal: {
+          type: 'community',
+          description: '커뮤니티 인지도 구축',
+        },
+        hookAngle: '실패 경험 공개형 빌딩 저널',
+        callToAction: '댓글로 경험 공유해 주세요',
+        contentFormat: '경험 쓰레드',
+        contentFrequency: '주 2~3회',
         createdAt: expect.any(String),
       });
 
@@ -362,13 +373,30 @@ describe('StrategyController (integration)', () => {
       expect(res.body.template).toMatchObject({
         id: expect.any(String),
         strategyId,
-        sections: [
-          { name: '제목', guide: '호기심 유발' },
-          { name: '도입', guide: '경험 공유' },
-          { name: '본문', guide: '학습 공유' },
+        contentPattern: 'series',
+        hookGuide: '실패 경험을 구체적 수치와 함께 제시',
+        bodyStructure: [
+          {
+            name: '도입',
+            guide: '경험 공유',
+            exampleSnippet: '3개월간 매출 0원',
+          },
+          {
+            name: '본문',
+            guide: '학습 공유',
+            exampleSnippet: '전략을 바꿨습니다',
+          },
+          {
+            name: '마무리',
+            guide: 'CTA 연결',
+            exampleSnippet: '여러분은 어떠세요?',
+          },
         ],
-        overallTone: '캐주얼',
+        ctaGuide: '피드백 요청으로 자연스럽게',
+        toneGuide: '캐주얼',
         lengthGuide: '180~240자',
+        platformTips: ['해시태그 2~3개', '이미지 첨부', '오전 게시'],
+        dontDoList: ['직접 홍보 금지', '과장 금지', '링크만 금지'],
         createdAt: expect.any(String),
       });
 
@@ -439,7 +467,7 @@ describe('StrategyController (integration)', () => {
         .expect(200);
 
       expect(res.body.strategy.id).toBe(strategyId);
-      expect(res.body.template.sections).toHaveLength(3);
+      expect(res.body.template.bodyStructure).toHaveLength(3);
     });
   });
 

@@ -9,6 +9,7 @@ import {
   StrategyChannelContext,
   StrategyGenerationService,
 } from './strategy-generation.service';
+import type { StrategyCardResult } from './types/strategy-card.type';
 
 type ChannelWithContext = Awaited<ReturnType<ChannelService['findOne']>>;
 
@@ -65,10 +66,11 @@ export class StrategyService {
       title: card.title,
       description: card.description,
       coreMessage: card.coreMessage,
-      approach: card.approach,
-      whyItFits: card.whyItFits,
-      contentTypeTitle: card.contentTypeTitle,
-      contentTypeDescription: card.contentTypeDescription,
+      campaignGoal: card.campaignGoal as unknown as Prisma.InputJsonValue,
+      hookAngle: card.hookAngle,
+      callToAction: card.callToAction,
+      contentFormat: card.contentFormat,
+      contentFrequency: card.contentFrequency,
     }));
 
     const strategies = await this.prisma.$transaction((tx) =>
@@ -101,15 +103,27 @@ export class StrategyService {
     const templateResult =
       await this.strategyGenerationService.generateTemplate({
         ...this.buildGenerationInput(channel),
-        strategy,
+        strategy: {
+          ...strategy,
+          campaignGoal:
+            strategy.campaignGoal as unknown as StrategyCardResult['campaignGoal'],
+        },
       });
 
     const created = await this.prisma.strategyContentTemplate.create({
       data: {
         strategyId: strategy.id,
-        sections: templateResult.sections as unknown as Prisma.InputJsonValue,
-        overallTone: templateResult.overallTone,
+        contentPattern: templateResult.contentPattern,
+        hookGuide: templateResult.hookGuide,
+        bodyStructure:
+          templateResult.bodyStructure as unknown as Prisma.InputJsonValue,
+        ctaGuide: templateResult.ctaGuide,
+        toneGuide: templateResult.toneGuide,
         lengthGuide: templateResult.lengthGuide,
+        platformTips:
+          templateResult.platformTips as unknown as Prisma.InputJsonValue,
+        dontDoList:
+          templateResult.dontDoList as unknown as Prisma.InputJsonValue,
       },
     });
 

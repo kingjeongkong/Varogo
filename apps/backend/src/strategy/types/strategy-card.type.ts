@@ -1,15 +1,17 @@
-/**
- * Shape of a single strategy card returned by the LLM.
- * One card = a direction paired 1:1 with its best-fit content type (Phase 1).
- */
+export interface CampaignGoal {
+  type: 'awareness' | 'traffic' | 'conversion' | 'community';
+  description: string;
+}
+
 export interface StrategyCardResult {
   title: string;
   description: string;
   coreMessage: string;
-  approach: string;
-  whyItFits: string;
-  contentTypeTitle: string;
-  contentTypeDescription: string;
+  campaignGoal: CampaignGoal;
+  hookAngle: string;
+  callToAction: string;
+  contentFormat: string;
+  contentFrequency: string;
 }
 
 export interface StrategyGenerationResult {
