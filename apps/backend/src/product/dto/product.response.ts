@@ -2,7 +2,7 @@ import type { JsonValue } from '@prisma/client/runtime/library';
 import type {
   TargetAudience,
   Alternative,
-  ComparisonItem,
+  Keywords,
 } from '../types/product-analysis.type';
 
 export interface ProductResponse {
@@ -10,6 +10,13 @@ export interface ProductResponse {
   userId: string;
   name: string;
   url: string;
+  oneLiner: string;
+  stage: string;
+  currentTraction: {
+    users: string;
+    revenue: string;
+    socialProof: string | null;
+  };
   additionalInfo: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -20,6 +27,9 @@ export function toProductResponse(product: {
   userId: string;
   name: string;
   url: string;
+  oneLiner: string;
+  stage: string;
+  currentTraction: JsonValue;
   additionalInfo: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -29,6 +39,10 @@ export function toProductResponse(product: {
     userId: product.userId,
     name: product.name,
     url: product.url,
+    oneLiner: product.oneLiner,
+    stage: product.stage,
+    currentTraction:
+      product.currentTraction as unknown as ProductResponse['currentTraction'],
     additionalInfo: product.additionalInfo,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
@@ -40,11 +54,11 @@ export interface ProductAnalysisResponse {
   productId: string;
   targetAudience: TargetAudience;
   problem: string;
+  valueProposition: string;
   alternatives: Alternative[];
-  comparisonTable: ComparisonItem[];
   differentiators: string[];
   positioningStatement: string;
-  keywords: string[];
+  keywords: Keywords;
   createdAt: Date;
 }
 
@@ -53,27 +67,23 @@ export function toProductAnalysisResponse(analysis: {
   productId: string;
   targetAudience: JsonValue;
   problem: string;
+  valueProposition: string;
   alternatives: JsonValue;
-  comparisonTable: JsonValue;
   differentiators: string[];
   positioningStatement: string;
-  keywords: string[];
+  keywords: JsonValue;
   createdAt: Date;
 }): ProductAnalysisResponse {
-  const targetAudience = analysis.targetAudience as unknown as TargetAudience;
-  const alternatives = analysis.alternatives as unknown as Alternative[];
-  const comparisonTable =
-    analysis.comparisonTable as unknown as ComparisonItem[];
   return {
     id: analysis.id,
     productId: analysis.productId,
-    targetAudience,
+    targetAudience: analysis.targetAudience as unknown as TargetAudience,
     problem: analysis.problem,
-    alternatives,
-    comparisonTable,
+    valueProposition: analysis.valueProposition,
+    alternatives: analysis.alternatives as unknown as Alternative[],
     differentiators: analysis.differentiators,
     positioningStatement: analysis.positioningStatement,
-    keywords: analysis.keywords,
+    keywords: analysis.keywords as unknown as Keywords,
     createdAt: analysis.createdAt,
   };
 }

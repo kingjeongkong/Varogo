@@ -52,7 +52,7 @@ Pain points: ${analysis.targetAudience.painPoints.join(', ')}
 Core problem: ${analysis.problem}
 Differentiators: ${analysis.differentiators.join(', ')}
 Positioning: ${analysis.positioningStatement}
-Keywords: ${analysis.keywords.join(', ')}
+Keywords: ${[...analysis.keywords.primary, ...analysis.keywords.secondary].join(', ')}
 Alternatives: ${analysis.alternatives.map((a) => a.name).join(', ')}
 
 === Instructions ===

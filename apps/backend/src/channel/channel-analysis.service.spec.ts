@@ -16,29 +16,23 @@ const mockGeminiService = {
 const PRODUCT_ANALYSIS: ProductAnalysisResult = {
   targetAudience: {
     definition: 'Indie developers',
-    behaviors: ['Build side projects'],
     painPoints: ['No marketing skills'],
+    buyingTriggers: ['When launching a side project'],
     activeCommunities: ['Twitter', 'Hacker News'],
   },
   problem: 'Indie developers struggle with marketing.',
+  valueProposition:
+    'Use Varogo and get a full marketing strategy in 5 minutes.',
   alternatives: [
     {
       name: 'Typefully',
-      problemSolved: 'Tweet scheduling',
-      price: '$12/mo',
-      limitations: ['No analysis'],
-    },
-  ],
-  comparisonTable: [
-    {
-      aspect: 'Price',
-      myProduct: '$9/mo',
-      competitors: [{ name: 'Typefully', value: '$12/mo' }],
+      description: 'Tweet scheduling and analytics tool',
+      weaknessWeExploit: 'No strategic analysis — only scheduling',
     },
   ],
   differentiators: ['AI-powered strategy'],
   positioningStatement: 'The marketing copilot for indie devs.',
-  keywords: ['indie dev', 'marketing', 'twitter'],
+  keywords: { primary: ['indie dev', 'marketing'], secondary: ['twitter'] },
 };
 
 const VALID_RESULT: ChannelAnalysisResult = {

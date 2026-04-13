@@ -29,11 +29,19 @@ describe('ProductForm', () => {
   });
 
   describe('rendering', () => {
-    it('renders name, url, and additionalInfo fields', () => {
+    it('renders name, url, oneLiner, and additionalInfo fields', () => {
       render(<ProductForm />);
       expect(screen.getByLabelText(/제품 이름/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/제품 URL/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/한 줄 소개/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/추가 정보/i)).toBeInTheDocument();
+    });
+
+    it('renders stage, users, and revenue radio groups', () => {
+      render(<ProductForm />);
+      expect(screen.getByText(/제품 단계/i)).toBeInTheDocument();
+      expect(screen.getByText(/사용자 규모/i)).toBeInTheDocument();
+      expect(screen.getByText(/월 매출/i)).toBeInTheDocument();
     });
 
     it('renders the submit button', () => {
@@ -101,39 +109,56 @@ describe('ProductForm', () => {
   });
 
   describe('valid submission', () => {
-    it('calls createProduct with name and url on valid submit', async () => {
-      render(<ProductForm />);
+    async function fillRequiredFields() {
       await userEvent.type(screen.getByLabelText(/제품 이름/i), 'Varogo');
       await userEvent.type(
         screen.getByLabelText(/제품 URL/i),
         'https://varo-go.com',
       );
+      await userEvent.type(
+        screen.getByLabelText(/한 줄 소개/i),
+        'X 마케팅 전략 자동화 도구',
+      );
+      await userEvent.click(screen.getByLabelText('막 출시'));
+      await userEvent.click(screen.getByLabelText('100명 미만'));
+      // revenue "없음" — users also has "없음", so pick the second one
+      const noneLabels = screen.getAllByLabelText('없음');
+      await userEvent.click(noneLabels[1]);
+    }
+
+    it('calls createProduct with all required fields on valid submit', async () => {
+      render(<ProductForm />);
+      await fillRequiredFields();
       await userEvent.click(screen.getByRole('button', { name: /분석 시작/i }));
       expect(mockCreateMutate).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Varogo',
           url: 'https://varo-go.com',
+          oneLiner: 'X 마케팅 전략 자동화 도구',
+          stage: 'just-launched',
+          currentTraction: expect.objectContaining({
+            users: 'under-100',
+            revenue: 'none',
+          }),
         }),
       );
     });
 
     it('calls createProduct with additionalInfo when provided', async () => {
       render(<ProductForm />);
-      await userEvent.type(screen.getByLabelText(/제품 이름/i), 'Varogo');
-      await userEvent.type(
-        screen.getByLabelText(/제품 URL/i),
-        'https://varo-go.com',
-      );
+      await fillRequiredFields();
       await userEvent.type(
         screen.getByLabelText(/추가 정보/i),
         'Marketing SaaS for indie devs',
       );
       await userEvent.click(screen.getByRole('button', { name: /분석 시작/i }));
-      expect(mockCreateMutate).toHaveBeenCalledWith({
-        name: 'Varogo',
-        url: 'https://varo-go.com',
-        additionalInfo: 'Marketing SaaS for indie devs',
-      });
+      expect(mockCreateMutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Varogo',
+          url: 'https://varo-go.com',
+          additionalInfo: 'Marketing SaaS for indie devs',
+        }),
+      );
     });
   });
 

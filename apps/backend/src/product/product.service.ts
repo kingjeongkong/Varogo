@@ -12,11 +12,14 @@ export class ProductService {
   ) {}
 
   async create(userId: string, dto: CreateProductDto) {
-    const analysis = await this.productAnalysisService.analyze(
-      dto.name,
-      dto.url,
-      dto.additionalInfo,
-    );
+    const analysis = await this.productAnalysisService.analyze({
+      name: dto.name,
+      url: dto.url,
+      oneLiner: dto.oneLiner,
+      stage: dto.stage,
+      currentTraction: dto.currentTraction,
+      additionalInfo: dto.additionalInfo,
+    });
 
     return this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -24,6 +27,10 @@ export class ProductService {
           userId,
           name: dto.name,
           url: dto.url,
+          oneLiner: dto.oneLiner,
+          stage: dto.stage,
+          currentTraction:
+            dto.currentTraction as unknown as Prisma.InputJsonValue,
           additionalInfo: dto.additionalInfo,
         },
       });
@@ -34,13 +41,12 @@ export class ProductService {
           targetAudience:
             analysis.targetAudience as unknown as Prisma.InputJsonValue,
           problem: analysis.problem,
+          valueProposition: analysis.valueProposition,
           alternatives:
             analysis.alternatives as unknown as Prisma.InputJsonValue,
-          comparisonTable:
-            analysis.comparisonTable as unknown as Prisma.InputJsonValue,
           differentiators: analysis.differentiators,
           positioningStatement: analysis.positioningStatement,
-          keywords: analysis.keywords,
+          keywords: analysis.keywords as unknown as Prisma.InputJsonValue,
         },
       });
 

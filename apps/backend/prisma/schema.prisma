@@ -51,13 +51,16 @@ model RefreshToken {
 }
 
 model Product {
-  id             String   @id @default(uuid())
-  userId         String   @map("user_id")
-  name           String
-  url            String
-  additionalInfo String?  @map("additional_info")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  name            String
+  url             String
+  oneLiner        String   @map("one_liner")
+  stage           String
+  currentTraction Json     @map("current_traction")
+  additionalInfo  String?  @map("additional_info")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   analyses ProductAnalysis[]
@@ -71,11 +74,11 @@ model ProductAnalysis {
   productId            String   @map("product_id")
   targetAudience       Json     @map("target_audience")
   problem              String
+  valueProposition     String   @map("value_proposition")
   alternatives         Json
-  comparisonTable      Json     @map("comparison_table")
   differentiators      String[]
   positioningStatement String   @map("positioning_statement")
-  keywords             String[]
+  keywords             Json
   createdAt            DateTime @default(now()) @map("created_at")
 
   product                Product                @relation(fields: [productId], references: [id], onDelete: Cascade)

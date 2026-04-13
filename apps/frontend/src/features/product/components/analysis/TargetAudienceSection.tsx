@@ -20,8 +20,8 @@ export function TargetAudienceSection({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <AudienceCard
-          title="주요 행동"
-          items={targetAudience.behaviors}
+          title="구매 트리거"
+          items={targetAudience.buyingTriggers}
           accentClass="text-primary"
           bgClass="bg-primary-dim"
         />

@@ -26,7 +26,7 @@ const VALID_INPUT: GenerateContentInput = {
     problem: 'Indie developers struggle with marketing.',
     differentiators: ['AI-powered strategy'],
     positioningStatement: 'The marketing copilot for indie devs.',
-    keywords: ['indie dev', 'marketing', 'twitter'],
+    keywords: { primary: ['indie dev', 'marketing'], secondary: ['twitter'] },
   },
   channel: {
     channelName: 'X (Twitter)',

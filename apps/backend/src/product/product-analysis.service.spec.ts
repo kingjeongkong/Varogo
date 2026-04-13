@@ -15,29 +15,26 @@ const mockGeminiService = {
 const VALID_RESULT: ProductAnalysisResult = {
   targetAudience: {
     definition: 'Indie developers',
-    behaviors: ['Build side projects'],
     painPoints: ['No marketing skills'],
+    buyingTriggers: ['When launching a side project'],
     activeCommunities: ['Twitter', 'Hacker News'],
   },
   problem: 'Indie developers struggle with marketing.',
+  valueProposition:
+    'Use Varogo and get a full marketing strategy in 5 minutes.',
   alternatives: [
     {
       name: 'Typefully',
-      problemSolved: 'Tweet scheduling',
-      price: '$12/mo',
-      limitations: ['No analysis'],
-    },
-  ],
-  comparisonTable: [
-    {
-      aspect: 'Price',
-      myProduct: '$9/mo',
-      competitors: [{ name: 'Typefully', value: '$12/mo' }],
+      description: 'Tweet scheduling and analytics tool',
+      weaknessWeExploit: 'No strategic analysis — only scheduling',
     },
   ],
   differentiators: ['AI-powered strategy'],
   positioningStatement: 'The marketing copilot for indie devs.',
-  keywords: ['indie dev', 'marketing', 'twitter'],
+  keywords: {
+    primary: ['indie dev', 'marketing'],
+    secondary: ['twitter', 'side project'],
+  },
 };
 
 describe('ProductAnalysisService', () => {
@@ -60,12 +57,23 @@ describe('ProductAnalysisService', () => {
   });
 
   describe('analyze', () => {
+    const ANALYZE_INPUT = {
+      name: 'MyProduct',
+      url: 'https://example.com',
+      oneLiner: 'A test product',
+      stage: 'just-launched',
+      currentTraction: {
+        users: 'under-100' as const,
+        revenue: 'none' as const,
+      },
+    };
+
     it('fetches product info then returns structured analysis', async () => {
       mockGenerateContent
         .mockResolvedValueOnce({ text: 'Product info summary' })
         .mockResolvedValueOnce({ text: JSON.stringify(VALID_RESULT) });
 
-      const result = await service.analyze('MyProduct', 'https://example.com');
+      const result = await service.analyze(ANALYZE_INPUT);
 
       expect(result).toEqual(VALID_RESULT);
       expect(mockGenerateContent).toHaveBeenCalledTimes(2);
@@ -88,13 +96,13 @@ describe('ProductAnalysisService', () => {
         .mockResolvedValueOnce({ text: 'Product info summary' })
         .mockResolvedValueOnce({ text: 'not valid json {{{' });
 
-      await expect(
-        service.analyze('MyProduct', 'https://example.com'),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(service.analyze(ANALYZE_INPUT)).rejects.toThrow(
+        InternalServerErrorException,
+      );
 
-      await expect(
-        service.analyze('MyProduct', 'https://example.com'),
-      ).rejects.toThrow('Product analysis failed');
+      await expect(service.analyze(ANALYZE_INPUT)).rejects.toThrow(
+        'Product analysis failed',
+      );
     });
 
     it('includes additionalInfo in fetch prompt when provided', async () => {
@@ -102,11 +110,10 @@ describe('ProductAnalysisService', () => {
         .mockResolvedValueOnce({ text: 'Product info summary' })
         .mockResolvedValueOnce({ text: JSON.stringify(VALID_RESULT) });
 
-      await service.analyze(
-        'MyProduct',
-        'https://example.com',
-        'A tool for scheduling tweets',
-      );
+      await service.analyze({
+        ...ANALYZE_INPUT,
+        additionalInfo: 'A tool for scheduling tweets',
+      });
 
       const calls = mockGenerateContent.mock.calls as Array<
         [{ contents: string }]
@@ -121,7 +128,7 @@ describe('ProductAnalysisService', () => {
         .mockResolvedValueOnce({ text: 'Product info summary' })
         .mockResolvedValueOnce({ text: JSON.stringify(VALID_RESULT) });
 
-      const result = await service.analyze('MyProduct', 'https://example.com');
+      const result = await service.analyze(ANALYZE_INPUT);
 
       expect(result).toEqual(VALID_RESULT);
 
@@ -135,9 +142,9 @@ describe('ProductAnalysisService', () => {
     it('throws InternalServerErrorException when fetch step fails', async () => {
       mockGenerateContent.mockRejectedValueOnce(new Error('API timeout'));
 
-      await expect(
-        service.analyze('MyProduct', 'https://example.com'),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(service.analyze(ANALYZE_INPUT)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 });
