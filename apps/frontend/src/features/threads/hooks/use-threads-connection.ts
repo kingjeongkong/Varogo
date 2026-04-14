@@ -3,6 +3,7 @@ import {
   fetchThreadsConnection,
   fetchThreadsAuthUrl,
   deleteThreadsConnection,
+  publishToThreads,
 } from '../api-client';
 
 export function useThreadsConnectionStatus() {
@@ -31,5 +32,11 @@ export function useThreadsDisconnect() {
         queryKey: ['threads', 'connection'],
       });
     },
+  });
+}
+
+export function usePublishToThreads() {
+  return useMutation({
+    mutationFn: publishToThreads,
   });
 }
