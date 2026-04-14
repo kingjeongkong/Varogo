@@ -11,5 +11,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: varogo_cloudflared
+    command: tunnel run varogo-dev
+    volumes:
+      - /Users/wang/.cloudflared:/etc/cloudflared:ro
+    restart: unless-stopped
+
 volumes:
   postgres_data:
