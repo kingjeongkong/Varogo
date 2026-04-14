@@ -22,6 +22,7 @@ export async function clearDatabase(): Promise<void> {
   await prisma.content.deleteMany();
   await prisma.strategyContentTemplate.deleteMany();
   await prisma.strategy.deleteMany();
+  await prisma.threadsConnection.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.account.deleteMany();
   await prisma.user.deleteMany();

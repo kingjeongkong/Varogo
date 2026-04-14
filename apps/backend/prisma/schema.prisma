@@ -15,9 +15,10 @@ model User {
   avatarUrl    String?        @map("avatar_url")
   createdAt    DateTime       @default(now()) @map("created_at")
   updatedAt    DateTime       @updatedAt @map("updated_at")
-  accounts      Account[]
-  refreshTokens RefreshToken[]
-  products      Product[]
+  accounts          Account[]
+  refreshTokens     RefreshToken[]
+  products          Product[]
+  threadsConnection ThreadsConnection?
 
   @@map("users")
 }
@@ -165,5 +166,20 @@ model Content {
   strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
 
   @@map("contents")
+}
+
+model ThreadsConnection {
+  id                   String   @id @default(uuid())
+  userId               String   @unique @map("user_id")
+  threadsUserId        String   @map("threads_user_id")
+  username             String?
+  accessTokenEncrypted String   @map("access_token_encrypted")
+  tokenExpiresAt       DateTime @map("token_expires_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("threads_connections")
 }
 
