@@ -10,6 +10,7 @@ const mockThreadsService = {
   handleCallback: jest.fn(),
   getConnection: jest.fn(),
   disconnect: jest.fn(),
+  publishToThreads: jest.fn(),
 };
 
 const mockConfigService = {
@@ -189,6 +190,38 @@ describe('ThreadsController', () => {
       await expect(controller.disconnect(mockUser)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('publish', () => {
+    it('returns threadsMediaId and permalink on success', async () => {
+      mockThreadsService.publishToThreads.mockResolvedValue({
+        threadsMediaId: 'media-456',
+        permalink: 'https://www.threads.net/@testuser/post/abc123',
+      });
+
+      const result = await controller.publish(mockUser, {
+        text: 'Hello from Varogo!',
+      });
+
+      expect(result).toEqual({
+        threadsMediaId: 'media-456',
+        permalink: 'https://www.threads.net/@testuser/post/abc123',
+      });
+      expect(mockThreadsService.publishToThreads).toHaveBeenCalledWith(
+        'user-123',
+        'Hello from Varogo!',
+      );
+    });
+
+    it('throws NotFoundException when service throws NotFoundException', async () => {
+      mockThreadsService.publishToThreads.mockRejectedValue(
+        new NotFoundException('Threads connection not found'),
+      );
+
+      await expect(
+        controller.publish(mockUser, { text: 'Hello!' }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

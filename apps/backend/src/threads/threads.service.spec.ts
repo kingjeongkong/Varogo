@@ -280,4 +280,132 @@ describe('ThreadsService', () => {
       );
     });
   });
+
+  describe('publishToThreads', () => {
+    const userId = 'user-123';
+    const text = 'Hello from Varogo!';
+    const farFutureExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+    const mockConnection = {
+      id: 'conn-1',
+      userId,
+      threadsUserId: 'threads-user-1',
+      username: 'testuser',
+      accessTokenEncrypted: 'encrypted-token',
+      tokenExpiresAt: farFutureExpiry,
+    };
+
+    beforeEach(() => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(mockConnection);
+      mockCrypto.decrypt.mockReturnValue('decrypted-access-token');
+    });
+
+    it('creates container, publishes, fetches permalink, and returns result', async () => {
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { id: 'media-456' } },
+        {
+          ok: true,
+          body: {
+            id: 'media-456',
+            permalink: 'https://www.threads.net/@testuser/post/abc123',
+          },
+        },
+      ]);
+
+      const result = await service.publishToThreads(userId, text);
+
+      expect(result).toEqual({
+        threadsMediaId: 'media-456',
+        permalink: 'https://www.threads.net/@testuser/post/abc123',
+      });
+
+      // Verify findUnique was called with userId
+      expect(mockPrisma.threadsConnection.findUnique).toHaveBeenCalledWith({
+        where: { userId },
+      });
+
+      // Verify crypto.decrypt was called with encrypted token
+      expect(mockCrypto.decrypt).toHaveBeenCalledWith('encrypted-token');
+
+      // Verify 3 fetch calls: container creation, publish, permalink
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+
+      // Container creation call
+      expect(fetchCalls[0][0]).toBe(
+        'https://graph.threads.net/v1.0/threads-user-1/threads',
+      );
+      expect(fetchCalls[0][1].method).toBe('POST');
+      expect(fetchCalls[0][1].headers).toEqual(
+        expect.objectContaining({
+          Authorization: 'Bearer decrypted-access-token',
+        }),
+      );
+
+      // Publish call
+      expect(fetchCalls[1][0]).toBe(
+        'https://graph.threads.net/v1.0/threads-user-1/threads_publish',
+      );
+      expect(fetchCalls[1][1].method).toBe('POST');
+
+      // Permalink fetch call
+      expect(fetchCalls[2][0]).toContain(
+        'https://graph.threads.net/v1.0/media-456',
+      );
+      expect(fetchCalls[2][0]).toContain('fields=id%2Cpermalink');
+    });
+
+    it('returns null permalink when permalink fetch fails gracefully', async () => {
+      mockFetchSequence([
+        { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { id: 'media-456' } },
+        { ok: false, body: { error: 'not_found' }, status: 404 },
+      ]);
+
+      const result = await service.publishToThreads(userId, text);
+
+      expect(result).toEqual({
+        threadsMediaId: 'media-456',
+        permalink: null,
+      });
+    });
+
+    it('throws NotFoundException when connection not found', async () => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(null);
+
+      await expect(service.publishToThreads(userId, text)).rejects.toThrow(
+        'Threads connection not found',
+      );
+    });
+
+    it('throws InternalServerErrorException when container creation API fails', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'api_error' }, status: 500 },
+      ]);
+
+      await expect(service.publishToThreads(userId, text)).rejects.toThrow(
+        'Failed to create Threads post container',
+      );
+    });
+
+    it('throws InternalServerErrorException when container creation returns no ID', async () => {
+      mockFetchSequence([{ ok: true, body: {} }]);
+
+      await expect(service.publishToThreads(userId, text)).rejects.toThrow(
+        'Threads container creation returned no ID',
+      );
+    });
+
+    it('throws InternalServerErrorException when publish API fails', async () => {
+      mockFetchSequence([
+        { ok: true, body: { id: 'container-123' } },
+        { ok: false, body: { error: 'publish_error' }, status: 500 },
+      ]);
+
+      await expect(service.publishToThreads(userId, text)).rejects.toThrow(
+        'Failed to publish to Threads',
+      );
+    });
+  });
 });
