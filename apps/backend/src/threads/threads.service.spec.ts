@@ -334,7 +334,7 @@ describe('ThreadsService', () => {
       );
     });
 
-    it('returns current token when refresh API call fails', async () => {
+    it('throws UnauthorizedException when refresh API call fails', async () => {
       const nearExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
       mockPrisma.threadsConnection.findUnique.mockResolvedValue({
         id: 'conn-1',
@@ -348,9 +348,9 @@ describe('ThreadsService', () => {
         { ok: false, body: { error: 'refresh_failed' }, status: 400 },
       ]);
 
-      const result = await service.getAccessToken('user-123');
-
-      expect(result).toBe('old-token');
+      await expect(service.getAccessToken('user-123')).rejects.toThrow(
+        UnauthorizedException,
+      );
       expect(mockPrisma.threadsConnection.update).not.toHaveBeenCalled();
     });
 
