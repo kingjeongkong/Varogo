@@ -2,6 +2,7 @@ import { apiFetch } from '@/lib/http-client';
 import type {
   ThreadsConnectionResponse,
   ThreadsAuthUrlResponse,
+  PublishThreadsResponse,
 } from '@/lib/types';
 
 export function fetchThreadsConnection(): Promise<ThreadsConnectionResponse> {
@@ -14,4 +15,11 @@ export function fetchThreadsAuthUrl(): Promise<ThreadsAuthUrlResponse> {
 
 export function deleteThreadsConnection(): Promise<void> {
   return apiFetch<void>('/threads/connection', { method: 'DELETE' });
+}
+
+export function publishToThreads(text: string): Promise<PublishThreadsResponse> {
+  return apiFetch<PublishThreadsResponse>('/threads/publish', {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
 }

@@ -281,87 +281,130 @@ describe('ThreadsService', () => {
     });
   });
 
-  describe('getAccessToken', () => {
-    it('returns decrypted token when not near expiry', async () => {
-      const farFutureExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-      mockPrisma.threadsConnection.findUnique.mockResolvedValue({
-        id: 'conn-1',
-        userId: 'user-123',
-        accessTokenEncrypted: 'encrypted-token',
-        tokenExpiresAt: farFutureExpiry,
-      });
+  describe('publishToThreads', () => {
+    const userId = 'user-123';
+    const text = 'Hello from Varogo!';
+    const farFutureExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+    const mockConnection = {
+      id: 'conn-1',
+      userId,
+      threadsUserId: 'threads-user-1',
+      username: 'testuser',
+      accessTokenEncrypted: 'encrypted-token',
+      tokenExpiresAt: farFutureExpiry,
+    };
+
+    beforeEach(() => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(mockConnection);
       mockCrypto.decrypt.mockReturnValue('decrypted-access-token');
-
-      const result = await service.getAccessToken('user-123');
-
-      expect(result).toBe('decrypted-access-token');
-      expect(mockCrypto.decrypt).toHaveBeenCalledWith('encrypted-token');
     });
 
-    it('refreshes token when within 7 days of expiry', async () => {
-      const nearExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
-      mockPrisma.threadsConnection.findUnique.mockResolvedValue({
-        id: 'conn-1',
-        userId: 'user-123',
-        accessTokenEncrypted: 'encrypted-token',
-        tokenExpiresAt: nearExpiry,
-      });
-      mockCrypto.decrypt.mockReturnValue('old-token');
-      mockPrisma.threadsConnection.update.mockResolvedValue({});
-
+    it('creates container, publishes, fetches permalink, and returns result', async () => {
       const fetchMock = mockFetchSequence([
-        { ok: true, body: { access_token: 'refreshed-token' } },
+        { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { id: 'media-456' } },
+        {
+          ok: true,
+          body: {
+            id: 'media-456',
+            permalink: 'https://www.threads.net/@testuser/post/abc123',
+          },
+        },
       ]);
 
-      const result = await service.getAccessToken('user-123');
+      const result = await service.publishToThreads(userId, text);
 
-      expect(result).toBe('refreshed-token');
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      const refreshUrl = (fetchMock.mock.calls as string[][])[0][0];
-      expect(refreshUrl).toContain(
-        'https://graph.threads.net/refresh_access_token',
+      expect(result).toEqual({
+        threadsMediaId: 'media-456',
+        permalink: 'https://www.threads.net/@testuser/post/abc123',
+      });
+
+      // Verify findUnique was called with userId
+      expect(mockPrisma.threadsConnection.findUnique).toHaveBeenCalledWith({
+        where: { userId },
+      });
+
+      // Verify crypto.decrypt was called with encrypted token
+      expect(mockCrypto.decrypt).toHaveBeenCalledWith('encrypted-token');
+
+      // Verify 3 fetch calls: container creation, publish, permalink
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+
+      // Container creation call
+      expect(fetchCalls[0][0]).toBe(
+        'https://graph.threads.net/v1.0/threads-user-1/threads',
       );
-      expect(refreshUrl).toContain('th_refresh_token');
-
-      expect(mockPrisma.threadsConnection.update).toHaveBeenCalledWith(
+      expect(fetchCalls[0][1].method).toBe('POST');
+      expect(fetchCalls[0][1].headers).toEqual(
         expect.objectContaining({
-          where: { userId: 'user-123' },
-          data: expect.objectContaining({
-            accessTokenEncrypted: expect.any(String) as string,
-            tokenExpiresAt: expect.any(Date) as Date,
-          }) as Record<string, unknown>,
+          Authorization: 'Bearer decrypted-access-token',
         }),
       );
+
+      // Publish call
+      expect(fetchCalls[1][0]).toBe(
+        'https://graph.threads.net/v1.0/threads-user-1/threads_publish',
+      );
+      expect(fetchCalls[1][1].method).toBe('POST');
+
+      // Permalink fetch call
+      expect(fetchCalls[2][0]).toContain(
+        'https://graph.threads.net/v1.0/media-456',
+      );
+      expect(fetchCalls[2][0]).toContain('fields=id%2Cpermalink');
     });
 
-    it('throws UnauthorizedException when refresh API call fails', async () => {
-      const nearExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
-      mockPrisma.threadsConnection.findUnique.mockResolvedValue({
-        id: 'conn-1',
-        userId: 'user-123',
-        accessTokenEncrypted: 'encrypted-token',
-        tokenExpiresAt: nearExpiry,
-      });
-      mockCrypto.decrypt.mockReturnValue('old-token');
-
+    it('returns null permalink when permalink fetch fails gracefully', async () => {
       mockFetchSequence([
-        { ok: false, body: { error: 'refresh_failed' }, status: 400 },
+        { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { id: 'media-456' } },
+        { ok: false, body: { error: 'not_found' }, status: 404 },
       ]);
 
-      await expect(service.getAccessToken('user-123')).rejects.toThrow(
-        UnauthorizedException,
-      );
-      expect(mockPrisma.threadsConnection.update).not.toHaveBeenCalled();
+      const result = await service.publishToThreads(userId, text);
+
+      expect(result).toEqual({
+        threadsMediaId: 'media-456',
+        permalink: null,
+      });
     });
 
-    it('throws NotFoundException when no connection exists', async () => {
+    it('throws NotFoundException when connection not found', async () => {
       mockPrisma.threadsConnection.findUnique.mockResolvedValue(null);
 
-      await expect(service.getAccessToken('user-123')).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.getAccessToken('user-123')).rejects.toThrow(
+      await expect(service.publishToThreads(userId, text)).rejects.toThrow(
         'Threads connection not found',
+      );
+    });
+
+    it('throws InternalServerErrorException when container creation API fails', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'api_error' }, status: 500 },
+      ]);
+
+      await expect(service.publishToThreads(userId, text)).rejects.toThrow(
+        'Failed to create Threads post container',
+      );
+    });
+
+    it('throws InternalServerErrorException when container creation returns no ID', async () => {
+      mockFetchSequence([{ ok: true, body: {} }]);
+
+      await expect(service.publishToThreads(userId, text)).rejects.toThrow(
+        'Threads container creation returned no ID',
+      );
+    });
+
+    it('throws InternalServerErrorException when publish API fails', async () => {
+      mockFetchSequence([
+        { ok: true, body: { id: 'container-123' } },
+        { ok: false, body: { error: 'publish_error' }, status: 500 },
+      ]);
+
+      await expect(service.publishToThreads(userId, text)).rejects.toThrow(
+        'Failed to publish to Threads',
       );
     });
   });

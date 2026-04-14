@@ -1,10 +1,12 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
   Logger,
+  Post,
   Query,
   Res,
 } from '@nestjs/common';
@@ -14,6 +16,8 @@ import { ThreadsService } from './threads.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload';
+import { PublishThreadsDto } from './dto/publish-threads.dto';
+import type { PublishThreadsResponse } from './dto/publish-threads.dto';
 import { toThreadsConnectionResponse } from './dto/threads-connection.response';
 
 @Controller('threads')
@@ -66,5 +70,14 @@ export class ThreadsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async disconnect(@CurrentUser() user: JwtPayload) {
     await this.threadsService.disconnect(user.sub);
+  }
+
+  @Post('publish')
+  @HttpCode(HttpStatus.OK)
+  async publish(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: PublishThreadsDto,
+  ): Promise<PublishThreadsResponse> {
+    return this.threadsService.publishToThreads(user.sub, dto.text);
   }
 }

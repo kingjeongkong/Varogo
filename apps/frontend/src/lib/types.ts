@@ -154,3 +154,8 @@ export interface ThreadsConnectionResponse {
 export interface ThreadsAuthUrlResponse {
   url: string;
 }
+
+export interface PublishThreadsResponse {
+  threadsMediaId: string;
+  permalink: string | null;
+}

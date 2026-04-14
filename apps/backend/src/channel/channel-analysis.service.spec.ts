@@ -148,7 +148,7 @@ describe('ChannelAnalysisService', () => {
 
       await expect(
         service.analyze(PRODUCT_ANALYSIS, 'MyProduct'),
-      ).rejects.toThrow('tier must be primary or secondary');
+      ).rejects.toThrow('tier must be primary');
     });
 
     it('throws InternalServerErrorException when effortLevel is invalid', async () => {
