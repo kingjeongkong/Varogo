@@ -3,9 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import type { ContentResponse, PublishThreadsResponse } from '@/lib/types';
+import type { ContentResponse } from '@/lib/types';
 
 const THREADS_MAX_LENGTH = 500;
+
+interface PublishResult {
+  permalink: string | null;
+}
 
 interface ContentResultViewProps {
   content: ContentResponse;
@@ -13,7 +17,7 @@ interface ContentResultViewProps {
   onPublish: () => void;
   isPublishing: boolean;
   publishError: string | null;
-  publishResult: PublishThreadsResponse | null;
+  publishResult: PublishResult | null;
 }
 
 export function ContentResultView({
@@ -90,7 +94,10 @@ export function ContentResultView({
 
       {/* Publish result / error */}
       {publishResult && (
-        <div className="rounded-lg border border-success/30 bg-success/5 px-4 py-3">
+        <div
+          role="status"
+          className="rounded-lg border border-success/30 bg-success/5 px-4 py-3"
+        >
           <p className="text-sm text-success">
             Threads에 게시되었습니다.
             {publishResult.permalink && (
@@ -113,7 +120,7 @@ export function ContentResultView({
       {publishError && !publishResult && (
         <div className="rounded-lg border border-error/30 bg-error/5 px-4 py-3">
           <p className="text-sm text-error" role="alert">
-            게시에 실패했습니다. 다시 시도해 주세요.
+            {publishError}
           </p>
         </div>
       )}

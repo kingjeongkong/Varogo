@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '@/lib/http-client';
+import type { PublishThreadsResponse } from '@/lib/types';
 import {
   fetchThreadsConnection,
   fetchThreadsAuthUrl,
@@ -36,7 +38,7 @@ export function useThreadsDisconnect() {
 }
 
 export function usePublishToThreads() {
-  return useMutation({
+  return useMutation<PublishThreadsResponse, ApiError, string>({
     mutationFn: publishToThreads,
   });
 }

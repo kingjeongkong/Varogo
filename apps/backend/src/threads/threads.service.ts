@@ -127,11 +127,13 @@ export class ThreadsService {
       `${THREADS_API_BASE}/${connection.threadsUserId}/threads`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: new URLSearchParams({
           media_type: 'TEXT',
           text,
-          access_token: accessToken,
         }).toString(),
       },
     );
@@ -158,10 +160,12 @@ export class ThreadsService {
       `${THREADS_API_BASE}/${connection.threadsUserId}/threads_publish`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: new URLSearchParams({
           creation_id: containerData.id,
-          access_token: accessToken,
         }).toString(),
       },
     );

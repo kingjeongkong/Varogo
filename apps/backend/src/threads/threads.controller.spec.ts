@@ -160,9 +160,7 @@ describe('ThreadsController', () => {
       const result = await controller.getConnection(mockUser);
 
       expect(result).toEqual({ connected: true, username: 'testuser' });
-      expect(mockThreadsService.getConnection).toHaveBeenCalledWith(
-        'user-123',
-      );
+      expect(mockThreadsService.getConnection).toHaveBeenCalledWith('user-123');
     });
 
     it('returns disconnected response when no connection exists', async () => {

@@ -95,11 +95,7 @@ export default function ContentPage({
               threadsConnected={threadsConnection?.connected ?? false}
               onPublish={() => publishMutation.mutate(content.body)}
               isPublishing={publishMutation.isPending}
-              publishError={
-                publishMutation.error
-                  ? (publishMutation.error as Error).message
-                  : null
-              }
+              publishError={publishMutation.error?.message ?? null}
               publishResult={publishMutation.data ?? null}
             />
           </div>

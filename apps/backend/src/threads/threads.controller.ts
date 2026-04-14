@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -17,13 +16,9 @@ import { ThreadsService } from './threads.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload';
-import type {
-  PublishThreadsDto,
-  PublishThreadsResponse,
-} from './dto/publish-threads.dto';
+import { PublishThreadsDto } from './dto/publish-threads.dto';
+import type { PublishThreadsResponse } from './dto/publish-threads.dto';
 import { toThreadsConnectionResponse } from './dto/threads-connection.response';
-
-const THREADS_MAX_LENGTH = 500;
 
 @Controller('threads')
 export class ThreadsController {
@@ -83,12 +78,6 @@ export class ThreadsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: PublishThreadsDto,
   ): Promise<PublishThreadsResponse> {
-    if (!dto.text || dto.text.length > THREADS_MAX_LENGTH) {
-      throw new BadRequestException(
-        `Text is required and must not exceed ${THREADS_MAX_LENGTH} characters`,
-      );
-    }
-
     return this.threadsService.publishToThreads(user.sub, dto.text);
   }
 }
