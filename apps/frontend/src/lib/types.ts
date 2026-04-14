@@ -145,3 +145,12 @@ export interface ContentResponse {
   characterCount: number;
   createdAt: string;
 }
+
+export interface ThreadsConnectionResponse {
+  connected: boolean;
+  username: string | null;
+}
+
+export interface ThreadsAuthUrlResponse {
+  url: string;
+}
