@@ -6,6 +6,7 @@ import { ApiError } from '@/lib/http-client';
 import { useProduct } from '@/features/product/hooks/use-product';
 import { useChannelRecommendations } from '@/features/channel/hooks/use-channel';
 import { useContent, useGenerateContent } from '@/features/content/hooks/use-content';
+import { useThreadsConnectionStatus, usePublishToThreads } from '@/features/threads/hooks/use-threads-connection';
 import { ContentHero } from '@/features/content/components/ContentHero';
 import { ContentResultView } from '@/features/content/components/ContentResultView';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +27,8 @@ export default function ContentPage({
     error,
   } = useContent(id, channelId);
   const generateMutation = useGenerateContent(id, channelId);
+  const { data: threadsConnection } = useThreadsConnectionStatus();
+  const publishMutation = usePublishToThreads();
 
   const is404 = error instanceof ApiError && error.status === 404;
   const isLoading = productLoading || channelsLoading || contentLoading;
@@ -87,7 +90,18 @@ export default function ContentPage({
               productName={product.name}
               channelName={channel?.channelName ?? ''}
             />
-            <ContentResultView content={content} />
+            <ContentResultView
+              content={content}
+              threadsConnected={threadsConnection?.connected ?? false}
+              onPublish={() => publishMutation.mutate(content.body)}
+              isPublishing={publishMutation.isPending}
+              publishError={
+                publishMutation.error
+                  ? (publishMutation.error as Error).message
+                  : null
+              }
+              publishResult={publishMutation.data ?? null}
+            />
           </div>
         )}
       </main>
