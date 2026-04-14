@@ -1,0 +1,368 @@
+import {
+  NotFoundException,
+  UnauthorizedException,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Test } from '@nestjs/testing';
+import { PrismaService } from '../prisma/prisma.service';
+import { ThreadsCryptoService } from './threads-crypto.service';
+import { ThreadsService } from './threads.service';
+
+const mockPrisma = {
+  threadsConnection: {
+    findUnique: jest.fn(),
+    upsert: jest.fn(),
+    delete: jest.fn(),
+    update: jest.fn(),
+  },
+};
+
+const mockCrypto = {
+  encrypt: jest.fn().mockReturnValue('encrypted-state'),
+  decrypt: jest.fn(),
+};
+
+const mockConfigService = {
+  getOrThrow: jest.fn((key: string) => {
+    const values: Record<string, string> = {
+      THREADS_APP_ID: 'test-app-id',
+      THREADS_APP_SECRET: 'test-app-secret',
+      THREADS_REDIRECT_URI: 'http://localhost:3000/threads/callback',
+      FRONTEND_URL: 'http://localhost:3001',
+    };
+    return values[key];
+  }),
+};
+
+const originalFetch = global.fetch;
+
+function mockFetchSequence(
+  responses: Array<{ ok: boolean; body: unknown; status?: number }>,
+) {
+  const fn = jest.fn();
+  for (const res of responses) {
+    fn.mockResolvedValueOnce({
+      ok: res.ok,
+      status: res.status ?? (res.ok ? 200 : 400),
+      json: jest.fn().mockResolvedValue(res.body),
+    });
+  }
+  global.fetch = fn;
+  return fn;
+}
+
+describe('ThreadsService', () => {
+  let service: ThreadsService;
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        ThreadsService,
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: ThreadsCryptoService, useValue: mockCrypto },
+        { provide: ConfigService, useValue: mockConfigService },
+      ],
+    }).compile();
+
+    service = module.get(ThreadsService);
+    jest.clearAllMocks();
+
+    // Re-setup default mock returns after clearAllMocks
+    mockCrypto.encrypt.mockReturnValue('encrypted-state');
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+  });
+
+  describe('generateAuthUrl', () => {
+    it('returns a URL starting with https://threads.net/oauth/authorize', () => {
+      const url = service.generateAuthUrl('user-123');
+
+      expect(url).toMatch(/^https:\/\/threads\.net\/oauth\/authorize\?/);
+    });
+
+    it('contains correct client_id, redirect_uri, scope, and response_type params', () => {
+      const url = service.generateAuthUrl('user-123');
+      const params = new URLSearchParams(url.split('?')[1]);
+
+      expect(params.get('client_id')).toBe('test-app-id');
+      expect(params.get('redirect_uri')).toBe(
+        'http://localhost:3000/threads/callback',
+      );
+      expect(params.get('scope')).toBe('threads_basic,threads_content_publish');
+      expect(params.get('response_type')).toBe('code');
+    });
+
+    it('calls crypto.encrypt with userId in the state payload', () => {
+      service.generateAuthUrl('user-123');
+
+      expect(mockCrypto.encrypt).toHaveBeenCalledTimes(1);
+      const encryptArg = (mockCrypto.encrypt.mock.calls as string[][])[0][0];
+      const parsed = JSON.parse(encryptArg) as {
+        userId: string;
+        timestamp: number;
+      };
+      expect(parsed.userId).toBe('user-123');
+      expect(typeof parsed.timestamp).toBe('number');
+    });
+  });
+
+  describe('handleCallback', () => {
+    const validState = 'encrypted-state-value';
+    const now = Date.now();
+
+    beforeEach(() => {
+      mockCrypto.decrypt.mockReturnValue(
+        JSON.stringify({ userId: 'user-123', timestamp: now }),
+      );
+      mockPrisma.threadsConnection.upsert.mockResolvedValue({});
+    });
+
+    it('exchanges code, fetches profile, upserts connection, and returns redirect URL', async () => {
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { access_token: 'short-token' } },
+        { ok: true, body: { access_token: 'long-token', expires_in: 5184000 } },
+        { ok: true, body: { id: 'threads-user-1', username: 'testuser' } },
+      ]);
+
+      const result = await service.handleCallback('auth-code', validState);
+
+      expect(result).toBe(
+        'http://localhost:3001/integrations?threads=connected',
+      );
+
+      // Verify token exchange call
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      const fetchCalls = fetchMock.mock.calls as string[][];
+      expect(fetchCalls[0][0]).toBe(
+        'https://graph.threads.net/oauth/access_token',
+      );
+
+      // Verify long-lived token exchange call
+      const longLivedUrl = fetchCalls[1][0];
+      expect(longLivedUrl).toContain('https://graph.threads.net/access_token');
+      expect(longLivedUrl).toContain('th_exchange_token');
+
+      // Verify profile fetch call
+      const profileUrl = fetchCalls[2][0];
+      expect(profileUrl).toContain('https://graph.threads.net/v1.0/me');
+
+      // Verify upsert was called with correct data
+      expect(mockPrisma.threadsConnection.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user-123' },
+          create: expect.objectContaining({
+            userId: 'user-123',
+            threadsUserId: 'threads-user-1',
+            username: 'testuser',
+          }) as Record<string, unknown>,
+          update: expect.objectContaining({
+            threadsUserId: 'threads-user-1',
+            username: 'testuser',
+          }) as Record<string, unknown>,
+        }),
+      );
+    });
+
+    it('throws UnauthorizedException if state is expired (timestamp > 10 min ago)', async () => {
+      const expiredTimestamp = Date.now() - 11 * 60 * 1000;
+      mockCrypto.decrypt.mockReturnValue(
+        JSON.stringify({ userId: 'user-123', timestamp: expiredTimestamp }),
+      );
+
+      await expect(
+        service.handleCallback('auth-code', validState),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.handleCallback('auth-code', validState),
+      ).rejects.toThrow('OAuth state expired');
+    });
+
+    it('throws UnauthorizedException if state decryption fails', async () => {
+      mockCrypto.decrypt.mockImplementation(() => {
+        throw new Error('decryption failed');
+      });
+
+      await expect(
+        service.handleCallback('auth-code', validState),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.handleCallback('auth-code', validState),
+      ).rejects.toThrow('Invalid OAuth state');
+    });
+
+    it('throws InternalServerErrorException when token exchange fails', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'invalid_code' }, status: 400 },
+      ]);
+
+      await expect(
+        service.handleCallback('bad-code', validState),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('throws InternalServerErrorException when long-lived token exchange fails', async () => {
+      mockFetchSequence([
+        { ok: true, body: { access_token: 'short-token' } },
+        { ok: false, body: { error: 'exchange_failed' }, status: 400 },
+      ]);
+
+      await expect(
+        service.handleCallback('auth-code', validState),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('throws InternalServerErrorException when profile fetch fails', async () => {
+      mockFetchSequence([
+        { ok: true, body: { access_token: 'short-token' } },
+        { ok: true, body: { access_token: 'long-token', expires_in: 5184000 } },
+        { ok: false, body: { error: 'profile_error' }, status: 400 },
+      ]);
+
+      await expect(
+        service.handleCallback('auth-code', validState),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+
+  describe('getConnection', () => {
+    it('returns connection when found', async () => {
+      const connection = {
+        id: 'conn-1',
+        userId: 'user-123',
+        threadsUserId: 'threads-1',
+        username: 'testuser',
+      };
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(connection);
+
+      const result = await service.getConnection('user-123');
+
+      expect(result).toEqual(connection);
+      expect(mockPrisma.threadsConnection.findUnique).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+      });
+    });
+
+    it('returns null when not found', async () => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(null);
+
+      const result = await service.getConnection('user-123');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('disconnect', () => {
+    it('deletes connection successfully', async () => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue({
+        id: 'conn-1',
+        userId: 'user-123',
+      });
+      mockPrisma.threadsConnection.delete.mockResolvedValue({});
+
+      await service.disconnect('user-123');
+
+      expect(mockPrisma.threadsConnection.delete).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+      });
+    });
+
+    it('throws NotFoundException when connection not found', async () => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(null);
+
+      await expect(service.disconnect('user-123')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.disconnect('user-123')).rejects.toThrow(
+        'Threads connection not found',
+      );
+    });
+  });
+
+  describe('getAccessToken', () => {
+    it('returns decrypted token when not near expiry', async () => {
+      const farFutureExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue({
+        id: 'conn-1',
+        userId: 'user-123',
+        accessTokenEncrypted: 'encrypted-token',
+        tokenExpiresAt: farFutureExpiry,
+      });
+      mockCrypto.decrypt.mockReturnValue('decrypted-access-token');
+
+      const result = await service.getAccessToken('user-123');
+
+      expect(result).toBe('decrypted-access-token');
+      expect(mockCrypto.decrypt).toHaveBeenCalledWith('encrypted-token');
+    });
+
+    it('refreshes token when within 7 days of expiry', async () => {
+      const nearExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue({
+        id: 'conn-1',
+        userId: 'user-123',
+        accessTokenEncrypted: 'encrypted-token',
+        tokenExpiresAt: nearExpiry,
+      });
+      mockCrypto.decrypt.mockReturnValue('old-token');
+      mockPrisma.threadsConnection.update.mockResolvedValue({});
+
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { access_token: 'refreshed-token' } },
+      ]);
+
+      const result = await service.getAccessToken('user-123');
+
+      expect(result).toBe('refreshed-token');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const refreshUrl = (fetchMock.mock.calls as string[][])[0][0];
+      expect(refreshUrl).toContain(
+        'https://graph.threads.net/refresh_access_token',
+      );
+      expect(refreshUrl).toContain('th_refresh_token');
+
+      expect(mockPrisma.threadsConnection.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user-123' },
+          data: expect.objectContaining({
+            accessTokenEncrypted: expect.any(String) as string,
+            tokenExpiresAt: expect.any(Date) as Date,
+          }) as Record<string, unknown>,
+        }),
+      );
+    });
+
+    it('returns current token when refresh API call fails', async () => {
+      const nearExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue({
+        id: 'conn-1',
+        userId: 'user-123',
+        accessTokenEncrypted: 'encrypted-token',
+        tokenExpiresAt: nearExpiry,
+      });
+      mockCrypto.decrypt.mockReturnValue('old-token');
+
+      mockFetchSequence([
+        { ok: false, body: { error: 'refresh_failed' }, status: 400 },
+      ]);
+
+      const result = await service.getAccessToken('user-123');
+
+      expect(result).toBe('old-token');
+      expect(mockPrisma.threadsConnection.update).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when no connection exists', async () => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(null);
+
+      await expect(service.getAccessToken('user-123')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getAccessToken('user-123')).rejects.toThrow(
+        'Threads connection not found',
+      );
+    });
+  });
+});
