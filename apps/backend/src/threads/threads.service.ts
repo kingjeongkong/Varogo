@@ -14,6 +14,7 @@ const THREADS_TOKEN_URL = 'https://graph.threads.net/oauth/access_token';
 const THREADS_EXCHANGE_URL = 'https://graph.threads.net/access_token';
 const THREADS_REFRESH_URL = 'https://graph.threads.net/refresh_access_token';
 const THREADS_ME_URL = 'https://graph.threads.net/v1.0/me';
+const THREADS_API_BASE = 'https://graph.threads.net/v1.0';
 
 const STATE_MAX_AGE_MS = 10 * 60 * 1000; // 10 minutes
 const TOKEN_REFRESH_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -107,7 +108,10 @@ export class ThreadsService {
     });
   }
 
-  async getAccessToken(userId: string): Promise<string> {
+  async publishToThreads(
+    userId: string,
+    text: string,
+  ): Promise<{ threadsMediaId: string; permalink: string | null }> {
     const connection = await this.prisma.threadsConnection.findUnique({
       where: { userId },
     });
@@ -116,6 +120,92 @@ export class ThreadsService {
       throw new NotFoundException('Threads connection not found');
     }
 
+    const accessToken = await this.resolveAccessToken(userId, connection);
+
+    // Step 1: Create media container
+    const containerRes = await fetch(
+      `${THREADS_API_BASE}/${connection.threadsUserId}/threads`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          media_type: 'TEXT',
+          text,
+          access_token: accessToken,
+        }).toString(),
+      },
+    );
+
+    if (!containerRes.ok) {
+      this.logger.error(
+        `Threads container creation failed: ${containerRes.status}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to create Threads post container',
+      );
+    }
+
+    const containerData = (await containerRes.json()) as { id: string };
+
+    if (!containerData.id) {
+      throw new InternalServerErrorException(
+        'Threads container creation returned no ID',
+      );
+    }
+
+    // Step 2: Publish the container
+    const publishRes = await fetch(
+      `${THREADS_API_BASE}/${connection.threadsUserId}/threads_publish`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          creation_id: containerData.id,
+          access_token: accessToken,
+        }).toString(),
+      },
+    );
+
+    if (!publishRes.ok) {
+      this.logger.error(`Threads publish failed: ${publishRes.status}`);
+      throw new InternalServerErrorException('Failed to publish to Threads');
+    }
+
+    const publishData = (await publishRes.json()) as { id: string };
+
+    if (!publishData.id) {
+      throw new InternalServerErrorException(
+        'Threads publish returned no media ID',
+      );
+    }
+
+    // Step 3: Fetch permalink (best-effort)
+    let permalink: string | null = null;
+    try {
+      const params = new URLSearchParams({ fields: 'id,permalink' });
+      const mediaRes = await fetch(
+        `${THREADS_API_BASE}/${publishData.id}?${params.toString()}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+
+      if (mediaRes.ok) {
+        const mediaData = (await mediaRes.json()) as {
+          id: string;
+          permalink?: string;
+        };
+        permalink = mediaData.permalink ?? null;
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to fetch permalink: ${error}`);
+    }
+
+    return { threadsMediaId: publishData.id, permalink };
+  }
+
+  private async resolveAccessToken(
+    userId: string,
+    connection: { accessTokenEncrypted: string; tokenExpiresAt: Date },
+  ): Promise<string> {
     const token = this.crypto.decrypt(connection.accessTokenEncrypted);
 
     const timeUntilExpiry = connection.tokenExpiresAt.getTime() - Date.now();
