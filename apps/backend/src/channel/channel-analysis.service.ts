@@ -59,12 +59,12 @@ Keywords: ${[...analysis.keywords.primary, ...analysis.keywords.secondary].join(
 Alternatives: ${analysis.alternatives.map((a) => a.name).join(', ')}
 
 === Instructions ===
-Recommend exactly 3 marketing channels: 2 primary channels and 1 secondary channel. Choose the best channels based on the product analysis.
+Recommend exactly 1 marketing channel: Threads (Meta's Threads). The channelName must be "Threads".
 
-For each channel, provide:
-- channelName: The channel name (platform level, e.g. "Reddit", "X (Twitter)")
-- targetCommunities: Specific sub-communities to target (e.g. "r/SideProject", "#buildinpublic"). 2-3 items. Empty array if the channel has no sub-communities (e.g. Product Hunt, Hacker News).
-- tier: "primary" for the 2 main channels, "secondary" for the 1 supplementary channel
+For the channel, provide:
+- channelName: Must be "Threads"
+- targetCommunities: Specific hashtags or communities to target on Threads (e.g. "#buildinpublic", "#indiehacker"). 2-3 items.
+- tier: "primary"
 - scoreBreakdown: Score the channel on 4 dimensions:
   - targetPresence (0-30): How present is the target audience on this channel?
   - contentFit (0-25): How well does the product's content fit this channel's format?
@@ -83,12 +83,11 @@ Respond in Korean. Be specific and actionable.`;
   }
 
   private validateResult(result: ChannelAnalysisResult): void {
-    const validTiers = ['primary', 'secondary'];
     const validEffortLevels = ['low', 'medium', 'high'];
     for (const channel of result.channels) {
-      if (!validTiers.includes(channel.tier)) {
+      if (channel.tier !== 'primary') {
         throw new InternalServerErrorException(
-          `Invalid LLM response: tier must be primary or secondary, got "${channel.tier}"`,
+          `Invalid LLM response: tier must be primary, got "${channel.tier}"`,
         );
       }
       if (!validEffortLevels.includes(channel.effortLevel)) {
