@@ -15,6 +15,12 @@ export class ThreadsCryptoService {
       'THREADS_TOKEN_ENCRYPTION_KEY',
     );
     this.key = Buffer.from(hex, 'hex');
+
+    if (this.key.length !== 32) {
+      throw new Error(
+        `THREADS_TOKEN_ENCRYPTION_KEY must be a 64-character hex string (got ${hex.length} chars)`,
+      );
+    }
   }
 
   encrypt(plaintext: string): string {

@@ -4,9 +4,11 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Query,
   Res,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 import { ThreadsService } from './threads.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -16,7 +18,15 @@ import { toThreadsConnectionResponse } from './dto/threads-connection.response';
 
 @Controller('threads')
 export class ThreadsController {
-  constructor(private readonly threadsService: ThreadsService) {}
+  private readonly logger = new Logger(ThreadsController.name);
+  private readonly frontendUrl: string;
+
+  constructor(
+    private readonly threadsService: ThreadsService,
+    private readonly configService: ConfigService,
+  ) {
+    this.frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
+  }
 
   @Get('auth-url')
   getAuthUrl(@CurrentUser() user: JwtPayload) {
@@ -29,10 +39,21 @@ export class ThreadsController {
   async handleCallback(
     @Query('code') code: string,
     @Query('state') state: string,
+    @Query('error') error: string,
     @Res() res: Response,
   ) {
-    const redirectUrl = await this.threadsService.handleCallback(code, state);
-    res.redirect(redirectUrl);
+    if (error || !code || !state) {
+      this.logger.warn(`OAuth callback failed: error=${error}`);
+      return res.redirect(`${this.frontendUrl}/integrations?threads=error`);
+    }
+
+    try {
+      const redirectUrl = await this.threadsService.handleCallback(code, state);
+      res.redirect(redirectUrl);
+    } catch (err) {
+      this.logger.error('OAuth callback error', (err as Error).stack);
+      res.redirect(`${this.frontendUrl}/integrations?threads=error`);
+    }
   }
 
   @Get('connection')

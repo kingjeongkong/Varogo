@@ -167,6 +167,13 @@ export class ThreadsService {
     }
 
     const data = (await res.json()) as { access_token: string };
+
+    if (!data.access_token) {
+      throw new InternalServerErrorException(
+        'Token exchange returned no access_token',
+      );
+    }
+
     return data.access_token;
   }
 
@@ -192,18 +199,24 @@ export class ThreadsService {
       access_token: string;
       expires_in: number;
     };
+
+    if (!data.access_token || !data.expires_in) {
+      throw new InternalServerErrorException(
+        'Long-lived token exchange returned incomplete response',
+      );
+    }
+
     return { accessToken: data.access_token, expiresIn: data.expires_in };
   }
 
   private async fetchProfile(
     accessToken: string,
   ): Promise<{ id: string; username?: string }> {
-    const params = new URLSearchParams({
-      fields: 'id,username',
-      access_token: accessToken,
-    });
+    const params = new URLSearchParams({ fields: 'id,username' });
 
-    const res = await fetch(`${THREADS_ME_URL}?${params.toString()}`);
+    const res = await fetch(`${THREADS_ME_URL}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
     if (!res.ok) {
       this.logger.error(`Profile fetch failed: ${res.status}`);
@@ -226,11 +239,26 @@ export class ThreadsService {
 
     if (!res.ok) {
       this.logger.error(`Token refresh failed: ${res.status}`);
-      return currentToken;
+      throw new UnauthorizedException(
+        'Threads token refresh failed. Please reconnect your account.',
+      );
     }
 
-    const data = (await res.json()) as { access_token: string };
-    const tokenExpiresAt = new Date(Date.now() + LONG_LIVED_TOKEN_DURATION_MS);
+    const data = (await res.json()) as {
+      access_token: string;
+      expires_in: number;
+    };
+
+    if (!data.access_token) {
+      throw new InternalServerErrorException(
+        'Token refresh returned no access_token',
+      );
+    }
+
+    const expiresMs = data.expires_in
+      ? data.expires_in * 1000
+      : LONG_LIVED_TOKEN_DURATION_MS;
+    const tokenExpiresAt = new Date(Date.now() + expiresMs);
 
     await this.prisma.threadsConnection.update({
       where: { userId },
