@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import {
@@ -10,11 +10,29 @@ import {
   useThreadsDisconnect,
 } from '@/features/threads/hooks/use-threads-connection';
 
-function ThreadsConnectedBanner() {
+function ThreadsCallbackBanner() {
   const searchParams = useSearchParams();
-  const justConnected = searchParams.get('threads') === 'connected';
+  const router = useRouter();
+  const banner = searchParams.get('threads');
 
-  if (!justConnected) return null;
+  useEffect(() => {
+    if (banner === 'connected' || banner === 'error') {
+      router.replace('/integrations', { scroll: false });
+    }
+  }, [banner, router]);
+
+  if (banner !== 'connected' && banner !== 'error') return null;
+
+  if (banner === 'error') {
+    return (
+      <div
+        className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+        role="alert"
+      >
+        Threads 계정 연결에 실패했습니다. 다시 시도해주세요.
+      </div>
+    );
+  }
 
   return (
     <div
@@ -46,8 +64,8 @@ export default function IntegrationsPage() {
           </p>
         </div>
 
-        <Suspense>
-          <ThreadsConnectedBanner />
+        <Suspense fallback={null}>
+          <ThreadsCallbackBanner />
         </Suspense>
 
         {isLoading ? (
@@ -65,7 +83,9 @@ export default function IntegrationsPage() {
                 {connection?.connected ? (
                   <p className="text-sm text-text-muted">
                     <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-2" aria-hidden="true" />
-                    @{connection.username} 연결됨
+                    {connection.username
+                      ? `@${connection.username} 연결됨`
+                      : '연결됨'}
                   </p>
                 ) : (
                   <p className="text-sm text-text-muted">
@@ -95,6 +115,17 @@ export default function IntegrationsPage() {
                 )}
               </div>
             </div>
+
+            {connectMutation.isError && (
+              <p className="mt-4 text-sm text-red-400" role="alert">
+                계정 연결에 실패했습니다. 다시 시도해주세요.
+              </p>
+            )}
+            {disconnectMutation.isError && (
+              <p className="mt-4 text-sm text-red-400" role="alert">
+                연결 해제에 실패했습니다. 다시 시도해주세요.
+              </p>
+            )}
           </div>
         )}
       </main>

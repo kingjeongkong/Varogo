@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function Header() {
+  const pathname = usePathname();
   const { user, isLoading } = useAuthStore();
   const { logoutMutation } = useAuth();
 
@@ -25,6 +27,7 @@ export default function Header() {
           {user && (
             <Link
               href="/integrations"
+              aria-current={pathname === '/integrations' ? 'page' : undefined}
               className="text-sm text-text-muted hover:text-text-secondary transition-colors"
             >
               연동
