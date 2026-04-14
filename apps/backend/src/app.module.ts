@@ -10,6 +10,7 @@ import { ProductModule } from './product/product.module';
 import { ChannelModule } from './channel/channel.module';
 import { StrategyModule } from './strategy/strategy.module';
 import { ContentModule } from './content/content.module';
+import { ThreadsModule } from './threads/threads.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -22,6 +23,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     ChannelModule,
     StrategyModule,
     ContentModule,
+    ThreadsModule,
   ],
   controllers: [AppController],
   providers: [

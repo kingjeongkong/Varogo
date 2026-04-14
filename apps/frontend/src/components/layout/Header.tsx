@@ -22,6 +22,14 @@ export default function Header() {
               Varogo
             </span>
           </Link>
+          {user && (
+            <Link
+              href="/integrations"
+              className="text-sm text-text-muted hover:text-text-secondary transition-colors"
+            >
+              연동
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
