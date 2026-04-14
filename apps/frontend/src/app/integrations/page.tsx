@@ -1,10 +1,93 @@
-import { Suspense } from 'react';
-import IntegrationsContent from './IntegrationsContent';
+'use client';
+
+import { useSearchParams } from 'next/navigation';
+import Header from '@/components/layout/Header';
+import { Button } from '@/components/ui/Button';
+import {
+  useThreadsConnectionStatus,
+  useThreadsConnect,
+  useThreadsDisconnect,
+} from '@/features/threads/hooks/use-threads-connection';
 
 export default function IntegrationsPage() {
+  const searchParams = useSearchParams();
+  const justConnected = searchParams.get('threads') === 'connected';
+
+  const { data: connection, isLoading } = useThreadsConnectionStatus();
+  const connectMutation = useThreadsConnect();
+  const disconnectMutation = useThreadsDisconnect();
+
   return (
-    <Suspense>
-      <IntegrationsContent />
-    </Suspense>
+    <div className="min-h-screen">
+      <Header />
+
+      <main className="max-w-4xl mx-auto px-6 py-12">
+        <div className="space-y-2 mb-10">
+          <h1 className="text-2xl font-heading font-bold text-text-primary">
+            연동 관리
+          </h1>
+          <p className="text-sm text-text-muted">
+            외부 플랫폼 계정을 연결하여 콘텐츠를 게시할 수 있습니다.
+          </p>
+        </div>
+
+        {justConnected && (
+          <div
+            className="mb-6 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400"
+            role="status"
+          >
+            Threads 계정이 연결되었습니다.
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="glass-card p-8">
+            <div className="skeleton h-6 w-1/4 mb-4" />
+            <div className="skeleton h-4 w-1/2" />
+          </div>
+        ) : (
+          <div className="glass-card p-8">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h2 className="text-lg font-heading font-semibold text-text-primary">
+                  Threads
+                </h2>
+                {connection?.connected ? (
+                  <p className="text-sm text-text-muted">
+                    <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-2" />
+                    @{connection.username} 연결됨
+                  </p>
+                ) : (
+                  <p className="text-sm text-text-muted">
+                    Threads 계정을 연결하면 콘텐츠를 바로 게시할 수 있습니다.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                {connection?.connected ? (
+                  <Button
+                    variant="outline"
+                    loading={disconnectMutation.isPending}
+                    loadingText="해제 중..."
+                    onClick={() => disconnectMutation.mutate()}
+                  >
+                    연결 해제
+                  </Button>
+                ) : (
+                  <Button
+                    loading={connectMutation.isPending}
+                    loadingText="연결 중..."
+                    onClick={() => connectMutation.mutate()}
+                  >
+                    계정 연결
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
