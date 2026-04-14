@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
@@ -9,9 +10,23 @@ import {
   useThreadsDisconnect,
 } from '@/features/threads/hooks/use-threads-connection';
 
-export default function IntegrationsPage() {
+function ThreadsConnectedBanner() {
   const searchParams = useSearchParams();
   const justConnected = searchParams.get('threads') === 'connected';
+
+  if (!justConnected) return null;
+
+  return (
+    <div
+      className="mb-6 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400"
+      role="status"
+    >
+      Threads 계정이 연결되었습니다.
+    </div>
+  );
+}
+
+export default function IntegrationsPage() {
 
   const { data: connection, isLoading } = useThreadsConnectionStatus();
   const connectMutation = useThreadsConnect();
@@ -31,14 +46,9 @@ export default function IntegrationsPage() {
           </p>
         </div>
 
-        {justConnected && (
-          <div
-            className="mb-6 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400"
-            role="status"
-          >
-            Threads 계정이 연결되었습니다.
-          </div>
-        )}
+        <Suspense>
+          <ThreadsConnectedBanner />
+        </Suspense>
 
         {isLoading ? (
           <div className="glass-card p-8">
@@ -54,7 +64,7 @@ export default function IntegrationsPage() {
                 </h2>
                 {connection?.connected ? (
                   <p className="text-sm text-text-muted">
-                    <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-2" />
+                    <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-2" aria-hidden="true" />
                     @{connection.username} 연결됨
                   </p>
                 ) : (
