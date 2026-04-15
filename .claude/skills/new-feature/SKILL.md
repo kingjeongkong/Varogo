@@ -60,7 +60,7 @@ When implementing a new domain in the frontend (e.g., `subscription`, `post-draf
 ## References
 - `apps/frontend/src/features/product/` — complete feature (api-client, types, hooks, components)
 - `apps/frontend/src/features/auth/` — auth feature (Zustand store integration from hooks)
-- `apps/frontend/src/features/channel/` — read-only feature (no types.ts, utility file)
+- `apps/frontend/src/features/threads/` — OAuth/publish feature (external integration pattern)
 - `apps/frontend/src/lib/types.ts` — shared response types
 - `apps/frontend/src/lib/http-client.ts` — apiFetch utility (Client Components)
 - `apps/frontend/src/lib/server-http-client.ts` — serverFetch utility (Server Components)
