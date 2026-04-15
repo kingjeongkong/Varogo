@@ -8,13 +8,13 @@ datasource db {
 }
 
 model User {
-  id           String         @id @default(uuid())
-  email        String         @unique
-  name         String?
-  passwordHash String?        @map("password_hash")
-  avatarUrl    String?        @map("avatar_url")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
+  id                String             @id @default(uuid())
+  email             String             @unique
+  name              String?
+  passwordHash      String?            @map("password_hash")
+  avatarUrl         String?            @map("avatar_url")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
   accounts          Account[]
   refreshTokens     RefreshToken[]
   products          Product[]
@@ -82,40 +82,16 @@ model ProductAnalysis {
   keywords             Json
   createdAt            DateTime @default(now()) @map("created_at")
 
-  product                Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
-  channelRecommendations ChannelRecommendation[]
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  strategies Strategy[]
 
   @@index([productId])
   @@map("product_analyses")
 }
 
-model ChannelRecommendation {
-  id                 String   @id @default(uuid())
-  productAnalysisId  String   @map("product_analysis_id")
-  channelName         String   @map("channel_name")
-  targetCommunities   String[] @map("target_communities")
-  tier                String
-  scoreBreakdown     Json     @map("score_breakdown")
-  whyThisChannel     String   @map("why_this_channel")
-  distributionMethod String   @map("distribution_method")
-  contentAngle       String   @map("content_angle")
-  risk               String
-  effortLevel        String   @map("effort_level")
-  effortDetail       String   @map("effort_detail")
-  expectedTimeline   String   @map("expected_timeline")
-  successMetric      String   @map("success_metric")
-  createdAt          DateTime @default(now()) @map("created_at")
-
-  productAnalysis ProductAnalysis @relation(fields: [productAnalysisId], references: [id], onDelete: Cascade)
-  strategies      Strategy[]
-
-  @@index([productAnalysisId])
-  @@map("channel_recommendations")
-}
-
 model Strategy {
-  id                      String   @id @default(uuid())
-  channelRecommendationId String   @map("channel_recommendation_id")
+  id                String @id @default(uuid())
+  productAnalysisId String @map("product_analysis_id")
 
   // 전략 방향
   title       String
@@ -131,26 +107,26 @@ model Strategy {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  channelRecommendation ChannelRecommendation    @relation(fields: [channelRecommendationId], references: [id], onDelete: Cascade)
-  contentTemplate       StrategyContentTemplate?
-  content               Content?
+  productAnalysis ProductAnalysis          @relation(fields: [productAnalysisId], references: [id], onDelete: Cascade)
+  contentTemplate StrategyContentTemplate?
+  content         Content?
 
-  @@index([channelRecommendationId])
+  @@index([productAnalysisId])
   @@map("strategies")
 }
 
 model StrategyContentTemplate {
-  id          String   @id @default(uuid())
-  strategyId  String   @unique @map("strategy_id")
-  contentPattern String @map("content_pattern")
-  hookGuide      String @map("hook_guide")
-  bodyStructure  Json   @map("body_structure")
-  ctaGuide       String @map("cta_guide")
-  toneGuide      String @map("tone_guide")
-  lengthGuide    String @map("length_guide")
-  platformTips   Json   @map("platform_tips")
-  dontDoList     Json   @map("dont_do_list")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  strategyId     String   @unique @map("strategy_id")
+  contentPattern String   @map("content_pattern")
+  hookGuide      String   @map("hook_guide")
+  bodyStructure  Json     @map("body_structure")
+  ctaGuide       String   @map("cta_guide")
+  toneGuide      String   @map("tone_guide")
+  lengthGuide    String   @map("length_guide")
+  platformTips   Json     @map("platform_tips")
+  dontDoList     Json     @map("dont_do_list")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
 
@@ -182,4 +158,3 @@ model ThreadsConnection {
 
   @@map("threads_connections")
 }
-
