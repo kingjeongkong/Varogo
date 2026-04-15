@@ -3,19 +3,19 @@ import type { ContentResponse } from '@/lib/types';
 
 export function fetchContent(
   productId: string,
-  channelId: string,
+  strategyId: string,
 ): Promise<ContentResponse> {
   return apiFetch<ContentResponse>(
-    `/products/${productId}/channels/${channelId}/content`,
+    `/products/${productId}/strategies/${strategyId}/content`,
   );
 }
 
 export function generateContent(
   productId: string,
-  channelId: string,
+  strategyId: string,
 ): Promise<ContentResponse> {
   return apiFetch<ContentResponse>(
-    `/products/${productId}/channels/${channelId}/content/generate`,
+    `/products/${productId}/strategies/${strategyId}/content/generate`,
     { method: 'POST' },
   );
 }

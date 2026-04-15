@@ -54,7 +54,7 @@ export class ContentGenerationService {
   }
 
   private buildPrompt(input: GenerateContentInput): string {
-    const { productAnalysis, channel, strategy, template } = input;
+    const { productAnalysis, strategy, template } = input;
     const targetAudience = productAnalysis.targetAudience as {
       definition: string;
     };
@@ -69,7 +69,8 @@ export class ContentGenerationService {
 
     const dontDoGuide = template.dontDoList.map((t) => `- ${t}`).join('\n');
 
-    return `당신은 인디 개발자 제품의 마케팅 콘텐츠 작성 전문가입니다. 아래 정보를 바탕으로, 해당 채널에 바로 게시할 수 있는 완성된 콘텐츠를 작성해주세요.
+    // TODO: Phase 2.5 프롬프트 엔지니어링에서 Threads 맥락(500자, 대화형 톤, 훅 중심, 해시태그 지양) 재작성
+    return `당신은 인디 개발자 제품의 마케팅 콘텐츠 작성 전문가입니다. 아래 정보를 바탕으로, Threads에 바로 게시할 수 있는 완성된 콘텐츠를 작성해주세요.
 
 === 제품 정보 ===
 타겟 고객: ${targetAudience.definition}
@@ -77,11 +78,6 @@ export class ContentGenerationService {
 차별점: ${productAnalysis.differentiators.join(', ')}
 포지셔닝: ${productAnalysis.positioningStatement}
 키워드: ${[...productAnalysis.keywords.primary, ...productAnalysis.keywords.secondary].join(', ')}
-
-=== 채널 정보 ===
-채널명: ${channel.channelName}
-효과적인 콘텐츠: ${channel.contentAngle}
-리스크: ${channel.risk}
 
 === 전략 정보 ===
 전략 방향: ${strategy.title} — ${strategy.description}
@@ -106,7 +102,7 @@ ${dontDoGuide}
 
 === 지시사항 ===
 위 템플릿의 구성을 참고하되, 섹션 구분 없이 하나의 자연스럽게 연결된 글로 작성하세요.
-채널의 특성과 리스크를 고려하여 광고 느낌이 나지 않도록 자연스럽게 작성하세요.
+Threads의 특성(대화형, 훅 중심)을 고려하여 광고 느낌이 나지 않도록 자연스럽게 작성하세요.
 권장 길이를 준수하세요.
 
 JSON 형식으로만 응답하세요. 최상위 키는 "body"이며 값은 완성된 콘텐츠 문자열입니다.

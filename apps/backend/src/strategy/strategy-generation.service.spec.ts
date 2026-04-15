@@ -44,13 +44,6 @@ const PRODUCT_ANALYSIS: ProductAnalysisResult = {
   keywords: { primary: ['indie dev', 'marketing'], secondary: ['twitter'] },
 };
 
-const CHANNEL_INPUT = {
-  channelName: 'X (Twitter)',
-  whyThisChannel: '인디 개발자 커뮤니티가 활발',
-  contentAngle: '빌딩 인 퍼블릭 스레드',
-  risk: '알고리즘 변경 위험',
-};
-
 const VALID_CARDS_RESULT: StrategyGenerationResult = {
   cards: [
     {
@@ -160,7 +153,6 @@ describe('StrategyGenerationService', () => {
       const result = await service.generateCards({
         productName: 'Varogo',
         productAnalysis: PRODUCT_ANALYSIS,
-        channel: CHANNEL_INPUT,
       });
 
       expect(result).toEqual(VALID_CARDS_RESULT);
@@ -179,7 +171,6 @@ describe('StrategyGenerationService', () => {
       mockConfigService.get.mockReturnValue('gpt-4o');
       mockCreate.mockResolvedValue(buildChatResponse(VALID_CARDS_RESULT));
 
-      // Rebuild the service to pick up the new config value
       const module = await Test.createTestingModule({
         providers: [
           StrategyGenerationService,
@@ -192,20 +183,18 @@ describe('StrategyGenerationService', () => {
       await svc.generateCards({
         productName: 'Varogo',
         productAnalysis: PRODUCT_ANALYSIS,
-        channel: CHANNEL_INPUT,
       });
 
       const calls = mockCreate.mock.calls as Array<[{ model: string }]>;
       expect(calls[calls.length - 1][0].model).toBe('gpt-4o');
     });
 
-    it('includes product and channel context in prompt', async () => {
+    it('includes product context and Threads channel in prompt', async () => {
       mockCreate.mockResolvedValue(buildChatResponse(VALID_CARDS_RESULT));
 
       await service.generateCards({
         productName: 'Varogo',
         productAnalysis: PRODUCT_ANALYSIS,
-        channel: CHANNEL_INPUT,
       });
 
       const calls = mockCreate.mock.calls as Array<
@@ -215,8 +204,7 @@ describe('StrategyGenerationService', () => {
       expect(prompt).toContain('Varogo');
       expect(prompt).toContain('Indie developers');
       expect(prompt).toContain('AI-powered strategy');
-      expect(prompt).toContain('X (Twitter)');
-      expect(prompt).toContain('빌딩 인 퍼블릭 스레드');
+      expect(prompt).toContain('Threads');
     });
 
     it('throws InternalServerErrorException when OpenAI returns invalid JSON', async () => {
@@ -226,7 +214,6 @@ describe('StrategyGenerationService', () => {
         service.generateCards({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
         }),
       ).rejects.toThrow(InternalServerErrorException);
 
@@ -234,7 +221,6 @@ describe('StrategyGenerationService', () => {
         service.generateCards({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
         }),
       ).rejects.toThrow('Strategy generation failed');
     });
@@ -246,7 +232,6 @@ describe('StrategyGenerationService', () => {
         service.generateCards({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
         }),
       ).rejects.toThrow(InternalServerErrorException);
     });
@@ -258,7 +243,6 @@ describe('StrategyGenerationService', () => {
         service.generateCards({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
         }),
       ).rejects.toThrow('cards must be a non-empty array');
     });
@@ -274,7 +258,6 @@ describe('StrategyGenerationService', () => {
         service.generateCards({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
         }),
       ).rejects.toThrow('card missing field');
     });
@@ -301,7 +284,6 @@ describe('StrategyGenerationService', () => {
         service.generateCards({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
         }),
       ).rejects.toThrow('card missing field "campaignGoal"');
     });
@@ -314,7 +296,6 @@ describe('StrategyGenerationService', () => {
       const result = await service.generateTemplate({
         productName: 'Varogo',
         productAnalysis: PRODUCT_ANALYSIS,
-        channel: CHANNEL_INPUT,
         strategy: SELECTED_STRATEGY,
       });
 
@@ -327,7 +308,6 @@ describe('StrategyGenerationService', () => {
       await service.generateTemplate({
         productName: 'Varogo',
         productAnalysis: PRODUCT_ANALYSIS,
-        channel: CHANNEL_INPUT,
         strategy: SELECTED_STRATEGY,
       });
 
@@ -338,7 +318,7 @@ describe('StrategyGenerationService', () => {
       expect(prompt).toContain(SELECTED_STRATEGY.title);
       expect(prompt).toContain(SELECTED_STRATEGY.coreMessage);
       expect(prompt).toContain(SELECTED_STRATEGY.hookAngle);
-      expect(prompt).toContain('X (Twitter)');
+      expect(prompt).toContain('Threads');
     });
 
     it('throws InternalServerErrorException when OpenAI returns invalid JSON', async () => {
@@ -348,7 +328,6 @@ describe('StrategyGenerationService', () => {
         service.generateTemplate({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
           strategy: SELECTED_STRATEGY,
         }),
       ).rejects.toThrow(InternalServerErrorException);
@@ -361,7 +340,6 @@ describe('StrategyGenerationService', () => {
         service.generateTemplate({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
           strategy: SELECTED_STRATEGY,
         }),
       ).rejects.toThrow(InternalServerErrorException);
@@ -384,7 +362,6 @@ describe('StrategyGenerationService', () => {
         service.generateTemplate({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
           strategy: SELECTED_STRATEGY,
         }),
       ).rejects.toThrow('bodyStructure must have at least 3 items');
@@ -411,7 +388,6 @@ describe('StrategyGenerationService', () => {
         service.generateTemplate({
           productName: 'Varogo',
           productAnalysis: PRODUCT_ANALYSIS,
-          channel: CHANNEL_INPUT,
           strategy: SELECTED_STRATEGY,
         }),
       ).rejects.toThrow('missing toneGuide');

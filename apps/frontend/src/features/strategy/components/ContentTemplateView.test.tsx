@@ -15,7 +15,7 @@ vi.mock('next/link', () => ({
 
 const MOCK_STRATEGY: StrategyResponse = {
   id: 'strat-1',
-  channelRecommendationId: 'ch-1',
+  productAnalysisId: 'pa-1',
   title: '스토리 기반',
   description: '창업 여정과 개인 경험을 중심으로 독자와 감정적 공감대를 형성',
   coreMessage: '진짜 창업자가 겪는 고민을 공유한다',
@@ -57,7 +57,6 @@ const MOCK_TEMPLATE: ContentTemplateResponse = {
 
 const DEFAULT_PROPS = {
   productId: 'prod-1',
-  channelId: 'ch-1',
   strategy: MOCK_STRATEGY,
   template: MOCK_TEMPLATE,
 };
@@ -176,21 +175,21 @@ describe('ContentTemplateView', () => {
     });
   });
 
-  describe('Step 4 link', () => {
+  describe('Step 3 link', () => {
     it('renders link with correct href to content creation page', () => {
       render(<ContentTemplateView {...DEFAULT_PROPS} />);
 
       const link = screen.getByRole('link', { name: /콘텐츠 작성 시작/ });
       expect(link).toHaveAttribute(
         'href',
-        '/product/prod-1/channels/ch-1/content',
+        '/product/prod-1/strategies/strat-1/content',
       );
     });
 
-    it('renders Step 4 badge text inside the link', () => {
+    it('renders Step 3 badge text inside the link', () => {
       render(<ContentTemplateView {...DEFAULT_PROPS} />);
 
-      expect(screen.getByText('Step 4')).toBeInTheDocument();
+      expect(screen.getByText('Step 3')).toBeInTheDocument();
     });
   });
 });

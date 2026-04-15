@@ -7,7 +7,7 @@ import type { StrategyResponse } from '@/lib/types';
 const MOCK_STRATEGIES: StrategyResponse[] = [
   {
     id: 'strat-1',
-    channelRecommendationId: 'ch-1',
+    productAnalysisId: 'pa-1',
     title: '스토리 기반',
     description: '창업 여정 기반 전략',
     coreMessage: '핵심 메시지 1',
@@ -20,7 +20,7 @@ const MOCK_STRATEGIES: StrategyResponse[] = [
   },
   {
     id: 'strat-2',
-    channelRecommendationId: 'ch-1',
+    productAnalysisId: 'pa-1',
     title: '데이터 기반',
     description: '수치와 데이터 중심 전략',
     coreMessage: '핵심 메시지 2',

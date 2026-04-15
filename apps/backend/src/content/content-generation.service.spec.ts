@@ -28,11 +28,6 @@ const VALID_INPUT: GenerateContentInput = {
     positioningStatement: 'The marketing copilot for indie devs.',
     keywords: { primary: ['indie dev', 'marketing'], secondary: ['twitter'] },
   },
-  channel: {
-    channelName: 'X (Twitter)',
-    contentAngle: '빌딩 인 퍼블릭 스레드',
-    risk: '알고리즘 변경 위험',
-  },
   strategy: {
     title: '스토리 기반',
     description: '창업 여정을 공유하여 공감대 형성',
@@ -148,7 +143,7 @@ describe('ContentGenerationService', () => {
       expect(calls[calls.length - 1][0].model).toBe('gpt-4o');
     });
 
-    it('includes product, channel, strategy, and template context in prompt', async () => {
+    it('includes product, strategy, and template context in prompt', async () => {
       mockCreate.mockResolvedValue(buildChatResponse(VALID_RESULT));
 
       await service.generateContent(VALID_INPUT);
@@ -159,7 +154,7 @@ describe('ContentGenerationService', () => {
       const prompt = calls[0][0].messages[0].content;
       expect(prompt).toContain('Indie developers');
       expect(prompt).toContain('AI-powered strategy');
-      expect(prompt).toContain('X (Twitter)');
+      expect(prompt).toContain('Threads');
       expect(prompt).toContain('스토리 기반');
       expect(prompt).toContain('진짜 창업자의 고민을 공유한다');
       expect(prompt).toContain('실패 경험 공개형 빌딩 저널');

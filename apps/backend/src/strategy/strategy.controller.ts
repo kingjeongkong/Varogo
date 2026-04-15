@@ -15,7 +15,7 @@ import {
 } from './dto/strategy.response';
 import { StrategyService } from './strategy.service';
 
-@Controller('products/:productId/channels/:channelId/strategies')
+@Controller('products/:productId/strategies')
 export class StrategyController {
   constructor(private readonly strategyService: StrategyService) {}
 
@@ -23,11 +23,9 @@ export class StrategyController {
   async list(
     @CurrentUser() user: JwtPayload,
     @Param('productId', ParseUUIDPipe) productId: string,
-    @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
-    const result = await this.strategyService.listForChannel(
+    const result = await this.strategyService.listForProduct(
       productId,
-      channelId,
       user.sub,
     );
     return toStrategyListResponse(result.strategies, result.hasAnyTemplate);
@@ -37,11 +35,9 @@ export class StrategyController {
   async getTemplate(
     @CurrentUser() user: JwtPayload,
     @Param('productId', ParseUUIDPipe) productId: string,
-    @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
     const result = await this.strategyService.getSelectedTemplate(
       productId,
-      channelId,
       user.sub,
     );
     return toSelectedStrategyResponse(result.strategy, result.template);
@@ -52,11 +48,9 @@ export class StrategyController {
   async generate(
     @CurrentUser() user: JwtPayload,
     @Param('productId', ParseUUIDPipe) productId: string,
-    @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
     const result = await this.strategyService.generateCards(
       productId,
-      channelId,
       user.sub,
     );
     return toStrategyListResponse(result.strategies, result.hasAnyTemplate);
@@ -67,12 +61,10 @@ export class StrategyController {
   async select(
     @CurrentUser() user: JwtPayload,
     @Param('productId', ParseUUIDPipe) productId: string,
-    @Param('channelId', ParseUUIDPipe) channelId: string,
     @Param('strategyId', ParseUUIDPipe) strategyId: string,
   ) {
     const result = await this.strategyService.selectStrategy(
       productId,
-      channelId,
       strategyId,
       user.sub,
     );

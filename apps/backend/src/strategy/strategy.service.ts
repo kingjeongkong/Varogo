@@ -1,36 +1,43 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { ChannelService } from '../channel/channel.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ProductAnalysisResult } from '../product/types/product-analysis.type';
 import type { StrategyStatus } from './dto/strategy.response';
 import {
   GenerateCardsInput,
-  StrategyChannelContext,
   StrategyGenerationService,
 } from './strategy-generation.service';
 import type { StrategyCardResult } from './types/strategy-card.type';
 
-type ChannelWithContext = Awaited<ReturnType<ChannelService['findOne']>>;
+type AnalysisWithProduct = {
+  id: string;
+  targetAudience: Prisma.JsonValue;
+  problem: string;
+  valueProposition: string;
+  alternatives: Prisma.JsonValue;
+  differentiators: string[];
+  positioningStatement: string;
+  keywords: Prisma.JsonValue;
+  product: { id: string; name: string };
+};
 
 @Injectable()
 export class StrategyService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly channelService: ChannelService,
     private readonly strategyGenerationService: StrategyGenerationService,
   ) {}
 
-  async listForChannel(productId: string, channelId: string, userId: string) {
-    await this.loadChannel(productId, channelId, userId);
+  async listForProduct(productId: string, userId: string) {
+    const analysis = await this.loadLatestAnalysis(productId, userId);
 
     const [strategies, templateCount] = await Promise.all([
       this.prisma.strategy.findMany({
-        where: { channelRecommendationId: channelId },
+        where: { productAnalysisId: analysis.id },
         orderBy: { createdAt: 'asc' },
       }),
       this.prisma.strategyContentTemplate.count({
-        where: { strategy: { channelRecommendationId: channelId } },
+        where: { strategy: { productAnalysisId: analysis.id } },
       }),
     ]);
 
@@ -44,25 +51,25 @@ export class StrategyService {
     return { strategies, hasAnyTemplate: templateCount > 0, status };
   }
 
-  async generateCards(productId: string, channelId: string, userId: string) {
-    const channel = await this.loadChannel(productId, channelId, userId);
+  async generateCards(productId: string, userId: string) {
+    const analysis = await this.loadLatestAnalysis(productId, userId);
 
     const existing = await this.prisma.strategy.findMany({
-      where: { channelRecommendationId: channelId },
+      where: { productAnalysisId: analysis.id },
       orderBy: { createdAt: 'asc' },
     });
     if (existing.length > 0) {
       const templateCount = await this.prisma.strategyContentTemplate.count({
-        where: { strategy: { channelRecommendationId: channelId } },
+        where: { strategy: { productAnalysisId: analysis.id } },
       });
       return { strategies: existing, hasAnyTemplate: templateCount > 0 };
     }
 
-    const llmInput = this.buildGenerationInput(channel);
+    const llmInput = this.buildGenerationInput(analysis);
     const result = await this.strategyGenerationService.generateCards(llmInput);
 
     const data: Prisma.StrategyCreateManyInput[] = result.cards.map((card) => ({
-      channelRecommendationId: channelId,
+      productAnalysisId: analysis.id,
       title: card.title,
       description: card.description,
       coreMessage: card.coreMessage,
@@ -80,16 +87,11 @@ export class StrategyService {
     return { strategies, hasAnyTemplate: false };
   }
 
-  async selectStrategy(
-    productId: string,
-    channelId: string,
-    strategyId: string,
-    userId: string,
-  ) {
-    const channel = await this.loadChannel(productId, channelId, userId);
+  async selectStrategy(productId: string, strategyId: string, userId: string) {
+    const analysis = await this.loadLatestAnalysis(productId, userId);
 
     const strategy = await this.prisma.strategy.findFirst({
-      where: { id: strategyId, channelRecommendationId: channelId },
+      where: { id: strategyId, productAnalysisId: analysis.id },
       include: { contentTemplate: true },
     });
     if (!strategy) {
@@ -102,7 +104,7 @@ export class StrategyService {
 
     const templateResult =
       await this.strategyGenerationService.generateTemplate({
-        ...this.buildGenerationInput(channel),
+        ...this.buildGenerationInput(analysis),
         strategy: {
           ...strategy,
           campaignGoal:
@@ -130,15 +132,11 @@ export class StrategyService {
     return { strategy, template: created };
   }
 
-  async getSelectedTemplate(
-    productId: string,
-    channelId: string,
-    userId: string,
-  ) {
-    await this.loadChannel(productId, channelId, userId);
+  async getSelectedTemplate(productId: string, userId: string) {
+    const analysis = await this.loadLatestAnalysis(productId, userId);
 
     const template = await this.prisma.strategyContentTemplate.findFirst({
-      where: { strategy: { channelRecommendationId: channelId } },
+      where: { strategy: { productAnalysisId: analysis.id } },
       orderBy: { createdAt: 'desc' },
       include: { strategy: true },
     });
@@ -149,33 +147,38 @@ export class StrategyService {
     return { strategy: template.strategy, template };
   }
 
-  private async loadChannel(
+  private async loadLatestAnalysis(
     productId: string,
-    channelId: string,
     userId: string,
-  ): Promise<ChannelWithContext> {
-    const channel = await this.channelService.findOne(channelId, userId);
-    if (channel.productAnalysis.product.id !== productId) {
-      throw new NotFoundException('Channel recommendation not found');
+  ): Promise<AnalysisWithProduct> {
+    const analysis = await this.prisma.productAnalysis.findFirst({
+      where: { product: { id: productId, userId } },
+      orderBy: { createdAt: 'desc' },
+      include: { product: { select: { id: true, name: true } } },
+    });
+    if (!analysis) {
+      throw new NotFoundException('Product analysis not found');
     }
-    return channel;
+    return analysis;
   }
 
   private buildGenerationInput(
-    channel: ChannelWithContext,
+    analysis: AnalysisWithProduct,
   ): GenerateCardsInput {
-    const channelContext: StrategyChannelContext = {
-      channelName: channel.channelName,
-      whyThisChannel: channel.whyThisChannel,
-      contentAngle: channel.contentAngle,
-      risk: channel.risk,
-    };
-
     return {
-      productName: channel.productAnalysis.product.name,
-      productAnalysis:
-        channel.productAnalysis as unknown as ProductAnalysisResult,
-      channel: channelContext,
+      productName: analysis.product.name,
+      productAnalysis: {
+        targetAudience:
+          analysis.targetAudience as unknown as ProductAnalysisResult['targetAudience'],
+        problem: analysis.problem,
+        valueProposition: analysis.valueProposition,
+        alternatives:
+          analysis.alternatives as unknown as ProductAnalysisResult['alternatives'],
+        differentiators: analysis.differentiators,
+        positioningStatement: analysis.positioningStatement,
+        keywords:
+          analysis.keywords as unknown as ProductAnalysisResult['keywords'],
+      },
     };
   }
 }

@@ -12,17 +12,9 @@ import type {
   StrategyGenerationResult,
 } from './types/strategy-card.type';
 
-export interface StrategyChannelContext {
-  channelName: string;
-  whyThisChannel: string;
-  contentAngle: string;
-  risk: string;
-}
-
 export interface GenerateCardsInput {
   productName: string;
   productAnalysis: ProductAnalysisResult;
-  channel: StrategyChannelContext;
 }
 
 export interface GenerateTemplateInput extends GenerateCardsInput {
@@ -187,8 +179,9 @@ export class StrategyGenerationService {
   }
 
   private buildStrategyPrompt(input: GenerateCardsInput): string {
-    const { productName, productAnalysis, channel } = input;
-    return `당신은 인디 개발자 제품의 마케팅 전략가입니다. 아래 제품 분석과 채널 정보를 바탕으로, 이 제품을 해당 채널에서 홍보할 수 있는 "전략 후보 카드" 2~3개를 만들어주세요.
+    const { productName, productAnalysis } = input;
+    // TODO: Phase 2.5 프롬프트 엔지니어링에서 Threads 맥락(500자, 대화형 톤, 훅 중심, 해시태그 지양) 재작성
+    return `당신은 인디 개발자 제품의 마케팅 전략가입니다. 아래 제품 분석을 바탕으로, 이 제품을 Threads에서 홍보할 수 있는 "전략 후보 카드" 2~3개를 만들어주세요.
 
 === 제품 정보 ===
 제품명: ${productName}
@@ -200,12 +193,6 @@ export class StrategyGenerationService {
 포지셔닝: ${productAnalysis.positioningStatement}
 키워드: ${[...productAnalysis.keywords.primary, ...productAnalysis.keywords.secondary].join(', ')}
 경쟁 제품: ${productAnalysis.alternatives.map((a) => a.name).join(', ')}
-
-=== 채널 정보 ===
-채널명: ${channel.channelName}
-추천 이유: ${channel.whyThisChannel}
-효과적인 콘텐츠: ${channel.contentAngle}
-리스크: ${channel.risk}
 
 === 지시사항 ===
 2~3개의 서로 다른 "전략 방향"을 카드로 제안합니다. 카드들은 hookAngle, campaignGoal.type, contentFormat 중 최소 2가지 축에서 서로 달라야 합니다.
@@ -240,18 +227,15 @@ JSON 형식으로만 응답하세요. 최상위 키는 "cards"이며 값은 위 
   }
 
   private buildTemplatePrompt(input: GenerateTemplateInput): string {
-    const { productName, productAnalysis, channel, strategy } = input;
-    return `당신은 인디 개발자 제품의 콘텐츠 작성 가이드를 설계하는 전략가입니다. 사용자가 선택한 전략을 기반으로, 이 채널에서 실제로 포스트를 작성할 때 사용할 "콘텐츠 템플릿"을 설계해주세요.
+    const { productName, productAnalysis, strategy } = input;
+    // TODO: Phase 2.5 프롬프트 엔지니어링에서 Threads 맥락 재작성
+    return `당신은 인디 개발자 제품의 콘텐츠 작성 가이드를 설계하는 전략가입니다. 사용자가 선택한 전략을 기반으로, Threads에서 실제로 포스트를 작성할 때 사용할 "콘텐츠 템플릿"을 설계해주세요.
 
 === 제품 정보 ===
 제품명: ${productName}
 타겟 고객: ${productAnalysis.targetAudience.definition}
 포지셔닝: ${productAnalysis.positioningStatement}
 차별점: ${productAnalysis.differentiators.join(', ')}
-
-=== 채널 정보 ===
-채널명: ${channel.channelName}
-효과적인 콘텐츠: ${channel.contentAngle}
 
 === 선택된 전략 ===
 제목: ${strategy.title}

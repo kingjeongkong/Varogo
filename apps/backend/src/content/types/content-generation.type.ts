@@ -9,11 +9,6 @@ export interface GenerateContentInput {
     positioningStatement: string;
     keywords: { primary: string[]; secondary: string[] };
   };
-  channel: {
-    channelName: string;
-    contentAngle: string;
-    risk: string;
-  };
   strategy: {
     title: string;
     description: string;

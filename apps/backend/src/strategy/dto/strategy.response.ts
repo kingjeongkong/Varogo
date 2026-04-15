@@ -6,7 +6,7 @@ export type StrategyStatus = 'not_started' | 'cards_generated' | 'completed';
 
 export interface StrategyResponse {
   id: string;
-  channelRecommendationId: string;
+  productAnalysisId: string;
   title: string;
   description: string;
   coreMessage: string;
@@ -44,7 +44,7 @@ export interface SelectedStrategyResponse {
 
 export function toStrategyResponse(strategy: {
   id: string;
-  channelRecommendationId: string;
+  productAnalysisId: string;
   title: string;
   description: string;
   coreMessage: string;
@@ -57,7 +57,7 @@ export function toStrategyResponse(strategy: {
 }): StrategyResponse {
   return {
     id: strategy.id,
-    channelRecommendationId: strategy.channelRecommendationId,
+    productAnalysisId: strategy.productAnalysisId,
     title: strategy.title,
     description: strategy.description,
     coreMessage: strategy.coreMessage,
