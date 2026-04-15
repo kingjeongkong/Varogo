@@ -27,7 +27,7 @@ export function StrategyCardList({
       <div
         className="animate-fade-in flex w-full rounded-lg border border-border bg-surface-elevated p-1"
         role="tablist"
-        aria-label="전략 카드 목록"
+        aria-label="Strategy cards"
       >
         {strategies.map((strategy, i) => (
           <button

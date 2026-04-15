@@ -14,7 +14,7 @@ export function StrategyHero({ productName }: StrategyHeroProps) {
         </h1>
         <p className="mt-1 text-sm text-text-muted">
           <span className="font-medium text-text-secondary">Threads</span>
-          {' '}채널에 맞는 전략을 선택하세요.
+          {' '}Choose a strategy that fits the channel.
         </p>
       </div>
     </section>

@@ -30,7 +30,7 @@ export default function Header() {
               aria-current={pathname === '/integrations' ? 'page' : undefined}
               className="text-sm text-text-muted hover:text-text-secondary transition-colors"
             >
-              연동
+              Integrations
             </Link>
           )}
         </div>
@@ -39,7 +39,7 @@ export default function Header() {
           {isLoading ? (
             <div
               className="h-8 w-32 skeleton"
-              aria-label="사용자 정보 로딩 중"
+              aria-label="Loading user info"
             />
           ) : user ? (
             <div className="flex items-center gap-3">
@@ -60,7 +60,7 @@ export default function Header() {
                 aria-busy={logoutMutation.isPending}
                 className="text-sm text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
               >
-                {logoutMutation.isPending ? '로그아웃 중...' : '로그아웃'}
+                {logoutMutation.isPending ? 'Logging out...' : 'Log out'}
               </button>
             </div>
           ) : null}

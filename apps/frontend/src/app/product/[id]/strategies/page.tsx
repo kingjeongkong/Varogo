@@ -67,7 +67,7 @@ export default function StrategiesPage({
         {error && !(error instanceof ApiError && error.status === 404) && (
           <div className="glass-card p-8 text-center">
             <p className="text-error text-sm">
-              전략 정보를 불러오지 못했습니다.
+              Failed to load strategy information.
             </p>
           </div>
         )}
@@ -79,19 +79,19 @@ export default function StrategiesPage({
             {strategyData?.status === 'not_started' && (
               <div className="rounded-xl border border-dashed border-border-hover bg-surface/50 p-10 text-center">
                 <p className="text-text-muted mb-4">
-                  아직 전략이 생성되지 않았습니다.
+                  No strategies have been generated yet.
                 </p>
                 {generateError && (
                   <p className="text-error text-sm mb-4">
-                    전략 생성에 실패했습니다. 다시 시도해주세요.
+                    Strategy generation failed. Please try again.
                   </p>
                 )}
                 <Button
                   onClick={() => generate()}
                   loading={generatePending}
-                  loadingText="전략 생성 중..."
+                  loadingText="Generating strategies..."
                 >
-                  전략 생성 시작
+                  Generate Strategies
                 </Button>
               </div>
             )}

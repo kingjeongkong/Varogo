@@ -30,7 +30,7 @@ export default function AnalysisPage({
         {error && (
           <div className="glass-card p-8 text-center">
             <p className="text-error text-sm">
-              분석 결과를 불러오지 못했습니다.
+              Failed to load analysis result.
             </p>
           </div>
         )}

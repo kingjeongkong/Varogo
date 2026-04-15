@@ -53,7 +53,7 @@ export default function StrategyTemplatePage({
         {error && !is404 && (
           <div className="glass-card p-8 text-center">
             <p className="text-error text-sm">
-              템플릿 정보를 불러오지 못했습니다.
+              Failed to load template information.
             </p>
           </div>
         )}

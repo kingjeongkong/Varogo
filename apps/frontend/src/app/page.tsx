@@ -11,17 +11,17 @@ export default function HomePage() {
         <div className="mb-8 flex items-center justify-between animate-fade-in">
           <div>
             <h2 className="text-2xl font-bold text-text-primary font-heading">
-              내 제품
+              My Products
             </h2>
             <p className="mt-1 text-sm text-text-muted">
-              AI 기반 마케팅 전략을 시작하세요.
+              Start an AI-powered marketing strategy.
             </p>
           </div>
           <Link
             href="/product/new"
             className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover transition-colors"
           >
-            새 제품 분석하기
+            Analyze New Product
           </Link>
         </div>
 

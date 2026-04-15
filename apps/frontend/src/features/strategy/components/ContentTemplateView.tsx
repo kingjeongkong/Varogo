@@ -12,9 +12,9 @@ const CONTENT_PATTERN_LABEL: Record<
   ContentTemplateResponse['contentPattern'],
   string
 > = {
-  series: '시리즈',
-  standalone: '단독',
-  'one-off': '원샷',
+  series: 'Series',
+  standalone: 'Standalone',
+  'one-off': 'One-off',
 };
 
 export function ContentTemplateView({
@@ -40,10 +40,10 @@ export function ContentTemplateView({
         </div>
       </div>
 
-      {/* 실행 설정 */}
+      {/* Execution Settings */}
       <div className="rounded-xl border border-border/60 bg-surface p-6">
         <h3 className="font-heading text-base font-semibold text-text-primary mb-4">
-          실행 설정
+          Execution Settings
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-lg border border-border/40 bg-surface-elevated px-4 py-3">
@@ -65,10 +65,10 @@ export function ContentTemplateView({
         </div>
       </div>
 
-      {/* 작성 가이드 */}
+      {/* Writing Guide */}
       <div className="rounded-xl border border-border/60 bg-surface p-6">
         <h3 className="font-heading text-base font-semibold text-text-primary mb-4">
-          작성 가이드
+          Writing Guide
         </h3>
         <div className="space-y-4">
           {/* Hook Guide */}
@@ -124,10 +124,10 @@ export function ContentTemplateView({
         </div>
       </div>
 
-      {/* 채널 규칙 */}
+      {/* Channel Rules */}
       <div className="rounded-xl border border-border/60 bg-surface p-6">
         <h3 className="font-heading text-base font-semibold text-text-primary mb-4">
-          채널 규칙
+          Channel Rules
         </h3>
         <div className="space-y-4">
           {/* Platform Tips */}
@@ -135,7 +135,7 @@ export function ContentTemplateView({
             <p className="text-xs font-mono text-text-muted uppercase tracking-wider mb-2">
               Platform Tips
             </p>
-            <ul className="space-y-1.5" aria-label="플랫폼 팁 목록">
+            <ul className="space-y-1.5" aria-label="Platform tips list">
               {template.platformTips.map((tip, i) => (
                 <li
                   key={i}
@@ -154,9 +154,9 @@ export function ContentTemplateView({
           {/* Don't Do List */}
           <div>
             <p className="text-xs font-mono text-text-muted uppercase tracking-wider mb-2">
-              하지 말 것
+              Don&apos;t Do
             </p>
-            <ul className="space-y-1.5" aria-label="금지 사항 목록">
+            <ul className="space-y-1.5" aria-label="Don't do list">
               {template.dontDoList.map((item, i) => (
                 <li
                   key={i}
@@ -180,7 +180,7 @@ export function ContentTemplateView({
           href={`/product/${productId}/strategies/${strategy.id}/content`}
         >
           <Button className="px-6 text-sm">
-            콘텐츠 작성 시작
+            Start Writing Content
             <span className="text-[10px] font-mono uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md">
               Step 3
             </span>

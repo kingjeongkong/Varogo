@@ -30,7 +30,7 @@ export function ProductList() {
   if (error) {
     return (
       <div className="glass-card p-8 text-center">
-        <p className="text-error text-sm">제품 목록을 불러오지 못했습니다.</p>
+        <p className="text-error text-sm">Failed to load product list.</p>
       </div>
     );
   }
@@ -38,7 +38,7 @@ export function ProductList() {
   if (!products || products.length === 0) {
     return (
       <div className="glass-card p-8 text-center">
-        <p className="text-text-muted">아직 분석한 제품이 없습니다.</p>
+        <p className="text-text-muted">You haven&apos;t analyzed any products yet.</p>
       </div>
     );
   }

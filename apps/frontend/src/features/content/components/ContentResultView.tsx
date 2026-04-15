@@ -53,14 +53,14 @@ export function ContentResultView({
       {/* Footer: character count + actions */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-text-muted">
-          글자 수{' '}
+          Characters{' '}
           <span
             className={`font-medium ${isOverLimit ? 'text-error' : 'text-text-secondary'}`}
           >
             {content.characterCount.toLocaleString()}
           </span>
           {isOverLimit && (
-            <span className="ml-1 text-error">/ {THREADS_MAX_LENGTH}자 초과</span>
+            <span className="ml-1 text-error">/ {THREADS_MAX_LENGTH} exceeded</span>
           )}
         </p>
         <div className="flex items-center gap-2">
@@ -69,24 +69,24 @@ export function ContentResultView({
             className={`px-5 text-sm ${copied ? 'border-success/40 text-success hover:text-success hover:border-success/40' : ''}`}
             onClick={handleCopy}
           >
-            {copied ? '복사됨' : '복사'}
+            {copied ? 'Copied' : 'Copy'}
           </Button>
           {threadsConnected ? (
             <Button
               className="px-5 text-sm"
               onClick={onPublish}
               loading={isPublishing}
-              loadingText="게시 중..."
+              loadingText="Publishing..."
               disabled={isOverLimit || !!publishResult}
             >
-              {publishResult ? 'Threads에 게시됨' : 'Threads에 게시'}
+              {publishResult ? 'Published to Threads' : 'Publish to Threads'}
             </Button>
           ) : (
             <Link
               href="/integrations"
               className="inline-flex items-center justify-center rounded-lg border border-border bg-surface-elevated px-5 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:border-border-hover hover:bg-surface-hover hover:text-text-primary"
             >
-              Threads 연결
+              Connect Threads
             </Link>
           )}
         </div>
@@ -99,7 +99,7 @@ export function ContentResultView({
           className="rounded-lg border border-success/30 bg-success/5 px-4 py-3"
         >
           <p className="text-sm text-success">
-            Threads에 게시되었습니다.
+            Published to Threads.
             {publishResult.permalink && (
               <>
                 {' '}
@@ -109,7 +109,7 @@ export function ContentResultView({
                   rel="noopener noreferrer"
                   className="underline underline-offset-2"
                 >
-                  게시물 보기 &rarr;
+                  View post &rarr;
                 </a>
               </>
             )}
