@@ -5,39 +5,38 @@ import {
   selectStrategy,
 } from '../api-client';
 
-export function useStrategies(productId: string, channelId: string) {
+export function useStrategies(productId: string) {
   return useQuery({
-    queryKey: ['strategies', productId, channelId],
-    queryFn: () => fetchStrategies(productId, channelId),
+    queryKey: ['strategies', productId],
+    queryFn: () => fetchStrategies(productId),
   });
 }
 
-export function useGenerateStrategies(productId: string, channelId: string) {
+export function useGenerateStrategies(productId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => generateStrategies(productId, channelId),
+    mutationFn: () => generateStrategies(productId),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['strategies', productId, channelId],
+        queryKey: ['strategies', productId],
       });
     },
   });
 }
 
-export function useSelectStrategy(productId: string, channelId: string) {
+export function useSelectStrategy(productId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (strategyId: string) =>
-      selectStrategy(productId, channelId, strategyId),
+    mutationFn: (strategyId: string) => selectStrategy(productId, strategyId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: ['strategies', productId, channelId],
+        queryKey: ['strategies', productId],
         exact: true,
       });
       queryClient.setQueryData(
-        ['strategies', productId, channelId, 'template'],
+        ['strategies', productId, 'template'],
         data,
       );
     },
