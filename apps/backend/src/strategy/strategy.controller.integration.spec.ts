@@ -9,7 +9,6 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { AuthModule } from '../auth/auth.module';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ChannelModule } from '../channel/channel.module';
 import { GeminiService } from '../llm/gemini.service';
 import { LlmModule } from '../llm/llm.module';
 import { OpenAiService } from '../llm/openai.service';
@@ -76,7 +75,7 @@ describe('StrategyController (integration)', () => {
   let server: Server;
   let authCookie: string[];
   let productId: string;
-  let channelId: string;
+  let productAnalysisId: string;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -86,7 +85,6 @@ describe('StrategyController (integration)', () => {
         LlmModule,
         AuthModule,
         ProductModule,
-        ChannelModule,
         StrategyModule,
       ],
       providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
@@ -102,7 +100,13 @@ describe('StrategyController (integration)', () => {
     app = module.createNestApplication();
     server = app.getHttpServer() as Server;
     app.use(cookieParser());
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     await app.init();
   });
 
@@ -117,7 +121,7 @@ describe('StrategyController (integration)', () => {
     mockGenerationService.generateCards.mockResolvedValue(CARDS_RESULT);
     mockGenerationService.generateTemplate.mockResolvedValue(TEMPLATE_RESULT);
 
-    // seed user + product + analysis + channel
+    // seed user + product + analysis
     await seedTestUser();
     authCookie = await getAuthCookie(app);
 
@@ -154,34 +158,10 @@ describe('StrategyController (integration)', () => {
         keywords: { primary: ['indie'], secondary: [] },
       },
     });
-
-    const channel = await prisma.channelRecommendation.create({
-      data: {
-        productAnalysisId: analysis.id,
-        channelName: 'X (Twitter)',
-        targetCommunities: ['#buildinpublic', '#indiehackers'],
-        tier: 'primary',
-        scoreBreakdown: {
-          targetPresence: 25,
-          contentFit: 20,
-          conversionPotential: 15,
-          earlyAdoption: 18,
-        },
-        whyThisChannel: 'indie community',
-        distributionMethod: 'hashtags and threads',
-        contentAngle: 'building in public',
-        risk: 'algo risk',
-        effortLevel: 'medium',
-        effortDetail: 'consistent content needed',
-        expectedTimeline: '2-4w',
-        successMetric: 'follower growth rate',
-      },
-    });
-    channelId = channel.id;
+    productAnalysisId = analysis.id;
   });
 
-  const basePath = () =>
-    `/products/${productId}/channels/${channelId}/strategies`;
+  const basePath = () => `/products/${productId}/strategies`;
 
   // -------------------------------------------------------------------------
   // GET /strategies
@@ -255,7 +235,7 @@ describe('StrategyController (integration)', () => {
       expect(res.body.strategies).toHaveLength(2);
       expect(res.body.strategies[0]).toMatchObject({
         id: expect.any(String),
-        channelRecommendationId: channelId,
+        productAnalysisId,
         title: '스토리 기반',
         description: '창업 여정 공유',
         coreMessage: '진짜 창업자의 고민',
@@ -271,7 +251,7 @@ describe('StrategyController (integration)', () => {
       });
 
       const dbCount = await prisma.strategy.count({
-        where: { channelRecommendationId: channelId },
+        where: { productAnalysisId },
       });
       expect(dbCount).toBe(2);
     });
@@ -291,7 +271,7 @@ describe('StrategyController (integration)', () => {
       expect(mockGenerationService.generateCards).toHaveBeenCalledTimes(1);
 
       const dbCount = await prisma.strategy.count({
-        where: { channelRecommendationId: channelId },
+        where: { productAnalysisId },
       });
       expect(dbCount).toBe(2);
     });
@@ -302,7 +282,7 @@ describe('StrategyController (integration)', () => {
 
     it('returns 400 with non-UUID productId', async () => {
       await request(server)
-        .post(`/products/not-uuid/channels/${channelId}/strategies/generate`)
+        .post(`/products/not-uuid/strategies/generate`)
         .set('Cookie', authCookie)
         .expect(400);
     });
@@ -310,9 +290,7 @@ describe('StrategyController (integration)', () => {
     it('returns 404 with non-existent productId (valid UUID)', async () => {
       const fakeProductId = '00000000-0000-4000-a000-000000000000';
       await request(server)
-        .post(
-          `/products/${fakeProductId}/channels/${channelId}/strategies/generate`,
-        )
+        .post(`/products/${fakeProductId}/strategies/generate`)
         .set('Cookie', authCookie)
         .expect(404);
     });
@@ -333,9 +311,7 @@ describe('StrategyController (integration)', () => {
       });
 
       await request(server)
-        .post(
-          `/products/${bareProduct.id}/channels/${channelId}/strategies/generate`,
-        )
+        .post(`/products/${bareProduct.id}/strategies/generate`)
         .set('Cookie', authCookie)
         .expect(404);
     });
@@ -367,7 +343,7 @@ describe('StrategyController (integration)', () => {
 
       expect(res.body.strategy).toMatchObject({
         id: strategyId,
-        channelRecommendationId: channelId,
+        productAnalysisId,
         title: expect.any(String),
       });
       expect(res.body.template).toMatchObject({
@@ -482,7 +458,7 @@ describe('StrategyController (integration)', () => {
       otherAuthCookie = await getOtherAuthCookie(app);
     });
 
-    it('returns 404 on all endpoints when channel belongs to another user', async () => {
+    it('returns 404 on all endpoints when product belongs to another user', async () => {
       await request(server)
         .get(basePath())
         .set('Cookie', otherAuthCookie)
@@ -498,7 +474,6 @@ describe('StrategyController (integration)', () => {
         .set('Cookie', otherAuthCookie)
         .expect(404);
 
-      // select with fake strategyId (ownership checked first)
       const fakeId = '00000000-0000-4000-a000-000000000000';
       await request(server)
         .post(`${basePath()}/${fakeId}/select`)

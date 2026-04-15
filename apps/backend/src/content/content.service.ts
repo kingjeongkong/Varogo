@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ChannelService } from '../channel/channel.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ProductAnalysisResult } from '../product/types/product-analysis.type';
 import { ContentGenerationService } from './content-generation.service';
@@ -9,15 +8,14 @@ import type { GenerateContentInput } from './types/content-generation.type';
 export class ContentService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly channelService: ChannelService,
     private readonly contentGenerationService: ContentGenerationService,
   ) {}
 
-  async getContent(productId: string, channelId: string, userId: string) {
-    await this.validateChannel(productId, channelId, userId);
+  async getContent(productId: string, strategyId: string, userId: string) {
+    await this.loadStrategyOrThrow(productId, strategyId, userId);
 
-    const content = await this.prisma.content.findFirst({
-      where: { strategy: { channelRecommendationId: channelId } },
+    const content = await this.prisma.content.findUnique({
+      where: { strategyId },
     });
     if (!content) {
       throw new NotFoundException('Content not found');
@@ -26,49 +24,45 @@ export class ContentService {
     return content;
   }
 
-  async generateContent(productId: string, channelId: string, userId: string) {
-    const channel = await this.validateChannel(productId, channelId, userId);
+  async generateContent(productId: string, strategyId: string, userId: string) {
+    const strategy = await this.loadStrategyOrThrow(
+      productId,
+      strategyId,
+      userId,
+    );
 
-    const template = await this.prisma.strategyContentTemplate.findFirst({
-      where: { strategy: { channelRecommendationId: channelId } },
-      include: { strategy: true },
-    });
-    if (!template) {
+    if (!strategy.contentTemplate) {
       throw new NotFoundException('Strategy template not found');
     }
 
     const existing = await this.prisma.content.findUnique({
-      where: { strategyId: template.strategy.id },
+      where: { strategyId },
     });
     if (existing) {
       return existing;
     }
 
-    const productAnalysis =
-      channel.productAnalysis as unknown as ProductAnalysisResult;
+    const template = strategy.contentTemplate;
+    const analysis =
+      strategy.productAnalysis as unknown as ProductAnalysisResult;
 
     const input: GenerateContentInput = {
       productAnalysis: {
-        targetAudience: productAnalysis.targetAudience,
-        problem: productAnalysis.problem,
-        differentiators: productAnalysis.differentiators,
-        positioningStatement: productAnalysis.positioningStatement,
-        keywords: productAnalysis.keywords,
-      },
-      channel: {
-        channelName: channel.channelName,
-        contentAngle: channel.contentAngle,
-        risk: channel.risk,
+        targetAudience: analysis.targetAudience,
+        problem: analysis.problem,
+        differentiators: analysis.differentiators,
+        positioningStatement: analysis.positioningStatement,
+        keywords: analysis.keywords,
       },
       strategy: {
-        title: template.strategy.title,
-        description: template.strategy.description,
-        coreMessage: template.strategy.coreMessage,
-        campaignGoal: template.strategy
-          .campaignGoal as unknown as GenerateContentInput['strategy']['campaignGoal'],
-        hookAngle: template.strategy.hookAngle,
-        callToAction: template.strategy.callToAction,
-        contentFormat: template.strategy.contentFormat,
+        title: strategy.title,
+        description: strategy.description,
+        coreMessage: strategy.coreMessage,
+        campaignGoal:
+          strategy.campaignGoal as unknown as GenerateContentInput['strategy']['campaignGoal'],
+        hookAngle: strategy.hookAngle,
+        callToAction: strategy.callToAction,
+        contentFormat: strategy.contentFormat,
       },
       template: {
         contentPattern: template.contentPattern,
@@ -88,7 +82,7 @@ export class ContentService {
     try {
       return await this.prisma.content.create({
         data: {
-          strategyId: template.strategy.id,
+          strategyId,
           body: result.body,
         },
       });
@@ -99,7 +93,7 @@ export class ContentService {
         (error as { code: string }).code === 'P2002'
       ) {
         const existing = await this.prisma.content.findUnique({
-          where: { strategyId: template.strategy.id },
+          where: { strategyId },
         });
         if (existing) return existing;
       }
@@ -107,15 +101,24 @@ export class ContentService {
     }
   }
 
-  private async validateChannel(
+  private async loadStrategyOrThrow(
     productId: string,
-    channelId: string,
+    strategyId: string,
     userId: string,
   ) {
-    const channel = await this.channelService.findOne(channelId, userId);
-    if (channel.productAnalysis.product.id !== productId) {
-      throw new NotFoundException('Channel recommendation not found');
+    const strategy = await this.prisma.strategy.findFirst({
+      where: {
+        id: strategyId,
+        productAnalysis: { product: { id: productId, userId } },
+      },
+      include: {
+        contentTemplate: true,
+        productAnalysis: true,
+      },
+    });
+    if (!strategy) {
+      throw new NotFoundException('Strategy not found');
     }
-    return channel;
+    return strategy;
   }
 }

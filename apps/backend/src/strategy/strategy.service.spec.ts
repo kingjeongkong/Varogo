@@ -1,6 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { ChannelService } from '../channel/channel.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StrategyGenerationService } from './strategy-generation.service';
 import { StrategyService } from './strategy.service';
@@ -18,6 +17,9 @@ const mockPrisma = {
   $transaction: jest.fn((cb: (tx: typeof mockTx) => Promise<unknown>) =>
     cb(mockTx),
   ),
+  productAnalysis: {
+    findFirst: jest.fn(),
+  },
   strategy: {
     findMany: jest.fn(),
     findFirst: jest.fn(),
@@ -29,62 +31,39 @@ const mockPrisma = {
   },
 };
 
-const mockChannelService = {
-  findOne: jest.fn(),
-};
-
 const mockGenerationService = {
   generateCards: jest.fn(),
   generateTemplate: jest.fn(),
 };
 
 const PRODUCT_ID = 'product-1';
-const CHANNEL_ID = 'channel-1';
+const ANALYSIS_ID = 'analysis-1';
 const USER_ID = 'user-1';
 
-const CHANNEL_FIXTURE = {
-  id: CHANNEL_ID,
-  productAnalysisId: 'analysis-1',
-  channelName: 'X (Twitter)',
-  targetCommunities: ['#buildinpublic', '#indiehackers'],
-  tier: 'primary',
-  whyThisChannel: 'indie community',
-  distributionMethod: 'hashtags and threads',
-  contentAngle: 'building in public',
-  risk: 'algo risk',
-  effortLevel: 'medium',
-  effortDetail: 'consistent content needed',
-  expectedTimeline: '2-4w',
-  successMetric: 'follower growth rate',
-  scoreBreakdown: {},
-  createdAt: new Date('2026-04-10'),
-  productAnalysis: {
-    id: 'analysis-1',
-    productId: PRODUCT_ID,
-    targetAudience: {
-      definition: 'Indie devs',
-      painPoints: [],
-      buyingTriggers: [],
-      activeCommunities: [],
-    },
-    problem: 'marketing hard',
-    valueProposition: 'Get a strategy in 5 minutes.',
-    alternatives: [],
-    differentiators: ['AI'],
-    positioningStatement: 'marketing copilot',
-    keywords: { primary: ['indie'], secondary: [] },
-    product: {
-      id: PRODUCT_ID,
-      userId: USER_ID,
-      name: 'Varogo',
-    },
+const ANALYSIS_FIXTURE = {
+  id: ANALYSIS_ID,
+  targetAudience: {
+    definition: 'Indie devs',
+    painPoints: [],
+    buyingTriggers: [],
+    activeCommunities: [],
+  },
+  problem: 'marketing hard',
+  valueProposition: 'Get a strategy in 5 minutes.',
+  alternatives: [],
+  differentiators: ['AI'],
+  positioningStatement: 'marketing copilot',
+  keywords: { primary: ['indie'], secondary: [] },
+  product: {
+    id: PRODUCT_ID,
+    name: 'Varogo',
   },
 };
 
 function makeStrategy(id: string) {
   return {
     id,
-    channelRecommendationId: CHANNEL_ID,
+    productAnalysisId: ANALYSIS_ID,
     title: `title-${id}`,
     description: `desc-${id}`,
     coreMessage: `core-${id}`,
@@ -145,34 +124,29 @@ describe('StrategyService', () => {
       providers: [
         StrategyService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: ChannelService, useValue: mockChannelService },
         { provide: StrategyGenerationService, useValue: mockGenerationService },
       ],
     }).compile();
 
     service = module.get(StrategyService);
     jest.clearAllMocks();
-    mockChannelService.findOne.mockResolvedValue(CHANNEL_FIXTURE);
+    mockPrisma.productAnalysis.findFirst.mockResolvedValue(ANALYSIS_FIXTURE);
   });
 
-  describe('listForChannel', () => {
+  describe('listForProduct', () => {
     it('returns not_started when no strategies exist', async () => {
       mockPrisma.strategy.findMany.mockResolvedValue([]);
       mockPrisma.strategyContentTemplate.count.mockResolvedValue(0);
 
-      const result = await service.listForChannel(
-        PRODUCT_ID,
-        CHANNEL_ID,
-        USER_ID,
-      );
+      const result = await service.listForProduct(PRODUCT_ID, USER_ID);
 
-      expect(mockChannelService.findOne).toHaveBeenCalledWith(
-        CHANNEL_ID,
-        USER_ID,
-      );
+      expect(mockPrisma.productAnalysis.findFirst).toHaveBeenCalledWith({
+        where: { product: { id: PRODUCT_ID, userId: USER_ID } },
+        orderBy: { createdAt: 'desc' },
+        include: { product: { select: { id: true, name: true } } },
+      });
       expect(result.status).toBe('not_started');
       expect(result.strategies).toEqual([]);
-      // list response must not carry template data
       expect(result).not.toHaveProperty('template');
     });
 
@@ -180,11 +154,7 @@ describe('StrategyService', () => {
       mockPrisma.strategy.findMany.mockResolvedValue([makeStrategy('s1')]);
       mockPrisma.strategyContentTemplate.count.mockResolvedValue(0);
 
-      const result = await service.listForChannel(
-        PRODUCT_ID,
-        CHANNEL_ID,
-        USER_ID,
-      );
+      const result = await service.listForProduct(PRODUCT_ID, USER_ID);
 
       expect(result.status).toBe('cards_generated');
       expect(result.strategies).toHaveLength(1);
@@ -195,40 +165,17 @@ describe('StrategyService', () => {
       mockPrisma.strategy.findMany.mockResolvedValue([makeStrategy('s1')]);
       mockPrisma.strategyContentTemplate.count.mockResolvedValue(1);
 
-      const result = await service.listForChannel(
-        PRODUCT_ID,
-        CHANNEL_ID,
-        USER_ID,
-      );
+      const result = await service.listForProduct(PRODUCT_ID, USER_ID);
 
       expect(result.status).toBe('completed');
     });
 
-    it('throws NotFound when channel belongs to a different product', async () => {
-      mockChannelService.findOne.mockResolvedValue({
-        ...CHANNEL_FIXTURE,
-        productAnalysis: {
-          ...CHANNEL_FIXTURE.productAnalysis,
-          product: {
-            ...CHANNEL_FIXTURE.productAnalysis.product,
-            id: 'other-product',
-          },
-        },
-      });
+    it('throws NotFound when product analysis does not exist for this user', async () => {
+      mockPrisma.productAnalysis.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.listForChannel(PRODUCT_ID, CHANNEL_ID, USER_ID),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('propagates NotFound from ChannelService.findOne', async () => {
-      mockChannelService.findOne.mockRejectedValue(
-        new NotFoundException('Channel recommendation not found'),
+      await expect(service.listForProduct(PRODUCT_ID, USER_ID)).rejects.toThrow(
+        NotFoundException,
       );
-
-      await expect(
-        service.listForChannel(PRODUCT_ID, CHANNEL_ID, USER_ID),
-      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -238,11 +185,7 @@ describe('StrategyService', () => {
       mockPrisma.strategy.findMany.mockResolvedValue(existing);
       mockPrisma.strategyContentTemplate.count.mockResolvedValue(0);
 
-      const result = await service.generateCards(
-        PRODUCT_ID,
-        CHANNEL_ID,
-        USER_ID,
-      );
+      const result = await service.generateCards(PRODUCT_ID, USER_ID);
 
       expect(mockGenerationService.generateCards).not.toHaveBeenCalled();
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
@@ -259,27 +202,21 @@ describe('StrategyService', () => {
         makeStrategy('s2'),
       ]);
 
-      const result = await service.generateCards(
-        PRODUCT_ID,
-        CHANNEL_ID,
-        USER_ID,
-      );
+      const result = await service.generateCards(PRODUCT_ID, USER_ID);
 
       expect(mockGenerationService.generateCards).toHaveBeenCalledWith({
         productName: 'Varogo',
         productAnalysis: expect.objectContaining({
           targetAudience: expect.any(Object) as Record<string, unknown>,
-        }) as Record<string, unknown>,
-        channel: expect.objectContaining({
-          channelName: 'X (Twitter)',
-          whyThisChannel: 'indie community',
+          differentiators: ['AI'],
+          positioningStatement: 'marketing copilot',
         }) as Record<string, unknown>,
       });
       expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockTx.strategy.createManyAndReturn).toHaveBeenCalledWith({
         data: expect.arrayContaining([
           expect.objectContaining({
-            channelRecommendationId: CHANNEL_ID,
+            productAnalysisId: ANALYSIS_ID,
             title: 'Story',
           }) as Record<string, unknown>,
         ]) as unknown[],
@@ -294,21 +231,30 @@ describe('StrategyService', () => {
         new Error('llm fail'),
       );
 
-      await expect(
-        service.generateCards(PRODUCT_ID, CHANNEL_ID, USER_ID),
-      ).rejects.toThrow('llm fail');
+      await expect(service.generateCards(PRODUCT_ID, USER_ID)).rejects.toThrow(
+        'llm fail',
+      );
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound when product analysis does not exist', async () => {
+      mockPrisma.productAnalysis.findFirst.mockResolvedValue(null);
+
+      await expect(service.generateCards(PRODUCT_ID, USER_ID)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockGenerationService.generateCards).not.toHaveBeenCalled();
     });
   });
 
   describe('selectStrategy', () => {
     const STRATEGY_ID = 's1';
 
-    it('throws NotFoundException when strategy not found under this channel', async () => {
+    it('throws NotFoundException when strategy not found under this product', async () => {
       mockPrisma.strategy.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.selectStrategy(PRODUCT_ID, CHANNEL_ID, STRATEGY_ID, USER_ID),
+        service.selectStrategy(PRODUCT_ID, STRATEGY_ID, USER_ID),
       ).rejects.toThrow(NotFoundException);
       expect(mockGenerationService.generateTemplate).not.toHaveBeenCalled();
     });
@@ -335,7 +281,6 @@ describe('StrategyService', () => {
 
       const result = await service.selectStrategy(
         PRODUCT_ID,
-        CHANNEL_ID,
         STRATEGY_ID,
         USER_ID,
       );
@@ -374,11 +319,14 @@ describe('StrategyService', () => {
 
       const result = await service.selectStrategy(
         PRODUCT_ID,
-        CHANNEL_ID,
         STRATEGY_ID,
         USER_ID,
       );
 
+      expect(mockPrisma.strategy.findFirst).toHaveBeenCalledWith({
+        where: { id: STRATEGY_ID, productAnalysisId: ANALYSIS_ID },
+        include: { contentTemplate: true },
+      });
       expect(mockGenerationService.generateTemplate).toHaveBeenCalledWith(
         expect.objectContaining({
           productName: 'Varogo',
@@ -415,9 +363,18 @@ describe('StrategyService', () => {
       );
 
       await expect(
-        service.selectStrategy(PRODUCT_ID, CHANNEL_ID, STRATEGY_ID, USER_ID),
+        service.selectStrategy(PRODUCT_ID, STRATEGY_ID, USER_ID),
       ).rejects.toThrow('llm fail');
       expect(mockPrisma.strategyContentTemplate.create).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound when product analysis does not exist', async () => {
+      mockPrisma.productAnalysis.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.selectStrategy(PRODUCT_ID, STRATEGY_ID, USER_ID),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrisma.strategy.findFirst).not.toHaveBeenCalled();
     });
   });
 
@@ -440,15 +397,11 @@ describe('StrategyService', () => {
       };
       mockPrisma.strategyContentTemplate.findFirst.mockResolvedValue(template);
 
-      const result = await service.getSelectedTemplate(
-        PRODUCT_ID,
-        CHANNEL_ID,
-        USER_ID,
-      );
+      const result = await service.getSelectedTemplate(PRODUCT_ID, USER_ID);
 
       expect(mockPrisma.strategyContentTemplate.findFirst).toHaveBeenCalledWith(
         {
-          where: { strategy: { channelRecommendationId: CHANNEL_ID } },
+          where: { strategy: { productAnalysisId: ANALYSIS_ID } },
           orderBy: { createdAt: 'desc' },
           include: { strategy: true },
         },
@@ -461,8 +414,19 @@ describe('StrategyService', () => {
       mockPrisma.strategyContentTemplate.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.getSelectedTemplate(PRODUCT_ID, CHANNEL_ID, USER_ID),
+        service.getSelectedTemplate(PRODUCT_ID, USER_ID),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFound when product analysis does not exist', async () => {
+      mockPrisma.productAnalysis.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.getSelectedTemplate(PRODUCT_ID, USER_ID),
+      ).rejects.toThrow(NotFoundException);
+      expect(
+        mockPrisma.strategyContentTemplate.findFirst,
+      ).not.toHaveBeenCalled();
     });
   });
 });
