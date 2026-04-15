@@ -12,7 +12,7 @@ import type { JwtPayload } from '../auth/types/jwt-payload';
 import { ContentService } from './content.service';
 import { toContentResponse } from './dto/content.response';
 
-@Controller('products/:productId/channels/:channelId/content')
+@Controller('products/:productId/strategies/:strategyId/content')
 export class ContentController {
   constructor(private readonly contentService: ContentService) {}
 
@@ -20,11 +20,11 @@ export class ContentController {
   async getContent(
     @CurrentUser() user: JwtPayload,
     @Param('productId', ParseUUIDPipe) productId: string,
-    @Param('channelId', ParseUUIDPipe) channelId: string,
+    @Param('strategyId', ParseUUIDPipe) strategyId: string,
   ) {
     const content = await this.contentService.getContent(
       productId,
-      channelId,
+      strategyId,
       user.sub,
     );
     return toContentResponse(content);
@@ -35,11 +35,11 @@ export class ContentController {
   async generateContent(
     @CurrentUser() user: JwtPayload,
     @Param('productId', ParseUUIDPipe) productId: string,
-    @Param('channelId', ParseUUIDPipe) channelId: string,
+    @Param('strategyId', ParseUUIDPipe) strategyId: string,
   ) {
     const content = await this.contentService.generateContent(
       productId,
-      channelId,
+      strategyId,
       user.sub,
     );
     return toContentResponse(content);
