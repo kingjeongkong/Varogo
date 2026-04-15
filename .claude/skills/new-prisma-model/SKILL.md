@@ -12,7 +12,7 @@ When adding a new model to the Prisma schema, or modifying an existing model (ne
 ## Rules
 
 ### Naming Conventions
-- Model names: PascalCase singular (`Product`, `ChannelRecommendation`)
+- Model names: PascalCase singular (`Product`, `ProductAnalysis`)
 - Table names: snake_case plural via `@@map("table_name")` (e.g., `@@map("products")`)
 - Column names: camelCase in Prisma, snake_case in DB via `@map("column_name")` (e.g., `createdAt @map("created_at")`)
 
@@ -47,7 +47,7 @@ When adding a new model to the Prisma schema, or modifying an existing model (ne
 ## References
 - `apps/backend/prisma/schema.prisma` — full schema (all naming conventions, relations, indexes)
 - `apps/backend/src/product/types/product-analysis.type.ts` — TypeScript type for JSON column
-- `apps/backend/src/channel/types/channel-recommendation.type.ts` — another JSON column type
+- `apps/backend/src/strategy/types/strategy-card.type.ts` — another JSON column type
 - `apps/backend/src/product/product.service.ts` — JSON field casting on write (inside $transaction)
 - `apps/backend/src/product/dto/product.response.ts` — JSON field casting on read (in transformer)
 - `apps/backend/src/test/db-helpers.ts` — clearDatabase() to update after new models

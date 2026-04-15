@@ -45,6 +45,6 @@ When adding a new route to the frontend (`app/` directory).
 - `apps/frontend/src/app/product/new/page.tsx` — thin Server Component page
 - `apps/frontend/src/app/page.tsx` — list page composing feature components
 - `apps/frontend/src/app/product/[id]/analysis/page.tsx` — Client page with hooks (loading/error/data pattern)
-- `apps/frontend/src/app/product/[id]/channels/page.tsx` — Client page with multiple hooks
+- `apps/frontend/src/app/product/[id]/strategies/page.tsx` — Client page with multiple hooks
 - `apps/frontend/src/lib/server-http-client.ts` — serverFetch (cookie forwarding, 401 redirect)
 - `apps/frontend/src/components/layout/Header.tsx` — shared layout component

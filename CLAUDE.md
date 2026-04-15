@@ -1,7 +1,7 @@
 # Varogo
 
-X (Twitter) marketing strategy SaaS for indie developers.
-Product analysis → Marketing strategy → Post draft generation → Reaction tracking.
+Threads marketing strategy SaaS for indie developers.
+Product analysis → Marketing strategy → Post draft generation → Threads publishing.
 
 ## Tech Stack
 
