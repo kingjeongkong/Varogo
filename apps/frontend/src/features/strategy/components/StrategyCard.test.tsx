@@ -6,7 +6,7 @@ import type { StrategyResponse } from '@/lib/types';
 
 const MOCK_STRATEGY: StrategyResponse = {
   id: 'strat-1',
-  channelRecommendationId: 'ch-1',
+  productAnalysisId: 'pa-1',
   title: '스토리 기반',
   description: '창업 여정과 개인 경험을 중심으로 독자와 감정적 공감대를 형성',
   coreMessage: '진짜 창업자가 겪는 고민을 공유한다',

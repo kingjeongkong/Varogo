@@ -2,10 +2,11 @@
 
 import Header from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
-import { useChannelRecommendations } from '@/features/channel/hooks/use-channel';
+import { ApiError } from '@/lib/http-client';
 import { useProduct } from '@/features/product/hooks/use-product';
 import { StrategyCardList } from '@/features/strategy/components/StrategyCardList';
 import { StrategyHero } from '@/features/strategy/components/StrategyHero';
+import { useSelectedTemplate } from '@/features/strategy/hooks/use-selected-template';
 import {
   useGenerateStrategies,
   useSelectStrategy,
@@ -14,44 +15,41 @@ import {
 import { useRouter } from 'next/navigation';
 import { use, useEffect } from 'react';
 
-export default function StrategyPage({
+export default function StrategiesPage({
   params,
 }: {
-  params: Promise<{ id: string; channelId: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { id, channelId } = use(params);
+  const { id } = use(params);
   const router = useRouter();
 
   const { data: product, isLoading: productLoading } = useProduct(id);
-  const { data: channels, isLoading: channelsLoading } =
-    useChannelRecommendations(id);
   const {
     data: strategyData,
     isLoading: strategyLoading,
     error,
-  } = useStrategies(id, channelId);
+  } = useStrategies(id);
+  const { data: templateData, isLoading: templateLoading } =
+    useSelectedTemplate(id);
   const {
     mutate: generate,
     isPending: generatePending,
     error: generateError,
-  } = useGenerateStrategies(id, channelId);
-  const { mutate: select, isPending: selectPending } = useSelectStrategy(
-    id,
-    channelId,
-  );
+  } = useGenerateStrategies(id);
+  const { mutate: select, isPending: selectPending } = useSelectStrategy(id);
 
-  const isCompleted = strategyData?.status === 'completed';
+  const hasTemplate = !!templateData;
+  const selectedSid = templateData?.strategy.id;
 
   useEffect(() => {
-    if (isCompleted) {
-      router.replace(`/product/${id}/channels/${channelId}/strategy/template`);
+    if (hasTemplate && selectedSid) {
+      router.replace(`/product/${id}/strategies/${selectedSid}`);
     }
-  }, [isCompleted, router, id, channelId]);
+  }, [hasTemplate, selectedSid, router, id]);
 
-  if (isCompleted) return null;
+  if (hasTemplate) return null;
 
-  const isLoading = productLoading || channelsLoading || strategyLoading;
-  const channel = channels?.find((c) => c.id === channelId);
+  const isLoading = productLoading || strategyLoading || templateLoading;
 
   return (
     <div className="min-h-screen">
@@ -66,20 +64,17 @@ export default function StrategyPage({
           </div>
         )}
 
-        {error && (
+        {error && !(error instanceof ApiError && error.status === 404) && (
           <div className="glass-card p-8 text-center">
             <p className="text-error text-sm">
-              전략 정보를 불러��지 못했습니다.
+              전략 정보를 불러오지 못했습니다.
             </p>
           </div>
         )}
 
-        {!isLoading && !error && product && (
+        {!isLoading && product && (
           <div className="space-y-10">
-            <StrategyHero
-              productName={product.name}
-              channelName={channel?.channelName ?? ''}
-            />
+            <StrategyHero productName={product.name} />
 
             {strategyData?.status === 'not_started' && (
               <div className="rounded-xl border border-dashed border-border-hover bg-surface/50 p-10 text-center">
@@ -109,7 +104,7 @@ export default function StrategyPage({
                   select(strategyId, {
                     onSuccess: () =>
                       router.replace(
-                        `/product/${id}/channels/${channelId}/strategy/template`,
+                        `/product/${id}/strategies/${strategyId}`,
                       ),
                   })
                 }

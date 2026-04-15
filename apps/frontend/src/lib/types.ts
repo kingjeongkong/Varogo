@@ -64,36 +64,11 @@ export interface ProductWithAnalysis extends Product {
   analysis: ProductAnalysis | null;
 }
 
-export interface ScoreBreakdown {
-  targetPresence: number;
-  contentFit: number;
-  conversionPotential: number;
-  earlyAdoption: number;
-}
-
-export interface ChannelRecommendation {
-  id: string;
-  productAnalysisId: string;
-  channelName: string;
-  targetCommunities: string[];
-  tier: 'primary' | 'secondary';
-  scoreBreakdown: ScoreBreakdown;
-  whyThisChannel: string;
-  contentAngle: string;
-  distributionMethod: string;
-  risk: string;
-  effortLevel: 'low' | 'medium' | 'high';
-  effortDetail: string;
-  successMetric: string;
-  expectedTimeline: string;
-  createdAt: string;
-}
-
 export type StrategyStatus = 'not_started' | 'cards_generated' | 'completed';
 
 export interface StrategyResponse {
   id: string;
-  channelRecommendationId: string;
+  productAnalysisId: string;
   title: string;
   description: string;
   coreMessage: string;
