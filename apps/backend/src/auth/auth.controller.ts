@@ -69,8 +69,13 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logout(user.sub);
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token', { path: '/auth/refresh' });
+    const cookieDomain = this.config.get<string>('COOKIE_DOMAIN');
+    const clearOptions = cookieDomain ? { domain: cookieDomain } : {};
+    res.clearCookie('access_token', clearOptions);
+    res.clearCookie('refresh_token', {
+      ...clearOptions,
+      path: '/auth/refresh',
+    });
     return { ok: true };
   }
 
@@ -91,10 +96,12 @@ export class AuthController {
       10,
     );
     const sameSite: 'none' | 'lax' = isProd ? 'none' : 'lax';
+    const cookieDomain = this.config.get<string>('COOKIE_DOMAIN');
     const cookieOptions = {
       httpOnly: true,
       secure: isProd,
       sameSite,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
     };
     res.cookie('access_token', accessToken, {
       ...cookieOptions,
