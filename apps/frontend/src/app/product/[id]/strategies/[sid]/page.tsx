@@ -1,44 +1,41 @@
 'use client';
 
-import { use, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { ApiError } from '@/lib/http-client';
 import { useProduct } from '@/features/product/hooks/use-product';
-import { useChannelRecommendations } from '@/features/channel/hooks/use-channel';
-import { StrategyHero } from '@/features/strategy/components/StrategyHero';
 import { ContentTemplateView } from '@/features/strategy/components/ContentTemplateView';
+import { StrategyHero } from '@/features/strategy/components/StrategyHero';
 import { useSelectedTemplate } from '@/features/strategy/hooks/use-selected-template';
+import { useRouter } from 'next/navigation';
+import { use, useEffect } from 'react';
 
 export default function StrategyTemplatePage({
   params,
 }: {
-  params: Promise<{ id: string; channelId: string }>;
+  params: Promise<{ id: string; sid: string }>;
 }) {
-  const { id, channelId } = use(params);
+  const { id, sid } = use(params);
   const router = useRouter();
 
   const { data: product, isLoading: productLoading } = useProduct(id);
-  const { data: channels, isLoading: channelsLoading } =
-    useChannelRecommendations(id);
   const {
     data: templateData,
     isLoading: templateLoading,
     error,
-  } = useSelectedTemplate(id, channelId);
+  } = useSelectedTemplate(id);
 
   const is404 = error instanceof ApiError && error.status === 404;
+  const sidMismatch = !!templateData && templateData.strategy.id !== sid;
 
   useEffect(() => {
-    if (is404) {
-      router.replace(`/product/${id}/channels/${channelId}/strategy`);
+    if (is404 || sidMismatch) {
+      router.replace(`/product/${id}/strategies`);
     }
-  }, [is404, router, id, channelId]);
+  }, [is404, sidMismatch, router, id]);
 
-  if (is404) return null;
+  if (is404 || sidMismatch) return null;
 
-  const isLoading = productLoading || channelsLoading || templateLoading;
-  const channel = channels?.find((c) => c.id === channelId);
+  const isLoading = productLoading || templateLoading;
 
   return (
     <div className="min-h-screen">
@@ -63,13 +60,9 @@ export default function StrategyTemplatePage({
 
         {!isLoading && !error && product && templateData && (
           <div className="space-y-10">
-            <StrategyHero
-              productName={product.name}
-              channelName={channel?.channelName ?? ''}
-            />
+            <StrategyHero productName={product.name} />
             <ContentTemplateView
               productId={id}
-              channelId={channelId}
               strategy={templateData.strategy}
               template={templateData.template}
             />

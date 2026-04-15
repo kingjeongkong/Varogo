@@ -142,13 +142,13 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
       >
         <div className="rounded-xl border border-dashed border-border-hover bg-surface/50 p-6 text-center">
           <p className="text-sm text-text-muted mb-3">
-            다음 단계로 채널 분석을 진행하세요
+            다음 단계로 전략을 선택하세요
           </p>
           <Link
-            href={`/product/${product.id}/channels`}
+            href={`/product/${product.id}/strategies`}
             className="inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
           >
-            채널 분석하기
+            전략 선택하기
           </Link>
         </div>
       </div>
