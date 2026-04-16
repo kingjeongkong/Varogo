@@ -102,7 +102,7 @@ ${dontDoGuide}
 === Instructions ===
 Use the template above as reference, but write it as a single naturally flowing piece without section breaks.
 Given Threads' characteristics (conversational, hook-driven), write naturally without sounding like an ad.
-Adhere to the recommended length.
+The content body MUST be 300 characters or fewer. Be concise and impactful.
 
 Respond in JSON format only. The top-level key is "body" and its value is the finished content string. Write all text in English.
 
