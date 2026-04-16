@@ -21,6 +21,7 @@ jobs:
             cd ~/Varogo
             git pull origin main
             docker build -t varogo-backend -f apps/backend/Dockerfile .
+            docker run --rm -w /app/apps/backend --env-file apps/backend/.env varogo-backend npx prisma migrate deploy
             docker rm -f varogo-backend || true
             docker run -d --name varogo-backend --env-file apps/backend/.env -p 80:3000 varogo-backend
             sleep 10
