@@ -23,6 +23,7 @@ jobs:
             docker build -t varogo-backend -f apps/backend/Dockerfile .
             docker run --rm -w /app/apps/backend --env-file apps/backend/.env varogo-backend npx prisma migrate deploy
             docker rm -f varogo-backend || true
-            docker run -d --name varogo-backend --env-file apps/backend/.env -p 80:3000 varogo-backend
+            docker run -d --name varogo-backend --restart unless-stopped --env-file apps/backend/.env -p 80:3000 varogo-backend
             sleep 10
             curl -f http://localhost/health || (echo "Health check failed:" && docker logs varogo-backend --tail 30 && exit 1)
+            docker system prune -f
