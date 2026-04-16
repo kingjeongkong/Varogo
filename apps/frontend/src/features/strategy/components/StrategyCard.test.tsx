@@ -49,7 +49,7 @@ describe('StrategyCard', () => {
     it('renders campaign goal with type badge and description', () => {
       render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
 
-      expect(screen.getByText('커뮤니티')).toBeInTheDocument();
+      expect(screen.getByText('Community')).toBeInTheDocument();
       expect(
         screen.getByText(
           'Reddit indiehackers 커뮤니티 내 인지도 구축',
@@ -76,7 +76,7 @@ describe('StrategyCard', () => {
       render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
 
       expect(
-        screen.getByRole('button', { name: '전략 선택: 스토리 기반' }),
+        screen.getByRole('button', { name: 'Select strategy: 스토리 기반' }),
       ).toBeInTheDocument();
     });
   });
@@ -87,7 +87,7 @@ describe('StrategyCard', () => {
       render(<StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />);
 
       await user.click(
-        screen.getByRole('button', { name: '전략 선택: 스토리 기반' }),
+        screen.getByRole('button', { name: 'Select strategy: 스토리 기반' }),
       );
 
       expect(onSelect).toHaveBeenCalledWith('strat-1');
@@ -105,7 +105,7 @@ describe('StrategyCard', () => {
       );
 
       const button = screen.getByRole('button', {
-        name: '전략 선택: 스토리 기반',
+        name: 'Select strategy: 스토리 기반',
       });
       expect(button).toBeDisabled();
 
@@ -124,8 +124,8 @@ describe('StrategyCard', () => {
         />,
       );
 
-      expect(screen.getByText('템플릿 생성 중...')).toBeInTheDocument();
-      expect(screen.queryByText('이 전략 선택')).not.toBeInTheDocument();
+      expect(screen.getByText('Generating template...')).toBeInTheDocument();
+      expect(screen.queryByText('Select this strategy')).not.toBeInTheDocument();
     });
 
     it('shows default CTA text when not pending', () => {
@@ -133,8 +133,8 @@ describe('StrategyCard', () => {
         <StrategyCard strategy={MOCK_STRATEGY} onSelect={onSelect} />,
       );
 
-      expect(screen.getByText('이 전략 선택')).toBeInTheDocument();
-      expect(screen.queryByText('템플릿 생성 중...')).not.toBeInTheDocument();
+      expect(screen.getByText('Select this strategy')).toBeInTheDocument();
+      expect(screen.queryByText('Generating template...')).not.toBeInTheDocument();
     });
   });
 });

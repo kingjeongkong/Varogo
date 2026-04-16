@@ -31,14 +31,14 @@ describe('LoginForm', () => {
   describe('rendering', () => {
     it('renders email and password fields', () => {
       render(<LoginForm />);
-      expect(screen.getByLabelText(/이메일/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/비밀번호/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     });
 
     it('renders the submit button', () => {
       render(<LoginForm />);
       expect(
-        screen.getByRole('button', { name: /로그인/i }),
+        screen.getByRole('button', { name: /log in/i }),
       ).toBeInTheDocument();
     });
 
@@ -51,44 +51,44 @@ describe('LoginForm', () => {
   describe('validation', () => {
     it('shows email validation error when submitting with no email', async () => {
       render(<LoginForm />);
-      await userEvent.click(screen.getByRole('button', { name: /로그인/i }));
+      await userEvent.click(screen.getByRole('button', { name: /log in/i }));
       expect(
-        await screen.findByText(/유효한 이메일을 입력해주세요/i),
+        await screen.findByText(/please enter a valid email/i),
       ).toBeInTheDocument();
     });
 
     it('shows email validation error when email format is invalid', async () => {
       render(<LoginForm />);
-      await userEvent.type(screen.getByLabelText(/이메일/i), 'not-an-email');
-      await userEvent.click(screen.getByRole('button', { name: /로그인/i }));
+      await userEvent.type(screen.getByLabelText(/email/i), 'not-an-email');
+      await userEvent.click(screen.getByRole('button', { name: /log in/i }));
       expect(
-        await screen.findByText(/유효한 이메일을 입력해주세요/i),
+        await screen.findByText(/please enter a valid email/i),
       ).toBeInTheDocument();
     });
 
     it('shows password validation error when password is too short', async () => {
       render(<LoginForm />);
-      await userEvent.type(screen.getByLabelText(/이메일/i), 'valid@email.com');
-      await userEvent.type(screen.getByLabelText(/비밀번호/i), 'short');
-      await userEvent.click(screen.getByRole('button', { name: /로그인/i }));
+      await userEvent.type(screen.getByLabelText(/email/i), 'valid@email.com');
+      await userEvent.type(screen.getByLabelText(/password/i), 'short');
+      await userEvent.click(screen.getByRole('button', { name: /log in/i }));
       expect(
-        await screen.findByText(/비밀번호는 8자 이상이어야 합니다/i),
+        await screen.findByText(/password must be at least 8 characters/i),
       ).toBeInTheDocument();
     });
 
     it('shows password validation error when password is empty', async () => {
       render(<LoginForm />);
-      await userEvent.type(screen.getByLabelText(/이메일/i), 'valid@email.com');
-      await userEvent.click(screen.getByRole('button', { name: /로그인/i }));
+      await userEvent.type(screen.getByLabelText(/email/i), 'valid@email.com');
+      await userEvent.click(screen.getByRole('button', { name: /log in/i }));
       expect(
-        await screen.findByText(/비밀번호는 8자 이상이어야 합니다/i),
+        await screen.findByText(/password must be at least 8 characters/i),
       ).toBeInTheDocument();
     });
 
     it('does not call loginMutation when form is invalid', async () => {
       render(<LoginForm />);
-      await userEvent.click(screen.getByRole('button', { name: /로그인/i }));
-      await screen.findByText(/유효한 이메일을 입력해주세요/i);
+      await userEvent.click(screen.getByRole('button', { name: /log in/i }));
+      await screen.findByText(/please enter a valid email/i);
       expect(mockLoginMutate).not.toHaveBeenCalled();
     });
   });
@@ -97,11 +97,11 @@ describe('LoginForm', () => {
     it('calls loginMutation.mutate with email and password on valid submit', async () => {
       render(<LoginForm />);
       await userEvent.type(
-        screen.getByLabelText(/이메일/i),
+        screen.getByLabelText(/email/i),
         'user@example.com',
       );
-      await userEvent.type(screen.getByLabelText(/비밀번호/i), 'validpassword');
-      await userEvent.click(screen.getByRole('button', { name: /로그인/i }));
+      await userEvent.type(screen.getByLabelText(/password/i), 'validpassword');
+      await userEvent.click(screen.getByRole('button', { name: /log in/i }));
       expect(mockLoginMutate).toHaveBeenCalledWith({
         email: 'user@example.com',
         password: 'validpassword',
@@ -119,7 +119,7 @@ describe('LoginForm', () => {
         },
       });
       render(<LoginForm />);
-      expect(screen.getByRole('button', { name: /로그인 중/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /logging in/i })).toBeDisabled();
     });
 
     it('shows loading text while isPending is true', () => {
@@ -132,7 +132,7 @@ describe('LoginForm', () => {
       });
       render(<LoginForm />);
       expect(
-        screen.getByRole('button', { name: /로그인 중/i }),
+        screen.getByRole('button', { name: /logging in/i }),
       ).toBeInTheDocument();
     });
   });
@@ -143,12 +143,12 @@ describe('LoginForm', () => {
         loginMutation: {
           mutate: mockLoginMutate,
           isPending: false,
-          error: new Error('이메일 또는 비밀번호가 올바르지 않습니다'),
+          error: new Error('Invalid email or password'),
         },
       });
       render(<LoginForm />);
       expect(screen.getByRole('alert')).toHaveTextContent(
-        '이메일 또는 비밀번호가 올바르지 않습니다',
+        'Invalid email or password',
       );
     });
   });
