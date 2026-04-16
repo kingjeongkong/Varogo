@@ -20,8 +20,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Varogo — 인디 개발자를 위한 마케팅 전략',
-  description: 'AI 기반 X(트위터) 마케팅 전략 SaaS for indie developers',
+  title: 'Varogo — Marketing strategy for indie developers',
+  description: 'AI-powered Threads marketing strategy SaaS for indie developers',
   other: {
     'facebook-domain-verification': 'f78gprkjcfqmb92ca6kj044nohsbf0',
   },

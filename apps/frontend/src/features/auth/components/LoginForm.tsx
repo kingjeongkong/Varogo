@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { useAuth } from '../hooks/use-auth';
 
 const schema = z.object({
-  email: z.string().email('유효한 이메일을 입력해주세요'),
-  password: z.string().min(8, '비밀번호는 8자 이상이어야 합니다'),
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -33,7 +33,7 @@ export function LoginForm() {
     >
       <FormField
         id="email"
-        label="이메일"
+        label="Email"
         type="email"
         autoComplete="email"
         placeholder="name@example.com"
@@ -42,10 +42,10 @@ export function LoginForm() {
       />
       <FormField
         id="password"
-        label="비밀번호"
+        label="Password"
         type="password"
         autoComplete="current-password"
-        placeholder="8자 이상"
+        placeholder="8+ characters"
         error={errors.password}
         {...register('password')}
       />
@@ -53,10 +53,10 @@ export function LoginForm() {
       <Button
         type="submit"
         loading={isPending}
-        loadingText="로그인 중..."
+        loadingText="Logging in..."
         className="w-full"
       >
-        로그인
+        Log in
       </Button>
     </form>
   );

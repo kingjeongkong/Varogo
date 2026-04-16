@@ -5,10 +5,10 @@ const GOAL_TYPE_LABEL: Record<
   StrategyResponse['campaignGoal']['type'],
   string
 > = {
-  awareness: '인지도',
-  traffic: '트래픽',
-  conversion: '전환',
-  community: '커뮤니티',
+  awareness: 'Awareness',
+  traffic: 'Traffic',
+  conversion: 'Conversion',
+  community: 'Community',
 };
 
 interface StrategyCardProps {
@@ -30,7 +30,7 @@ export function StrategyCard({
       disabled={disabled}
       aria-busy={isPending || undefined}
       onClick={() => onSelect(strategy.id)}
-      aria-label={`전략 선택: ${strategy.title}`}
+      aria-label={`Select strategy: ${strategy.title}`}
       className="w-full text-left rounded-xl border border-border/60 bg-surface p-6 transition-all hover:border-primary/40 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-border/60 disabled:hover:shadow-none"
     >
       <h3 className="font-heading text-lg font-semibold text-text-primary mb-2">
@@ -104,7 +104,7 @@ export function StrategyCard({
       <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-end gap-2">
         {isPending && <Spinner />}
         <span className="text-sm font-medium text-primary">
-          {isPending ? '템플릿 생성 중...' : '이 전략 선택'}
+          {isPending ? 'Generating template...' : 'Select this strategy'}
         </span>
       </div>
     </button>

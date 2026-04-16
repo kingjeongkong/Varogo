@@ -78,7 +78,7 @@ Extract and summarize:
 - Pricing information (if available)
 - Any unique selling points
 
-Respond in Korean. Be thorough and factual.`;
+Respond in English. Be thorough and factual.`;
   }
 
   private buildAnalysisPrompt(
@@ -100,21 +100,21 @@ Provide your analysis in the following structure:
 - targetAudience:
   - definition: Who is this product for? Be specific about roles and situations.
   - painPoints: What pain points does the target audience experience? (3-5 items)
-  - buyingTriggers: What specific moments or situations trigger them to seek this product? Use "~했을 때" format. (3-5 items)
+  - buyingTriggers: What specific moments or situations trigger them to seek this product? Use "When [situation]" format. (3-5 items)
   - activeCommunities: Where does this audience hang out online? Provide specific channel/community names.
 - problem: What core problem does this product solve? (one concise paragraph)
-- valueProposition: What concrete result does the user get? Format: "[action]하면 [timeframe] 안에 [result]를 얻는다"
+- valueProposition: What concrete result does the user get? Format: "By [action], get [result] within [timeframe]"
 - alternatives: What are the main alternatives/competitors? (2-4 items). For each:
   - name: Competitor name
   - description: What they do (1-2 sentences)
   - weaknessWeExploit: The ONE weakness we can exploit in marketing (not a list of limitations, but the gap we can attack)
 - differentiators: Top 3 differentiators with highest marketing impact. Maximum 3 items — focus beats volume.
-- positioningStatement: Format: "[target]을 위한 [category]로, [key differentiator]"
+- positioningStatement: Format: "A [category] for [target], with [key differentiator]"
 - keywords:
   - primary: Core keywords for SEO and hashtags (3-5 items)
   - secondary: Long-tail and niche community keywords (5-10 items)
 
-Respond in Korean. Be specific and actionable.`;
+Respond in English. Be specific and actionable.`;
   }
 
   private readonly responseSchema = {

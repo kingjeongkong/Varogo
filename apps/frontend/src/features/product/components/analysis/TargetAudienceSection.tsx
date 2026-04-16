@@ -13,26 +13,26 @@ export function TargetAudienceSection({
       className="animate-slide-up"
       style={{ animationDelay: '0.05s', opacity: 0 }}
     >
-      <SectionLabel number="01" title="타겟 고객" />
+      <SectionLabel number="01" title="Target Audience" />
       <p className="text-text-secondary mb-5 leading-relaxed">
         {targetAudience.definition}
       </p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <AudienceCard
-          title="구매 트리거"
+          title="Buying Triggers"
           items={targetAudience.buyingTriggers}
           accentClass="text-primary"
           bgClass="bg-primary-dim"
         />
         <AudienceCard
-          title="고충"
+          title="Pain Points"
           items={targetAudience.painPoints}
           accentClass="text-accent"
           bgClass="bg-accent-dim"
         />
         <AudienceCard
-          title="활동 커뮤니티"
+          title="Active Communities"
           items={targetAudience.activeCommunities}
           accentClass="text-success"
           bgClass="bg-success-dim"

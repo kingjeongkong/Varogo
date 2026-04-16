@@ -80,11 +80,11 @@ describe('ContentTemplateView', () => {
     });
   });
 
-  describe('실행 설정 section', () => {
-    it('renders contentPattern mapped to Korean label', () => {
+  describe('execution settings section', () => {
+    it('renders contentPattern mapped to English label', () => {
       render(<ContentTemplateView {...DEFAULT_PROPS} />);
 
-      expect(screen.getByText('시리즈')).toBeInTheDocument();
+      expect(screen.getByText('Series')).toBeInTheDocument();
     });
 
     it('renders lengthGuide', () => {
@@ -93,22 +93,22 @@ describe('ContentTemplateView', () => {
       expect(screen.getByText('280자 이내')).toBeInTheDocument();
     });
 
-    it('maps standalone pattern to 단독', () => {
+    it('maps standalone pattern to Standalone', () => {
       const template = { ...MOCK_TEMPLATE, contentPattern: 'standalone' as const };
       render(<ContentTemplateView {...DEFAULT_PROPS} template={template} />);
 
-      expect(screen.getByText('단독')).toBeInTheDocument();
+      expect(screen.getByText('Standalone')).toBeInTheDocument();
     });
 
-    it('maps one-off pattern to 원샷', () => {
+    it('maps one-off pattern to One-off', () => {
       const template = { ...MOCK_TEMPLATE, contentPattern: 'one-off' as const };
       render(<ContentTemplateView {...DEFAULT_PROPS} template={template} />);
 
-      expect(screen.getByText('원샷')).toBeInTheDocument();
+      expect(screen.getByText('One-off')).toBeInTheDocument();
     });
   });
 
-  describe('작성 가이드 section', () => {
+  describe('writing guide section', () => {
     it('renders hookGuide text', () => {
       render(<ContentTemplateView {...DEFAULT_PROPS} />);
 
@@ -153,11 +153,11 @@ describe('ContentTemplateView', () => {
     });
   });
 
-  describe('채널 규칙 section', () => {
+  describe('channel rules section', () => {
     it('renders platformTips list items with correct aria-label', () => {
       render(<ContentTemplateView {...DEFAULT_PROPS} />);
 
-      const tipList = screen.getByRole('list', { name: '플랫폼 팁 목록' });
+      const tipList = screen.getByRole('list', { name: 'Platform tips list' });
       const tips = within(tipList).getAllByRole('listitem');
       expect(tips).toHaveLength(2);
       expect(tips[0]).toHaveTextContent('해시태그 2-3개 사용');
@@ -167,7 +167,7 @@ describe('ContentTemplateView', () => {
     it('renders dontDoList items with correct aria-label', () => {
       render(<ContentTemplateView {...DEFAULT_PROPS} />);
 
-      const dontList = screen.getByRole('list', { name: '금지 사항 목록' });
+      const dontList = screen.getByRole('list', { name: "Don't do list" });
       const items = within(dontList).getAllByRole('listitem');
       expect(items).toHaveLength(2);
       expect(items[0]).toHaveTextContent('과도한 홍보 금지');
@@ -179,7 +179,7 @@ describe('ContentTemplateView', () => {
     it('renders link with correct href to content creation page', () => {
       render(<ContentTemplateView {...DEFAULT_PROPS} />);
 
-      const link = screen.getByRole('link', { name: /콘텐츠 작성 시작/ });
+      const link = screen.getByRole('link', { name: /Start Writing Content/ });
       expect(link).toHaveAttribute(
         'href',
         '/product/prod-1/strategies/strat-1/content',

@@ -18,18 +18,18 @@ export default function SignupPage() {
             Varogo
           </h1>
           <p className="mt-2 text-base text-text-muted">
-            계정을 만들어 마케팅 전략을 시작하세요
+            Create an account to start your marketing strategy
           </p>
         </div>
         <div className="glass-card p-8">
           <SignupForm />
           <p className="mt-6 text-center text-base text-text-muted">
-            이미 계정이 있으신가요?{' '}
+            Already have an account?{' '}
             <Link
               href="/login"
               className="text-primary hover:text-primary-hover font-medium"
             >
-              로그인
+              Log in
             </Link>
           </p>
         </div>

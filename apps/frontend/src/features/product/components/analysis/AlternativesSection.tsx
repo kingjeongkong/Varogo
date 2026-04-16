@@ -13,7 +13,7 @@ export function AlternativesSection({
       className="animate-slide-up"
       style={{ animationDelay: '0.15s', opacity: 0 }}
     >
-      <SectionLabel number="04" title="대체재 분석" />
+      <SectionLabel number="04" title="Alternatives" />
       <div className="grid gap-4 sm:grid-cols-2">
         {alternatives.map((alt) => (
           <div
@@ -28,7 +28,7 @@ export function AlternativesSection({
             </p>
             <div className="border-t border-border pt-3">
               <p className="text-xs font-semibold text-accent uppercase tracking-wider mb-1.5">
-                우리가 공략할 약점
+                Weakness We Exploit
               </p>
               <p className="text-sm text-text-secondary leading-relaxed">
                 {alt.weaknessWeExploit}

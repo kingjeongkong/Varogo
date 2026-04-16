@@ -29,7 +29,7 @@ function ThreadsCallbackBanner() {
         className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
         role="alert"
       >
-        Threads 계정 연결에 실패했습니다. 다시 시도해주세요.
+        Failed to connect Threads account. Please try again.
       </div>
     );
   }
@@ -39,7 +39,7 @@ function ThreadsCallbackBanner() {
       className="mb-6 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400"
       role="status"
     >
-      Threads 계정이 연결되었습니다.
+      Threads account connected.
     </div>
   );
 }
@@ -57,10 +57,10 @@ export default function IntegrationsPage() {
       <main className="max-w-4xl mx-auto px-6 py-12">
         <div className="space-y-2 mb-10">
           <h1 className="text-2xl font-heading font-bold text-text-primary">
-            연동 관리
+            Integrations
           </h1>
           <p className="text-sm text-text-muted">
-            외부 플랫폼 계정을 연결하여 콘텐츠를 게시할 수 있습니다.
+            Connect external platform accounts to publish content.
           </p>
         </div>
 
@@ -84,12 +84,12 @@ export default function IntegrationsPage() {
                   <p className="text-sm text-text-muted">
                     <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-2" aria-hidden="true" />
                     {connection.username
-                      ? `@${connection.username} 연결됨`
-                      : '연결됨'}
+                      ? `@${connection.username} connected`
+                      : 'Connected'}
                   </p>
                 ) : (
                   <p className="text-sm text-text-muted">
-                    Threads 계정을 연결하면 콘텐츠를 바로 게시할 수 있습니다.
+                    Connect your Threads account to publish content directly.
                   </p>
                 )}
               </div>
@@ -99,18 +99,18 @@ export default function IntegrationsPage() {
                   <Button
                     variant="outline"
                     loading={disconnectMutation.isPending}
-                    loadingText="해제 중..."
+                    loadingText="Disconnecting..."
                     onClick={() => disconnectMutation.mutate()}
                   >
-                    연결 해제
+                    Disconnect
                   </Button>
                 ) : (
                   <Button
                     loading={connectMutation.isPending}
-                    loadingText="연결 중..."
+                    loadingText="Connecting..."
                     onClick={() => connectMutation.mutate()}
                   >
-                    계정 연결
+                    Connect Account
                   </Button>
                 )}
               </div>
@@ -118,12 +118,12 @@ export default function IntegrationsPage() {
 
             {connectMutation.isError && (
               <p className="mt-4 text-sm text-red-400" role="alert">
-                계정 연결에 실패했습니다. 다시 시도해주세요.
+                Failed to connect account. Please try again.
               </p>
             )}
             {disconnectMutation.isError && (
               <p className="mt-4 text-sm text-red-400" role="alert">
-                연결 해제에 실패했습니다. 다시 시도해주세요.
+                Failed to disconnect account. Please try again.
               </p>
             )}
           </div>

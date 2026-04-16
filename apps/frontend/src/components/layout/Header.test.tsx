@@ -53,13 +53,13 @@ describe('Header', () => {
 
     it('renders a skeleton element while auth state is loading', () => {
       render(<Header />);
-      expect(screen.getByLabelText('사용자 정보 로딩 중')).toBeInTheDocument();
+      expect(screen.getByLabelText('Loading user info')).toBeInTheDocument();
     });
 
     it('does not render user info or logout button while loading', () => {
       render(<Header />);
       expect(
-        screen.queryByRole('button', { name: /로그아웃/i }),
+        screen.queryByRole('button', { name: /log out/i }),
       ).not.toBeInTheDocument();
     });
   });
@@ -98,13 +98,13 @@ describe('Header', () => {
     it('renders the logout button', () => {
       render(<Header />);
       expect(
-        screen.getByRole('button', { name: /로그아웃/i }),
+        screen.getByRole('button', { name: /log out/i }),
       ).toBeInTheDocument();
     });
 
     it('calls logoutMutation.mutate when logout button is clicked', async () => {
       render(<Header />);
-      await userEvent.click(screen.getByRole('button', { name: /로그아웃/i }));
+      await userEvent.click(screen.getByRole('button', { name: /log out/i }));
       expect(mockLogoutMutate).toHaveBeenCalledOnce();
     });
 
@@ -118,14 +118,14 @@ describe('Header', () => {
       });
       render(<Header />);
       expect(
-        screen.getByRole('button', { name: /로그아웃 중/i }),
+        screen.getByRole('button', { name: /logging out/i }),
       ).toBeDisabled();
     });
 
     it('does not render the skeleton while logged in', () => {
       render(<Header />);
       expect(
-        screen.queryByLabelText('사용자 정보 로딩 중'),
+        screen.queryByLabelText('Loading user info'),
       ).not.toBeInTheDocument();
     });
   });
@@ -138,14 +138,14 @@ describe('Header', () => {
     it('does not render the skeleton', () => {
       render(<Header />);
       expect(
-        screen.queryByLabelText('사용자 정보 로딩 중'),
+        screen.queryByLabelText('Loading user info'),
       ).not.toBeInTheDocument();
     });
 
     it('does not render the logout button', () => {
       render(<Header />);
       expect(
-        screen.queryByRole('button', { name: /로그아웃/i }),
+        screen.queryByRole('button', { name: /log out/i }),
       ).not.toBeInTheDocument();
     });
   });

@@ -14,7 +14,7 @@ export function ContentHero({ productName }: ContentHeroProps) {
         </h1>
         <p className="mt-1 text-sm text-text-muted">
           <span className="font-medium text-text-secondary">Threads</span>
-          {' '}콘텐츠
+          {' '}Content
         </p>
       </div>
     </section>

@@ -80,10 +80,10 @@ describe('ProductList', () => {
       render(<ProductList />);
 
       expect(
-        screen.queryByText(/제품 목록을 불러오지 못했습니다/),
+        screen.queryByText(/Failed to load product list/),
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByText(/아직 분석한 제품이 없습니다/),
+        screen.queryByText(/haven't analyzed any products yet/),
       ).not.toBeInTheDocument();
     });
   });
@@ -94,7 +94,7 @@ describe('ProductList', () => {
       render(<ProductList />);
 
       expect(
-        screen.getByText('제품 목록을 불러오지 못했습니다.'),
+        screen.getByText('Failed to load product list.'),
       ).toBeInTheDocument();
     });
 
@@ -113,7 +113,7 @@ describe('ProductList', () => {
       render(<ProductList />);
 
       expect(
-        screen.getByText('아직 분석한 제품이 없습니다.'),
+        screen.getByText('You haven\u0027t analyzed any products yet.'),
       ).toBeInTheDocument();
     });
 
@@ -122,7 +122,7 @@ describe('ProductList', () => {
       render(<ProductList />);
 
       expect(
-        screen.getByText('아직 분석한 제품이 없습니다.'),
+        screen.getByText('You haven\u0027t analyzed any products yet.'),
       ).toBeInTheDocument();
     });
   });
@@ -170,10 +170,10 @@ describe('ProductList', () => {
       render(<ProductList />);
 
       expect(
-        screen.queryByText(/제품 목록을 불러오지 못했습니다/),
+        screen.queryByText(/Failed to load product list/),
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByText(/아직 분석한 제품이 없습니다/),
+        screen.queryByText(/haven't analyzed any products yet/),
       ).not.toBeInTheDocument();
     });
   });

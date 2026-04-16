@@ -31,15 +31,15 @@ describe('SignupForm', () => {
   describe('rendering', () => {
     it('renders name, email and password fields', () => {
       render(<SignupForm />);
-      expect(screen.getByLabelText(/이름/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/이메일/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/비밀번호/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     });
 
     it('renders the submit button', () => {
       render(<SignupForm />);
       expect(
-        screen.getByRole('button', { name: /회원가입/i }),
+        screen.getByRole('button', { name: /sign up/i }),
       ).toBeInTheDocument();
     });
 
@@ -52,44 +52,44 @@ describe('SignupForm', () => {
   describe('validation', () => {
     it('shows email validation error when submitting with no email', async () => {
       render(<SignupForm />);
-      await userEvent.click(screen.getByRole('button', { name: /회원가입/i }));
+      await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
       expect(
-        await screen.findByText(/유효한 이메일을 입력해주세요/i),
+        await screen.findByText(/please enter a valid email/i),
       ).toBeInTheDocument();
     });
 
     it('shows email validation error when email format is invalid', async () => {
       render(<SignupForm />);
-      await userEvent.type(screen.getByLabelText(/이메일/i), 'not-an-email');
-      await userEvent.click(screen.getByRole('button', { name: /회원가입/i }));
+      await userEvent.type(screen.getByLabelText(/email/i), 'not-an-email');
+      await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
       expect(
-        await screen.findByText(/유효한 이메일을 입력해주세요/i),
+        await screen.findByText(/please enter a valid email/i),
       ).toBeInTheDocument();
     });
 
     it('shows password validation error when password is too short', async () => {
       render(<SignupForm />);
-      await userEvent.type(screen.getByLabelText(/이메일/i), 'valid@email.com');
-      await userEvent.type(screen.getByLabelText(/비밀번호/i), 'short');
-      await userEvent.click(screen.getByRole('button', { name: /회원가입/i }));
+      await userEvent.type(screen.getByLabelText(/email/i), 'valid@email.com');
+      await userEvent.type(screen.getByLabelText(/password/i), 'short');
+      await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
       expect(
-        await screen.findByText(/비밀번호는 8자 이상이어야 합니다/i),
+        await screen.findByText(/password must be at least 8 characters/i),
       ).toBeInTheDocument();
     });
 
     it('shows password validation error when password is empty', async () => {
       render(<SignupForm />);
-      await userEvent.type(screen.getByLabelText(/이메일/i), 'valid@email.com');
-      await userEvent.click(screen.getByRole('button', { name: /회원가입/i }));
+      await userEvent.type(screen.getByLabelText(/email/i), 'valid@email.com');
+      await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
       expect(
-        await screen.findByText(/비밀번호는 8자 이상이어야 합니다/i),
+        await screen.findByText(/password must be at least 8 characters/i),
       ).toBeInTheDocument();
     });
 
     it('does not call signupMutation when form is invalid', async () => {
       render(<SignupForm />);
-      await userEvent.click(screen.getByRole('button', { name: /회원가입/i }));
-      await screen.findByText(/유효한 이메일을 입력해주세요/i);
+      await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
+      await screen.findByText(/please enter a valid email/i);
       expect(mockSignupMutate).not.toHaveBeenCalled();
     });
   });
@@ -98,14 +98,14 @@ describe('SignupForm', () => {
     it('calls signupMutation.mutate with email and password when name is omitted', async () => {
       render(<SignupForm />);
       await userEvent.type(
-        screen.getByLabelText(/이메일/i),
+        screen.getByLabelText(/email/i),
         'newuser@example.com',
       );
       await userEvent.type(
-        screen.getByLabelText(/비밀번호/i),
+        screen.getByLabelText(/password/i),
         'securepassword',
       );
-      await userEvent.click(screen.getByRole('button', { name: /회원가입/i }));
+      await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
       expect(mockSignupMutate).toHaveBeenCalledWith(
         expect.objectContaining({
           email: 'newuser@example.com',
@@ -116,16 +116,16 @@ describe('SignupForm', () => {
 
     it('calls signupMutation.mutate with name when name is provided', async () => {
       render(<SignupForm />);
-      await userEvent.type(screen.getByLabelText(/이름/i), 'Alice');
+      await userEvent.type(screen.getByLabelText(/name/i), 'Alice');
       await userEvent.type(
-        screen.getByLabelText(/이메일/i),
+        screen.getByLabelText(/email/i),
         'alice@example.com',
       );
       await userEvent.type(
-        screen.getByLabelText(/비밀번호/i),
+        screen.getByLabelText(/password/i),
         'securepassword',
       );
-      await userEvent.click(screen.getByRole('button', { name: /회원가입/i }));
+      await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
       expect(mockSignupMutate).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Alice',
@@ -146,7 +146,7 @@ describe('SignupForm', () => {
         },
       });
       render(<SignupForm />);
-      expect(screen.getByRole('button', { name: /가입 중/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /signing up/i })).toBeDisabled();
     });
 
     it('shows loading text while isPending is true', () => {
@@ -159,7 +159,7 @@ describe('SignupForm', () => {
       });
       render(<SignupForm />);
       expect(
-        screen.getByRole('button', { name: /가입 중/i }),
+        screen.getByRole('button', { name: /signing up/i }),
       ).toBeInTheDocument();
     });
   });
@@ -170,12 +170,12 @@ describe('SignupForm', () => {
         signupMutation: {
           mutate: mockSignupMutate,
           isPending: false,
-          error: new Error('이미 사용 중인 이메일입니다'),
+          error: new Error('Email already in use'),
         },
       });
       render(<SignupForm />);
       expect(screen.getByRole('alert')).toHaveTextContent(
-        '이미 사용 중인 이메일입니다',
+        'Email already in use',
       );
     });
   });

@@ -69,47 +69,46 @@ export class ContentGenerationService {
 
     const dontDoGuide = template.dontDoList.map((t) => `- ${t}`).join('\n');
 
-    // TODO: Phase 2.5 프롬프트 엔지니어링에서 Threads 맥락(500자, 대화형 톤, 훅 중심, 해시태그 지양) 재작성
-    return `당신은 인디 개발자 제품의 마케팅 콘텐츠 작성 전문가입니다. 아래 정보를 바탕으로, Threads에 바로 게시할 수 있는 완성된 콘텐츠를 작성해주세요.
+    return `You are an expert marketing content writer for indie developer products. Based on the information below, write a finished piece of content ready to publish directly on Threads.
 
-=== 제품 정보 ===
-타겟 고객: ${targetAudience.definition}
-핵심 문제: ${productAnalysis.problem}
-차별점: ${productAnalysis.differentiators.join(', ')}
-포지셔닝: ${productAnalysis.positioningStatement}
-키워드: ${[...productAnalysis.keywords.primary, ...productAnalysis.keywords.secondary].join(', ')}
+=== Product Information ===
+Target audience: ${targetAudience.definition}
+Core problem: ${productAnalysis.problem}
+Differentiators: ${productAnalysis.differentiators.join(', ')}
+Positioning: ${productAnalysis.positioningStatement}
+Keywords: ${[...productAnalysis.keywords.primary, ...productAnalysis.keywords.secondary].join(', ')}
 
-=== 전략 정보 ===
-전략 방향: ${strategy.title} — ${strategy.description}
-핵심 메시지: ${strategy.coreMessage}
-캠페인 목표: ${strategy.campaignGoal.type} — ${strategy.campaignGoal.description}
-훅 각도: ${strategy.hookAngle}
-콜투액션: ${strategy.callToAction}
-콘텐츠 포맷: ${strategy.contentFormat}
+=== Strategy Information ===
+Strategy direction: ${strategy.title} — ${strategy.description}
+Core message: ${strategy.coreMessage}
+Campaign goal: ${strategy.campaignGoal.type} — ${strategy.campaignGoal.description}
+Hook angle: ${strategy.hookAngle}
+Call to action: ${strategy.callToAction}
+Content format: ${strategy.contentFormat}
 
-=== 콘텐츠 템플릿 ===
-패턴: ${template.contentPattern}
-훅 가이드: ${template.hookGuide}
-톤: ${template.toneGuide}
-권장 길이: ${template.lengthGuide}
-본문 구조:
+=== Content Template ===
+Pattern: ${template.contentPattern}
+Hook guide: ${template.hookGuide}
+Tone: ${template.toneGuide}
+Recommended length: ${template.lengthGuide}
+Body structure:
 ${bodyStructureGuide}
-CTA 가이드: ${template.ctaGuide}
-플랫폼 팁:
+CTA guide: ${template.ctaGuide}
+Platform tips:
 ${platformTipsGuide}
-피해야 할 것:
+Things to avoid:
 ${dontDoGuide}
 
-=== 지시사항 ===
-위 템플릿의 구성을 참고하되, 섹션 구분 없이 하나의 자연스럽게 연결된 글로 작성하세요.
-Threads의 특성(대화형, 훅 중심)을 고려하여 광고 느낌이 나지 않도록 자연스럽게 작성하세요.
-권장 길이를 준수하세요.
+=== Instructions ===
+Use the template above as reference, but write it as a single naturally flowing piece without section breaks.
+Given Threads' characteristics (conversational, hook-driven), write naturally without sounding like an ad.
+The content body MUST be 300 characters or fewer. Be concise and impactful.
 
-JSON 형식으로만 응답하세요. 최상위 키는 "body"이며 값은 완성된 콘텐츠 문자열입니다.
+Respond in JSON format only. The top-level key is "body" and its value is the finished content string. Write all text in English.
 
-예시 형식:
+Example format:
 {
-  "body": "완성된 콘텐츠 텍스트..."
+  "body": "Finished content text..."
 }`;
   }
 }

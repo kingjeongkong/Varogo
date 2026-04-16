@@ -52,7 +52,7 @@ export default function ContentPage({
         {error && !is404 && (
           <div className="glass-card p-8 text-center">
             <p className="text-error text-sm">
-              콘텐츠를 불러오지 못했습니다.
+              Failed to load content.
             </p>
           </div>
         )}
@@ -60,7 +60,7 @@ export default function ContentPage({
         {generateMutation.isError && !content && (
           <div className="glass-card p-8 text-center">
             <p className="text-error text-sm">
-              콘텐츠 생성에 실패했습니다. 다시 시도해 주세요.
+              Content generation failed. Please try again.
             </p>
           </div>
         )}
@@ -70,14 +70,14 @@ export default function ContentPage({
             <ContentHero productName={product?.name ?? ''} />
             <div className="glass-card p-8 text-center space-y-4">
               <p className="text-sm text-text-muted">
-                아직 생성된 콘텐츠가 없습니다.
+                No content has been generated yet.
               </p>
               <Button
                 loading={generateMutation.isPending}
-                loadingText="콘텐츠 생성 중..."
+                loadingText="Generating content..."
                 onClick={() => generateMutation.mutate()}
               >
-                콘텐츠 생성
+                Generate Content
               </Button>
             </div>
           </div>

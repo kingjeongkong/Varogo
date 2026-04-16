@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { useAuth } from '../hooks/use-auth';
 
 const schema = z.object({
-  email: z.string().email('유효한 이메일을 입력해주세요'),
-  password: z.string().min(8, '비밀번호는 8자 이상이어야 합니다'),
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().optional(),
 });
 
@@ -36,18 +36,18 @@ export function SignupForm() {
         id="name"
         label={
           <>
-            이름 <span className="text-text-muted font-normal">(선택)</span>
+            Name <span className="text-text-muted font-normal">(optional)</span>
           </>
         }
         type="text"
         autoComplete="name"
-        placeholder="홍길동"
+        placeholder="Jane Doe"
         error={errors.name}
         {...register('name')}
       />
       <FormField
         id="email"
-        label="이메일"
+        label="Email"
         type="email"
         autoComplete="email"
         placeholder="name@example.com"
@@ -56,10 +56,10 @@ export function SignupForm() {
       />
       <FormField
         id="password"
-        label="비밀번호"
+        label="Password"
         type="password"
         autoComplete="new-password"
-        placeholder="8자 이상"
+        placeholder="8+ characters"
         error={errors.password}
         {...register('password')}
       />
@@ -67,10 +67,10 @@ export function SignupForm() {
       <Button
         type="submit"
         loading={isPending}
-        loadingText="가입 중..."
+        loadingText="Signing up..."
         className="w-full"
       >
-        회원가입
+        Sign up
       </Button>
     </form>
   );

@@ -68,7 +68,7 @@ describe('StrategyCardList', () => {
       );
 
       expect(
-        screen.getByRole('tablist', { name: '전략 카드 목록' }),
+        screen.getByRole('tablist', { name: 'Strategy cards' }),
       ).toBeInTheDocument();
     });
 
@@ -143,7 +143,7 @@ describe('StrategyCardList', () => {
       );
 
       await user.click(
-        screen.getByRole('button', { name: '전략 선택: 스토리 기반' }),
+        screen.getByRole('button', { name: 'Select strategy: 스토리 기반' }),
       );
 
       expect(onSelect).toHaveBeenCalledWith('strat-1');
@@ -161,7 +161,7 @@ describe('StrategyCardList', () => {
       );
 
       expect(
-        screen.getByRole('button', { name: '전략 선택: 스토리 기반' }),
+        screen.getByRole('button', { name: 'Select strategy: 스토리 기반' }),
       ).toBeDisabled();
     });
   });
