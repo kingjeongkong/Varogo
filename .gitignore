@@ -49,3 +49,6 @@ docker-compose.override.yml
 # Prisma (로컬 DB 덤프 등)
 *.db
 *.db-journal
+
+# Git worktrees
+.worktrees/
