@@ -11,8 +11,10 @@ import type { StrategyCardResult } from './types/strategy-card.type';
 
 type AnalysisWithProduct = {
   id: string;
+  category: string;
+  jobToBeDone: string;
+  whyNow: string;
   targetAudience: Prisma.JsonValue;
-  problem: string;
   valueProposition: string;
   alternatives: Prisma.JsonValue;
   differentiators: string[];
@@ -168,9 +170,11 @@ export class StrategyService {
     return {
       productName: analysis.product.name,
       productAnalysis: {
+        category: analysis.category,
+        jobToBeDone: analysis.jobToBeDone,
+        whyNow: analysis.whyNow,
         targetAudience:
           analysis.targetAudience as unknown as ProductAnalysisResult['targetAudience'],
-        problem: analysis.problem,
         valueProposition: analysis.valueProposition,
         alternatives:
           analysis.alternatives as unknown as ProductAnalysisResult['alternatives'],

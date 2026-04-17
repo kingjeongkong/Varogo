@@ -3,8 +3,9 @@ import type { CampaignGoal } from '../../strategy/types/strategy-card.type';
 
 export interface GenerateContentInput {
   productAnalysis: {
+    category: string;
+    jobToBeDone: string;
     targetAudience: unknown;
-    problem: string;
     differentiators: string[];
     positioningStatement: string;
     keywords: { primary: string[]; secondary: string[] };

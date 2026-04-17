@@ -144,13 +144,15 @@ describe('StrategyController (integration)', () => {
     const analysis = await prisma.productAnalysis.create({
       data: {
         productId: product.id,
+        category: 'marketing copilot',
+        jobToBeDone: 'ship a launch plan',
+        whyNow: 'AI lowered build cost',
         targetAudience: {
           definition: 'Indie devs',
           painPoints: [],
           buyingTriggers: [],
           activeCommunities: [],
         },
-        problem: 'marketing hard',
         valueProposition: 'Get a strategy in 5 minutes.',
         alternatives: [],
         differentiators: ['AI'],

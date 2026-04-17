@@ -17,8 +17,10 @@ export interface Keywords {
 }
 
 export interface ProductAnalysisResult {
+  category: string;
+  jobToBeDone: string;
+  whyNow: string;
   targetAudience: TargetAudience;
-  problem: string;
   valueProposition: string;
   alternatives: Alternative[];
   differentiators: string[];

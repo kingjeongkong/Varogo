@@ -1,12 +1,14 @@
 interface AnalysisHeroProps {
   productName: string;
   productUrl: string;
+  category: string;
   positioningStatement: string;
 }
 
 export function AnalysisHero({
   productName,
   productUrl,
+  category,
   positioningStatement,
 }: AnalysisHeroProps) {
   return (
@@ -32,6 +34,14 @@ export function AnalysisHero({
           </span>
           <span className="relative pl-5">{positioningStatement}</span>
         </blockquote>
+        <div className="mt-5 pl-5">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-dim/60 px-3 py-1 text-xs font-medium text-primary">
+            <span className="font-mono uppercase tracking-wider text-[10px] opacity-70">
+              Category
+            </span>
+            <span>{category}</span>
+          </span>
+        </div>
       </div>
     </section>
   );

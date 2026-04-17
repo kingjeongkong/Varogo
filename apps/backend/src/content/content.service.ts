@@ -48,8 +48,9 @@ export class ContentService {
 
     const input: GenerateContentInput = {
       productAnalysis: {
+        category: analysis.category,
+        jobToBeDone: analysis.jobToBeDone,
         targetAudience: analysis.targetAudience,
-        problem: analysis.problem,
         differentiators: analysis.differentiators,
         positioningStatement: analysis.positioningStatement,
         keywords: analysis.keywords,

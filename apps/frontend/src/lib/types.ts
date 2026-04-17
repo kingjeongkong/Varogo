@@ -37,8 +37,10 @@ export interface CurrentTraction {
 export interface ProductAnalysis {
   id: string;
   productId: string;
+  category: string;
+  jobToBeDone: string;
+  whyNow: string;
   targetAudience: TargetAudience;
-  problem: string;
   valueProposition: string;
   alternatives: Alternative[];
   differentiators: string[];

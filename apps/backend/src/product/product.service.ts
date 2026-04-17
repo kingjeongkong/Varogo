@@ -38,9 +38,11 @@ export class ProductService {
       const productAnalysis = await tx.productAnalysis.create({
         data: {
           productId: product.id,
+          category: analysis.category,
+          jobToBeDone: analysis.jobToBeDone,
+          whyNow: analysis.whyNow,
           targetAudience:
             analysis.targetAudience as unknown as Prisma.InputJsonValue,
-          problem: analysis.problem,
           valueProposition: analysis.valueProposition,
           alternatives:
             analysis.alternatives as unknown as Prisma.InputJsonValue,
