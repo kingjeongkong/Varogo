@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /signup
+Allow: /privacy
+Disallow: /dashboard
+Disallow: /product/
+Disallow: /integrations
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://varo-go.com/sitemap.xml
