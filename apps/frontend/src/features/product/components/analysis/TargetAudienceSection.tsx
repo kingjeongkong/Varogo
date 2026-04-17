@@ -3,10 +3,12 @@ import { SectionLabel } from './SectionLabel';
 
 interface TargetAudienceSectionProps {
   targetAudience: TargetAudience;
+  jobToBeDone: string;
 }
 
 export function TargetAudienceSection({
   targetAudience,
+  jobToBeDone,
 }: TargetAudienceSectionProps) {
   return (
     <section
@@ -17,6 +19,13 @@ export function TargetAudienceSection({
       <p className="text-text-secondary mb-5 leading-relaxed">
         {targetAudience.definition}
       </p>
+
+      <div className="mb-5 rounded-xl border border-border bg-surface/60 px-5 py-4">
+        <p className="text-xs font-mono text-text-muted tracking-widest uppercase mb-2">
+          Job to be done
+        </p>
+        <p className="text-text-secondary leading-relaxed">{jobToBeDone}</p>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <AudienceCard
