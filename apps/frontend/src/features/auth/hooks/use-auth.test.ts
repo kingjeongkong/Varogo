@@ -83,7 +83,7 @@ describe('useAuth', () => {
       });
     });
 
-    it('calls setUser and navigates to "/" on success', async () => {
+    it('calls setUser and navigates to "/dashboard" on success', async () => {
       const user = { id: '1', email: 'a@b.com', createdAt: '' };
 
       renderHook(() => useAuth());
@@ -94,7 +94,7 @@ describe('useAuth', () => {
       });
 
       expect(mockSetUser).toHaveBeenCalledWith(user);
-      expect(mockPush).toHaveBeenCalledWith('/');
+      expect(mockPush).toHaveBeenCalledWith('/dashboard');
     });
   });
 
@@ -119,7 +119,7 @@ describe('useAuth', () => {
       });
     });
 
-    it('calls setUser and navigates to "/" on success', async () => {
+    it('calls setUser and navigates to "/dashboard" on success', async () => {
       const user = { id: '2', email: 'new@b.com', createdAt: '' };
 
       renderHook(() => useAuth());
@@ -130,7 +130,7 @@ describe('useAuth', () => {
       });
 
       expect(mockSetUser).toHaveBeenCalledWith(user);
-      expect(mockPush).toHaveBeenCalledWith('/');
+      expect(mockPush).toHaveBeenCalledWith('/dashboard');
     });
   });
 

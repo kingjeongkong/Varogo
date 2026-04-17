@@ -14,7 +14,7 @@ export default function Header() {
     <header className="border-b border-border bg-surface/60 backdrop-blur-xl sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/dashboard" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
               <span className="text-primary font-heading font-bold text-sm">
                 V
