@@ -19,7 +19,7 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
       <div className="glass-card p-8 text-center">
         <p className="text-text-muted mb-4">No analysis result available.</p>
         <Link
-          href="/"
+          href="/dashboard"
           className="inline-block px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover transition-colors"
         >
           Back to dashboard

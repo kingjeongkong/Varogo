@@ -155,11 +155,11 @@ describe('Header', () => {
       mockUseAuthStore.mockReturnValue({ user: null, isLoading: false });
     });
 
-    it('always renders a link to "/"', () => {
+    it('always renders a link to "/dashboard"', () => {
       render(<Header />);
       expect(screen.getByRole('link', { name: /varogo/i })).toHaveAttribute(
         'href',
-        '/',
+        '/dashboard',
       );
     });
   });

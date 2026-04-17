@@ -1,32 +1,49 @@
-import Link from 'next/link';
-import Header from '@/components/layout/Header';
-import { ProductList } from '@/features/product/components/ProductList';
+import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import LandingHeader from '@/components/layout/LandingHeader';
+import Footer from '@/components/layout/Footer';
+import Hero from '@/features/landing/components/Hero';
+import HowItWorks from '@/features/landing/components/HowItWorks';
+import Features from '@/features/landing/components/Features';
+import FinalCta from '@/features/landing/components/FinalCta';
 
-export default function HomePage() {
+export const metadata: Metadata = {
+  title: 'Varogo — Marketing strategy for indie developers on Threads',
+  description:
+    'You shipped it. Now the feed is silent. Varogo builds your Threads marketing strategy and drafts the posts.',
+  openGraph: {
+    title: 'Varogo — Marketing strategy for indie developers on Threads',
+    description:
+      'You shipped it. Now the feed is silent. Varogo builds your Threads marketing strategy and drafts the posts.',
+    siteName: 'Varogo',
+    url: 'https://varo-go.com',
+    type: 'website',
+  },
+};
+
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  if (cookieStore.get('access_token')) {
+    redirect('/dashboard');
+  }
+
   return (
-    <div className="min-h-screen">
-      <Header />
-
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        <div className="mb-8 flex items-center justify-between animate-fade-in">
-          <div>
-            <h2 className="text-2xl font-bold text-text-primary font-heading">
-              My Products
-            </h2>
-            <p className="mt-1 text-sm text-text-muted">
-              Start an AI-powered marketing strategy.
-            </p>
-          </div>
-          <Link
-            href="/product/new"
-            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover transition-colors"
-          >
-            Analyze New Product
-          </Link>
-        </div>
-
-        <ProductList />
+    <>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-surface focus:border focus:border-border focus:rounded-md focus:text-text-primary"
+      >
+        Skip to content
+      </a>
+      <LandingHeader />
+      <main id="main">
+        <Hero />
+        <HowItWorks />
+        <Features />
+        <FinalCta />
       </main>
-    </div>
+      <Footer />
+    </>
   );
 }
