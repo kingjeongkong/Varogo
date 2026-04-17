@@ -72,8 +72,9 @@ export class ContentGenerationService {
     return `You are an expert marketing content writer for indie developer products. Based on the information below, write a finished piece of content ready to publish directly on Threads.
 
 === Product Information ===
+Category: ${productAnalysis.category}
+Job to be done: ${productAnalysis.jobToBeDone}
 Target audience: ${targetAudience.definition}
-Core problem: ${productAnalysis.problem}
 Differentiators: ${productAnalysis.differentiators.join(', ')}
 Positioning: ${productAnalysis.positioningStatement}
 Keywords: ${[...productAnalysis.keywords.primary, ...productAnalysis.keywords.secondary].join(', ')}

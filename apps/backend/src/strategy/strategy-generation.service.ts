@@ -184,10 +184,12 @@ export class StrategyGenerationService {
 
 === Product Information ===
 Product name: ${productName}
+Category: ${productAnalysis.category}
+Job to be done: ${productAnalysis.jobToBeDone}
+Why now: ${productAnalysis.whyNow}
 Target audience: ${productAnalysis.targetAudience.definition}
 Target audience's active communities: ${productAnalysis.targetAudience.activeCommunities.join(', ')}
 Target audience's pain points: ${productAnalysis.targetAudience.painPoints.join(', ')}
-Core problem: ${productAnalysis.problem}
 Differentiators: ${productAnalysis.differentiators.join(', ')}
 Positioning: ${productAnalysis.positioningStatement}
 Keywords: ${[...productAnalysis.keywords.primary, ...productAnalysis.keywords.secondary].join(', ')}
@@ -195,15 +197,16 @@ Competitors: ${productAnalysis.alternatives.map((a) => a.name).join(', ')}
 
 === Instructions ===
 Propose 2-3 distinct "strategy directions" as cards. Cards must differ from each other on at least 2 of the following axes: hookAngle, campaignGoal.type, contentFormat.
+If the "Why now" names a recent shift, consider making one of the cards a trend-hook card that leverages it.
 
 Each card must include the following fields:
 - title: A short name for the strategy direction (e.g., "Story-based awareness expansion")
 - description: A 2-3 sentence summary of the strategy
 - coreMessage: One sentence core message this strategy should communicate
 - campaignGoal: Campaign goal object. type must be one of "awareness", "traffic", "conversion", "community". description is a 1-2 sentence explanation of the goal direction (no numeric targets)
-- hookAngle: A specific hook angle that realizes the channel's contentAngle. Describe concretely which emotion/situation of the target it enters
+- hookAngle: A specific hook angle the content should open with. Describe concretely which emotion/situation of the target it enters
 - callToAction: One sentence describing the specific action to drive readers to at the end of content
-- contentFormat: High-level content format (e.g., "X thread", "Long-form Reddit post")
+- contentFormat: High-level Threads content format (e.g., "Threads short post", "Threads reply-chain series", "Threads single post with image")
 - contentFrequency: Recommended posting frequency (e.g., "2-3 times per week", "4-6 times per month")
 
 Respond in JSON format only. The top-level key is "cards" and its value is an array of objects with the above fields. Write all text in English.

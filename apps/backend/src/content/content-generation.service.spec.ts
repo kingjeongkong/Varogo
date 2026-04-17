@@ -22,8 +22,10 @@ const mockConfigService = {
 
 const VALID_INPUT: GenerateContentInput = {
   productAnalysis: {
+    category: 'marketing copilot for indie devs',
+    jobToBeDone:
+      'When I launch a side project, I want a ready marketing plan, so I can get users.',
     targetAudience: { definition: 'Indie developers' },
-    problem: 'Indie developers struggle with marketing.',
     differentiators: ['AI-powered strategy'],
     positioningStatement: 'The marketing copilot for indie devs.',
     keywords: { primary: ['indie dev', 'marketing'], secondary: ['twitter'] },

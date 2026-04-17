@@ -23,13 +23,17 @@ const mockConfigService = {
 };
 
 const PRODUCT_ANALYSIS: ProductAnalysisResult = {
+  category: 'marketing copilot for indie devs',
+  jobToBeDone:
+    'When I launch a side project, I want a ready marketing plan, so I can get users without learning marketing.',
+  whyNow:
+    'AI makes building products fast, but marketing is still the bottleneck for indie devs.',
   targetAudience: {
     definition: 'Indie developers',
     painPoints: ['No marketing skills'],
     buyingTriggers: ['When launching a side project'],
     activeCommunities: ['Twitter', 'Hacker News'],
   },
-  problem: 'Indie developers struggle with marketing.',
   valueProposition:
     'Use Varogo and get a full marketing strategy in 5 minutes.',
   alternatives: [

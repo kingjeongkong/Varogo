@@ -42,13 +42,15 @@ const USER_ID = 'user-1';
 
 const ANALYSIS_FIXTURE = {
   id: ANALYSIS_ID,
+  category: 'marketing copilot',
+  jobToBeDone: 'ship a launch plan',
+  whyNow: 'AI lowered build cost',
   targetAudience: {
     definition: 'Indie devs',
     painPoints: [],
     buyingTriggers: [],
     activeCommunities: [],
   },
-  problem: 'marketing hard',
   valueProposition: 'Get a strategy in 5 minutes.',
   alternatives: [],
   differentiators: ['AI'],
