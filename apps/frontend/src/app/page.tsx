@@ -1,6 +1,4 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import LandingHeader from '@/components/layout/LandingHeader';
 import Footer from '@/components/layout/Footer';
 import Hero from '@/features/landing/components/Hero';
@@ -22,12 +20,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function HomePage() {
-  const cookieStore = await cookies();
-  if (cookieStore.get('access_token')) {
-    redirect('/dashboard');
-  }
-
+export default function HomePage() {
   return (
     <>
       <a
