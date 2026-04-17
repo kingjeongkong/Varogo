@@ -73,8 +73,10 @@ model Product {
 model ProductAnalysis {
   id                   String   @id @default(uuid())
   productId            String   @map("product_id")
+  category             String
+  jobToBeDone          String   @map("job_to_be_done")
+  whyNow               String   @map("why_now")
   targetAudience       Json     @map("target_audience")
-  problem              String
   valueProposition     String   @map("value_proposition")
   alternatives         Json
   differentiators      String[]
