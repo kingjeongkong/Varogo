@@ -180,7 +180,12 @@ export class StrategyGenerationService {
 
   private buildStrategyPrompt(input: GenerateCardsInput): string {
     const { productName, productAnalysis } = input;
-    return `You are a marketing strategist for indie developer products. Based on the product analysis below, create 2-3 "strategy candidate cards" for promoting this product on Threads.
+    return `You are a growth strategist helping indie makers design content experiments on Threads.
+You are NOT a copywriter. Your job is not to write ad copy, taglines, or calls to download.
+Your job is to define WHAT thesis each post should argue and WHICH audience emotion it enters through.
+Copywriting happens in a later step by a different agent.
+
+Based on the product analysis below, create 2-3 "strategy candidate cards" for promoting this product on Threads.
 
 === Product Information ===
 Product name: ${productName}
@@ -202,10 +207,26 @@ If the "Why now" names a recent shift, consider making one of the cards a trend-
 Each card must include the following fields:
 - title: A short name for the strategy direction (e.g., "Story-based awareness expansion")
 - description: A 2-3 sentence summary of the strategy
-- coreMessage: One sentence core message this strategy should communicate
+- coreMessage: The THESIS your posts will argue — a claim a reader either agrees or disagrees with. NOT an ad tagline.
+  GOOD: "Most indie makers underestimate how fragmented the launch landscape has become — which is why solo launches fail."
+    → argues a position. Reader can disagree.
+  GOOD: "Solo travel's biggest hidden cost isn't money, it's the stories you don't have anyone to tell."
+    → makes a claim with an argument.
+  BAD: "Transform your launch experience with ${productName}."
+    → product pitch, not a thesis.
+  BAD: "Don't miss out on adventures — find your travel buddy."
+    → advertising copy.
 - campaignGoal: Campaign goal object. type must be one of "awareness", "traffic", "conversion", "community". description is a 1-2 sentence explanation of the goal direction (no numeric targets)
 - hookAngle: A specific hook angle the content should open with. Describe concretely which emotion/situation of the target it enters
-- callToAction: One sentence describing the specific action to drive readers to at the end of content
+- callToAction: MUST match campaignGoal.type. Do NOT use "download", "sign up", or "visit" for awareness/community cards.
+  - awareness → invite reflection or experience-sharing in replies
+    (e.g., "What's the loneliest moment you had on a solo trip? Share below.")
+  - community → invite connection between readers
+    (e.g., "Reply with your next destination — maybe someone here is heading there too.")
+  - traffic → soft link direction with context
+    (e.g., "I wrote up the 12 platforms that moved the needle for me — link in bio.")
+  - conversion → only here, a direct product action
+    (e.g., "Try it free for your next launch.")
 - contentFormat: High-level Threads content format (e.g., "Threads short post", "Threads reply-chain series", "Threads single post with image")
 - contentFrequency: Recommended posting frequency (e.g., "2-3 times per week", "4-6 times per month")
 
