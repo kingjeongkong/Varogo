@@ -33,13 +33,13 @@ const VALID_INPUT: GenerateContentInput = {
   strategy: {
     title: '스토리 기반',
     description: '창업 여정을 공유하여 공감대 형성',
-    coreMessage: '진짜 창업자의 고민을 공유한다',
+    coreThesis: '진짜 창업자의 고민을 공유한다',
     campaignGoal: {
       type: 'community',
       description: '인디 개발자 커뮤니티 내 인지도 구축',
     },
-    hookAngle: '실패 경험 공개형 빌딩 저널',
-    callToAction: '댓글로 경험 공유해 주세요',
+    hookDirection: '실패 경험 공개형 빌딩 저널',
+    ctaDirection: '댓글로 경험 공유해 주세요',
     contentFormat: '개인 경험 쓰레드',
   },
   template: {

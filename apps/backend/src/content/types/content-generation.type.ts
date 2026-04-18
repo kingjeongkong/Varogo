@@ -13,10 +13,10 @@ export interface GenerateContentInput {
   strategy: {
     title: string;
     description: string;
-    coreMessage: string;
+    coreThesis: string;
     campaignGoal: CampaignGoal;
-    hookAngle: string;
-    callToAction: string;
+    hookDirection: string;
+    ctaDirection: string;
     contentFormat: string;
   };
   template: {

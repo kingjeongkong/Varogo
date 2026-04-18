@@ -81,10 +81,10 @@ Keywords: ${[...productAnalysis.keywords.primary, ...productAnalysis.keywords.se
 
 === Strategy Information ===
 Strategy direction: ${strategy.title} — ${strategy.description}
-Core message: ${strategy.coreMessage}
+Core thesis: ${strategy.coreThesis}
 Campaign goal: ${strategy.campaignGoal.type} — ${strategy.campaignGoal.description}
-Hook angle: ${strategy.hookAngle}
-Call to action: ${strategy.callToAction}
+Hook direction: ${strategy.hookDirection}
+CTA direction: ${strategy.ctaDirection}
 Content format: ${strategy.contentFormat}
 
 === Content Template ===

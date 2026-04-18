@@ -58,11 +58,11 @@ export class ContentService {
       strategy: {
         title: strategy.title,
         description: strategy.description,
-        coreMessage: strategy.coreMessage,
+        coreThesis: strategy.coreThesis,
         campaignGoal:
           strategy.campaignGoal as unknown as GenerateContentInput['strategy']['campaignGoal'],
-        hookAngle: strategy.hookAngle,
-        callToAction: strategy.callToAction,
+        hookDirection: strategy.hookDirection,
+        ctaDirection: strategy.ctaDirection,
         contentFormat: strategy.contentFormat,
       },
       template: {
