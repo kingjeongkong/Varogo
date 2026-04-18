@@ -18,15 +18,20 @@ const MOCK_STRATEGY: StrategyResponse = {
   productAnalysisId: 'pa-1',
   title: '스토리 기반',
   description: '창업 여정과 개인 경험을 중심으로 독자와 감정적 공감대를 형성',
-  coreMessage: '진짜 창업자가 겪는 고민을 공유한다',
+  coreThesis: '진짜 창업자가 겪는 고민을 공유한다',
   campaignGoal: {
     type: 'community',
     description: 'Reddit indiehackers 커뮤니티 내 인지도 구축',
   },
-  hookAngle: '일인칭 시점',
-  callToAction: '댓글로 공유해 주세요',
+  hookDirection: '일인칭 시점',
+  ctaDirection: '댓글로 공유해 주세요',
   contentFormat: '개인 경험 쓰레드',
   contentFrequency: '주 2회',
+  variationAxes: {
+    moment: ['m1', 'm2', 'm3', 'm4'],
+    emotion: ['e1', 'e2', 'e3', 'e4'],
+    time: ['t1', 't2', 't3', 't4'],
+  },
   createdAt: '2026-04-10T00:00:00.000Z',
 };
 

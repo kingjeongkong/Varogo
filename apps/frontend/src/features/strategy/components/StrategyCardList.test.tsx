@@ -4,18 +4,25 @@ import userEvent from '@testing-library/user-event';
 import { StrategyCardList } from './StrategyCardList';
 import type { StrategyResponse } from '@/lib/types';
 
+const AXES_FIXTURE = {
+  moment: ['m1', 'm2', 'm3', 'm4'],
+  emotion: ['e1', 'e2', 'e3', 'e4'],
+  time: ['t1', 't2', 't3', 't4'],
+};
+
 const MOCK_STRATEGIES: StrategyResponse[] = [
   {
     id: 'strat-1',
     productAnalysisId: 'pa-1',
     title: '스토리 기반',
     description: '창업 여정 기반 전략',
-    coreMessage: '핵심 메시지 1',
+    coreThesis: '핵심 메시지 1',
     campaignGoal: { type: 'community', description: '커뮤니티 목표 1' },
-    hookAngle: '훅 앵글 1',
-    callToAction: 'CTA 1',
+    hookDirection: '훅 앵글 1',
+    ctaDirection: 'CTA 1',
     contentFormat: '개인 경험 쓰레드',
     contentFrequency: '주 2회',
+    variationAxes: AXES_FIXTURE,
     createdAt: '2026-04-10T00:00:00.000Z',
   },
   {
@@ -23,12 +30,13 @@ const MOCK_STRATEGIES: StrategyResponse[] = [
     productAnalysisId: 'pa-1',
     title: '데이터 기반',
     description: '수치와 데이터 중심 전략',
-    coreMessage: '핵심 메시지 2',
+    coreThesis: '핵심 메시지 2',
     campaignGoal: { type: 'traffic', description: '트래픽 목표 2' },
-    hookAngle: '훅 앵글 2',
-    callToAction: 'CTA 2',
+    hookDirection: '훅 앵글 2',
+    ctaDirection: 'CTA 2',
     contentFormat: '분석 리포트',
     contentFrequency: '주 1회',
+    variationAxes: AXES_FIXTURE,
     createdAt: '2026-04-10T00:00:00.000Z',
   },
 ];
