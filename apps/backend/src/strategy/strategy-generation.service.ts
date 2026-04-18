@@ -229,41 +229,45 @@ Each card must include the following fields:
 - title: A short name for the strategy direction (e.g., "Story-based awareness expansion")
 - description: A 2-3 sentence summary of the strategy
 - coreThesis: The THESIS your posts will argue — a claim a reader either agrees or disagrees with. NOT an ad tagline.
-  GOOD: "Most indie makers underestimate how fragmented the launch landscape has become — which is why solo launches fail."
-    → argues a position. Reader can disagree.
-  GOOD: "Solo travel's biggest hidden cost isn't money, it's the stories you don't have anyone to tell."
-    → makes a claim with an argument.
-  BAD: "Transform your launch experience with ${productName}."
-    → product pitch, not a thesis.
-  BAD: "Don't miss out on adventures — find your travel buddy."
-    → advertising copy.
+  Draw the claim from the positioningStatement, differentiators, or painPoints above. The claim should make one of those implicit beliefs explicit and arguable.
+  Shapes that usually work:
+    "Most [audience] believe X, but actually Y"
+    "The real reason [observed phenomenon] is [non-obvious cause]"
+    "[Common assumption] is backwards — and here is why"
+  BAD patterns to avoid (regardless of domain):
+    product pitch → "Transform your [thing] with ${productName}" (sells the product, does not argue a point)
+    ad tagline → "Don't miss out on X" / "Unlock your Y" (invitation, no claim)
+    vague truism → "X is important" / "Y matters" (nothing to disagree with)
 - campaignGoal: Campaign goal object. type must be one of "awareness", "traffic", "conversion", "community". description is a 1-2 sentence explanation of the goal direction (no numeric targets)
-- hookDirection: A specific hook angle the content should open with. Describe concretely which emotion/situation of the target it enters
+- hookDirection: A specific angle the content should open with. Describe concretely which emotion or situation of the target (drawn from painPoints or buyingTriggers above) the opening enters through. Not copy — a direction, 1-2 sentences.
 - ctaDirection: MUST match campaignGoal.type. Do NOT use "download", "sign up", or "visit" for awareness/community cards.
-  - awareness → invite reflection or experience-sharing in replies
-    (e.g., "What's the loneliest moment you had on a solo trip? Share below.")
-  - community → invite connection between readers
-    (e.g., "Reply with your next destination — maybe someone here is heading there too.")
-  - traffic → soft link direction with context
-    (e.g., "I wrote up the 12 platforms that moved the needle for me — link in bio.")
-  - conversion → only here, a direct product action
-    (e.g., "Try it free for your next launch.")
+  - awareness → invite reflection on one of the painPoints above. Ask readers to share a personal instance of that pain in replies.
+    Form: a question about a specific painPoint, ending with "share below" / "in the replies"
+  - community → invite horizontal connection between readers (not between reader and brand).
+    Form: a prompt that surfaces something readers might have in common with each other, or that routes them to each other
+  - traffic → tease an artifact the maker describes owning (writeup, checklist, tool, breakdown). End with "link in bio" or equivalent.
+    Form: "I [verb, past tense] [thing the audience wants from positioningStatement/differentiators] — link in bio"
+  - conversion → only here, a direct product action, tied to a specific buyingTrigger from above.
+    Form: "Try it when [specific buyingTrigger]"
 - contentFormat: High-level Threads content format (e.g., "Threads short post", "Threads reply-chain series", "Threads single post with image")
 - contentFrequency: Recommended posting frequency (e.g., "2-3 times per week", "4-6 times per month")
 - variationAxes: Three axes defining HOW posts under this strategy should differ from one another across runs.
   Each axis is a list of 4-5 concrete, distinct values. A later agent will pick one value from each axis per post, so the values must be independent enough that any combination is writable.
   The three axes are fixed: moment, emotion, time.
-  - moment: A specific scene/setting where the target encounters their pain — not an abstract theme.
-    GOOD: "eating dinner alone at a hostel in Lisbon", "standing in a crowded Bangkok market with nobody to message", "watching other groups laugh at a Santorini sunset bar"
-    BAD: "feeling lonely", "traveling abroad", "solo trip moments"
+  - moment: A single frame. A reader should be able to picture WHO is in it, WHERE they are, and WHAT they are doing or noticing. Each value draws from the painPoints and buyingTriggers above — do not invent new pain categories.
+    Shape: [where / setting] + [what the target is doing in that moment] + [one concrete ambient detail]
+    BAD patterns to avoid (regardless of domain):
+      abstract label → "feeling lonely", "when users feel overwhelmed" (not a scene, no frame)
+      category name → "during [product category] use", "in the [phase] stage" (the phase, not a moment)
+      collective/plural → "moments when users struggle", "times of anxiety" (generic, not a specific frame)
   - emotion: The emotional texture through which the coreThesis is entered. Avoid synonyms — each value should produce a different feel.
-    GOOD: "quiet humor", "restless hope", "defiant stubbornness", "exhausted relief", "dry matter-of-fact"
-    BAD: "sad", "happy", "lonely", "emotional"
-  - time: The temporal frame anchoring the story.
-    GOOD: "two years ago", "last month", "right now", "tomorrow morning", "mid-2024"
-    BAD: "past", "present", "future"
+    Shape: [adjective] + [noun] pairs. Examples of the shape (reuse safely — these describe emotional texture, not any product domain): "quiet humor", "restless hope", "defiant stubbornness", "exhausted relief", "dry matter-of-fact"
+    BAD patterns to avoid: single bare emotion labels like "sad", "happy", "anxious", "emotional"
+  - time: The temporal frame anchoring the story. The set should span near-past, distant-past, present, and near-future — but express each value as a specific timeframe, not as the category label.
+    Examples of the shape (reuse safely — these are time frames, not any product domain): "two years ago", "last Tuesday morning", "right now", "tomorrow afternoon", "mid-2024"
+    BAD patterns to avoid: bare category labels like "past", "present", "future", AND the shape-descriptor labels themselves like "near-past" / "distant-past" / "near-future" (those describe the span you should hit, not valid values)
 
-  The axes are scoped to this strategy's coreThesis and hookDirection — not generic. Think: "which moments/emotions/times make THIS thesis land?"
+  The axes are scoped to this strategy's coreThesis and hookDirection — not generic. Think: "which moments / emotions / times make THIS thesis land?"
 
 Respond in JSON format only. The top-level key is "cards" and its value is an array of objects with the above fields. Write all text in English.
 
