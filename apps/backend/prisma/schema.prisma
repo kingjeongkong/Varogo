@@ -98,14 +98,17 @@ model Strategy {
   // 전략 방향
   title       String
   description String
-  coreMessage String @map("core_message")
+  coreThesis  String @map("core_thesis")
 
   // 전략 핵심 요소
   campaignGoal     Json   @map("campaign_goal")
-  hookAngle        String @map("hook_angle")
-  callToAction     String @map("call_to_action")
+  hookDirection    String @map("hook_direction")
+  ctaDirection     String @map("cta_direction")
   contentFormat    String @map("content_format")
   contentFrequency String @map("content_frequency")
+
+  // Content variation
+  variationAxes Json @map("variation_axes")
 
   createdAt DateTime @default(now()) @map("created_at")
 

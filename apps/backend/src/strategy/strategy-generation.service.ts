@@ -87,13 +87,14 @@ export class StrategyGenerationService {
     const stringFields = [
       'title',
       'description',
-      'coreMessage',
-      'hookAngle',
-      'callToAction',
+      'coreThesis',
+      'hookDirection',
+      'ctaDirection',
       'contentFormat',
       'contentFrequency',
     ] as const;
     const validGoalTypes = ['awareness', 'traffic', 'conversion', 'community'];
+    const axisNames = ['moment', 'emotion', 'time'] as const;
     for (const card of result.cards) {
       for (const field of stringFields) {
         if (typeof card[field] !== 'string' || card[field].trim() === '') {
@@ -112,6 +113,26 @@ export class StrategyGenerationService {
         throw new InternalServerErrorException(
           'Invalid LLM response: card missing field "campaignGoal"',
         );
+      }
+      if (
+        typeof card.variationAxes !== 'object' ||
+        card.variationAxes === null
+      ) {
+        throw new InternalServerErrorException(
+          'Invalid LLM response: card missing field "variationAxes"',
+        );
+      }
+      for (const axis of axisNames) {
+        const values = card.variationAxes[axis];
+        if (
+          !Array.isArray(values) ||
+          values.length < 4 ||
+          values.some((v) => typeof v !== 'string' || v.trim() === '')
+        ) {
+          throw new InternalServerErrorException(
+            `Invalid LLM response: variationAxes.${axis} must be a string array with at least 4 values`,
+          );
+        }
       }
     }
   }
@@ -182,7 +203,7 @@ export class StrategyGenerationService {
     const { productName, productAnalysis } = input;
     return `You are a growth strategist helping indie makers design content experiments on Threads.
 You are NOT a copywriter. Your job is not to write ad copy, taglines, or calls to download.
-Your job is to define WHAT thesis each post should argue and WHICH audience emotion it enters through.
+Your job is to define WHAT thesis each post should argue, WHICH audience emotion it enters through, and WHICH concrete variations a writer can draw from across many posts.
 Copywriting happens in a later step by a different agent.
 
 Based on the product analysis below, create 2-3 "strategy candidate cards" for promoting this product on Threads.
@@ -201,13 +222,13 @@ Keywords: ${[...productAnalysis.keywords.primary, ...productAnalysis.keywords.se
 Competitors: ${productAnalysis.alternatives.map((a) => a.name).join(', ')}
 
 === Instructions ===
-Propose 2-3 distinct "strategy directions" as cards. Cards must differ from each other on at least 2 of the following axes: hookAngle, campaignGoal.type, contentFormat.
+Propose 2-3 distinct "strategy directions" as cards. Cards must differ from each other on at least 2 of the following dimensions: hookDirection, campaignGoal.type, contentFormat.
 If the "Why now" names a recent shift, consider making one of the cards a trend-hook card that leverages it.
 
 Each card must include the following fields:
 - title: A short name for the strategy direction (e.g., "Story-based awareness expansion")
 - description: A 2-3 sentence summary of the strategy
-- coreMessage: The THESIS your posts will argue — a claim a reader either agrees or disagrees with. NOT an ad tagline.
+- coreThesis: The THESIS your posts will argue — a claim a reader either agrees or disagrees with. NOT an ad tagline.
   GOOD: "Most indie makers underestimate how fragmented the launch landscape has become — which is why solo launches fail."
     → argues a position. Reader can disagree.
   GOOD: "Solo travel's biggest hidden cost isn't money, it's the stories you don't have anyone to tell."
@@ -217,8 +238,8 @@ Each card must include the following fields:
   BAD: "Don't miss out on adventures — find your travel buddy."
     → advertising copy.
 - campaignGoal: Campaign goal object. type must be one of "awareness", "traffic", "conversion", "community". description is a 1-2 sentence explanation of the goal direction (no numeric targets)
-- hookAngle: A specific hook angle the content should open with. Describe concretely which emotion/situation of the target it enters
-- callToAction: MUST match campaignGoal.type. Do NOT use "download", "sign up", or "visit" for awareness/community cards.
+- hookDirection: A specific hook angle the content should open with. Describe concretely which emotion/situation of the target it enters
+- ctaDirection: MUST match campaignGoal.type. Do NOT use "download", "sign up", or "visit" for awareness/community cards.
   - awareness → invite reflection or experience-sharing in replies
     (e.g., "What's the loneliest moment you had on a solo trip? Share below.")
   - community → invite connection between readers
@@ -229,6 +250,20 @@ Each card must include the following fields:
     (e.g., "Try it free for your next launch.")
 - contentFormat: High-level Threads content format (e.g., "Threads short post", "Threads reply-chain series", "Threads single post with image")
 - contentFrequency: Recommended posting frequency (e.g., "2-3 times per week", "4-6 times per month")
+- variationAxes: Three axes defining HOW posts under this strategy should differ from one another across runs.
+  Each axis is a list of 4-5 concrete, distinct values. A later agent will pick one value from each axis per post, so the values must be independent enough that any combination is writable.
+  The three axes are fixed: moment, emotion, time.
+  - moment: A specific scene/setting where the target encounters their pain — not an abstract theme.
+    GOOD: "eating dinner alone at a hostel in Lisbon", "standing in a crowded Bangkok market with nobody to message", "watching other groups laugh at a Santorini sunset bar"
+    BAD: "feeling lonely", "traveling abroad", "solo trip moments"
+  - emotion: The emotional texture through which the coreThesis is entered. Avoid synonyms — each value should produce a different feel.
+    GOOD: "quiet humor", "restless hope", "defiant stubbornness", "exhausted relief", "dry matter-of-fact"
+    BAD: "sad", "happy", "lonely", "emotional"
+  - time: The temporal frame anchoring the story.
+    GOOD: "two years ago", "last month", "right now", "tomorrow morning", "mid-2024"
+    BAD: "past", "present", "future"
+
+  The axes are scoped to this strategy's coreThesis and hookDirection — not generic. Think: "which moments/emotions/times make THIS thesis land?"
 
 Respond in JSON format only. The top-level key is "cards" and its value is an array of objects with the above fields. Write all text in English.
 
@@ -238,12 +273,17 @@ Example format:
     {
       "title": "...",
       "description": "...",
-      "coreMessage": "...",
+      "coreThesis": "...",
       "campaignGoal": { "type": "awareness", "description": "..." },
-      "hookAngle": "...",
-      "callToAction": "...",
+      "hookDirection": "...",
+      "ctaDirection": "...",
       "contentFormat": "...",
-      "contentFrequency": "..."
+      "contentFrequency": "...",
+      "variationAxes": {
+        "moment": ["...", "...", "...", "..."],
+        "emotion": ["...", "...", "...", "..."],
+        "time": ["...", "...", "...", "..."]
+      }
     }
   ]
 }`;
@@ -262,10 +302,10 @@ Differentiators: ${productAnalysis.differentiators.join(', ')}
 === Selected Strategy ===
 Title: ${strategy.title}
 Description: ${strategy.description}
-Core message: ${strategy.coreMessage}
+Core thesis: ${strategy.coreThesis}
 Campaign goal: ${strategy.campaignGoal.type} — ${strategy.campaignGoal.description}
-Hook angle: ${strategy.hookAngle}
-Call to action: ${strategy.callToAction}
+Hook direction: ${strategy.hookDirection}
+CTA direction: ${strategy.ctaDirection}
 Content format: ${strategy.contentFormat}
 Posting frequency: ${strategy.contentFrequency}
 
@@ -273,7 +313,7 @@ Posting frequency: ${strategy.contentFrequency}
 Based on the selected strategy, create a template that can be followed when writing actual posts.
 
 - contentPattern: Content pattern type. One of "series" (connected series), "standalone" (independent recurring posts), "one-off" (one-time post)
-- hookGuide: Guide for writing the post intro. How to pull readers in, reflecting the hookAngle
+- hookGuide: Guide for writing the post intro. How to pull readers in, reflecting the hookDirection
 - bodyStructure: Post body structure. At least 3 sections. Each section has the format { "name": "...", "guide": "...", "exampleSnippet": "..." }
 - ctaGuide: How to weave the call to action in naturally
 - toneGuide: Overall tone guide (e.g., "Casual but serious, without exaggeration")

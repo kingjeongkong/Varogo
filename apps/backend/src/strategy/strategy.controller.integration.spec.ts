@@ -25,27 +25,35 @@ import {
 import { StrategyGenerationService } from './strategy-generation.service';
 import { StrategyModule } from './strategy.module';
 
+const AXES_FIXTURE = {
+  moment: ['m1', 'm2', 'm3', 'm4'],
+  emotion: ['e1', 'e2', 'e3', 'e4'],
+  time: ['t1', 't2', 't3', 't4'],
+};
+
 const CARDS_RESULT = {
   cards: [
     {
       title: '스토리 기반',
       description: '창업 여정 공유',
-      coreMessage: '진짜 창업자의 고민',
+      coreThesis: '진짜 창업자의 고민',
       campaignGoal: { type: 'community', description: '커뮤니티 인지도 구축' },
-      hookAngle: '실패 경험 공개형 빌딩 저널',
-      callToAction: '댓글로 경험 공유해 주세요',
+      hookDirection: '실패 경험 공개형 빌딩 저널',
+      ctaDirection: '댓글로 경험 공유해 주세요',
       contentFormat: '경험 쓰레드',
       contentFrequency: '주 2~3회',
+      variationAxes: AXES_FIXTURE,
     },
     {
       title: '교육 기반',
       description: '실용 팁 공유',
-      coreMessage: '마케팅을 쉽게',
+      coreThesis: '마케팅을 쉽게',
       campaignGoal: { type: 'traffic', description: '랜딩페이지 유입 확보' },
-      hookAngle: '단계별 실용 팁 제공',
-      callToAction: '지금 무료로 시작해보세요',
+      hookDirection: '단계별 실용 팁 제공',
+      ctaDirection: '지금 무료로 시작해보세요',
       contentFormat: '교육 쓰레드',
       contentFrequency: '주 1~2회',
+      variationAxes: AXES_FIXTURE,
     },
   ],
 };
@@ -240,15 +248,16 @@ describe('StrategyController (integration)', () => {
         productAnalysisId,
         title: '스토리 기반',
         description: '창업 여정 공유',
-        coreMessage: '진짜 창업자의 고민',
+        coreThesis: '진짜 창업자의 고민',
         campaignGoal: {
           type: 'community',
           description: '커뮤니티 인지도 구축',
         },
-        hookAngle: '실패 경험 공개형 빌딩 저널',
-        callToAction: '댓글로 경험 공유해 주세요',
+        hookDirection: '실패 경험 공개형 빌딩 저널',
+        ctaDirection: '댓글로 경험 공유해 주세요',
         contentFormat: '경험 쓰레드',
         contentFrequency: '주 2~3회',
+        variationAxes: AXES_FIXTURE,
         createdAt: expect.any(String),
       });
 

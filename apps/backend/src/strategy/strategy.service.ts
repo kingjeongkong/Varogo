@@ -74,12 +74,13 @@ export class StrategyService {
       productAnalysisId: analysis.id,
       title: card.title,
       description: card.description,
-      coreMessage: card.coreMessage,
+      coreThesis: card.coreThesis,
       campaignGoal: card.campaignGoal as unknown as Prisma.InputJsonValue,
-      hookAngle: card.hookAngle,
-      callToAction: card.callToAction,
+      hookDirection: card.hookDirection,
+      ctaDirection: card.ctaDirection,
       contentFormat: card.contentFormat,
       contentFrequency: card.contentFrequency,
+      variationAxes: card.variationAxes as unknown as Prisma.InputJsonValue,
     }));
 
     const strategies = await this.prisma.$transaction((tx) =>
@@ -111,6 +112,8 @@ export class StrategyService {
           ...strategy,
           campaignGoal:
             strategy.campaignGoal as unknown as StrategyCardResult['campaignGoal'],
+          variationAxes:
+            strategy.variationAxes as unknown as StrategyCardResult['variationAxes'],
         },
       });
 

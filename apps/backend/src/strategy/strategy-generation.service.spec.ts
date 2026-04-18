@@ -53,28 +53,53 @@ const VALID_CARDS_RESULT: StrategyGenerationResult = {
     {
       title: '스토리 기반',
       description: '창업 여정을 공유하여 공감대 형성',
-      coreMessage: '진짜 창업자의 고민을 공유한다',
+      coreThesis: '진짜 창업자의 고민을 공유한다',
       campaignGoal: {
         type: 'community',
         description: '인디 개발자 커뮤니티 내 인지도 구축',
       },
-      hookAngle: '실패 경험 공개형 빌딩 저널',
-      callToAction: '댓글로 경험 공유해 주세요',
+      hookDirection: '실패 경험 공개형 빌딩 저널',
+      ctaDirection: '댓글로 경험 공유해 주세요',
       contentFormat: '개인 경험 쓰레드',
       contentFrequency: '주 2~3회',
+      variationAxes: {
+        moment: [
+          '새벽 3시 코드 앞',
+          '런칭 직후 대시보드',
+          '커피숍 구석',
+          '침대에서 지표 확인',
+        ],
+        emotion: ['조용한 체념', '억눌린 열정', '피곤한 희망', '담담한 자조'],
+        time: ['3개월 전', '어제', '바로 지금', '1년 전'],
+      },
     },
     {
       title: '교육 기반',
       description: '실용 팁을 공유하여 전문성 구축',
-      coreMessage: '마케팅을 쉽게 설명한다',
+      coreThesis: '마케팅을 쉽게 설명한다',
       campaignGoal: {
         type: 'traffic',
         description: '랜딩페이지 유입 확보',
       },
-      hookAngle: '단계별 실용 팁 제공',
-      callToAction: '지금 무료로 시작해보세요',
+      hookDirection: '단계별 실용 팁 제공',
+      ctaDirection: '지금 무료로 시작해보세요',
       contentFormat: '교육 쓰레드',
       contentFrequency: '주 1~2회',
+      variationAxes: {
+        moment: [
+          '런칭 전날 밤',
+          '첫 유저 0명',
+          'PH 댓글 확인',
+          '다음 기능 고민',
+        ],
+        emotion: [
+          '건조한 실용',
+          '가벼운 호기심',
+          '조심스러운 자신감',
+          '담백한 공유',
+        ],
+        time: ['지난 주', '두 달 전', '오늘 아침', '작년 이맘때'],
+      },
     },
   ],
 };
@@ -273,12 +298,17 @@ describe('StrategyGenerationService', () => {
             {
               title: '스토리 기반',
               description: 'desc',
-              coreMessage: 'core',
+              coreThesis: 'core',
               campaignGoal: { type: 'engagement', description: 'invalid type' },
-              hookAngle: 'hook',
-              callToAction: 'cta',
+              hookDirection: 'hook',
+              ctaDirection: 'cta',
               contentFormat: 'format',
               contentFrequency: 'freq',
+              variationAxes: {
+                moment: ['a', 'b', 'c', 'd'],
+                emotion: ['a', 'b', 'c', 'd'],
+                time: ['a', 'b', 'c', 'd'],
+              },
             },
           ],
         }),
@@ -290,6 +320,37 @@ describe('StrategyGenerationService', () => {
           productAnalysis: PRODUCT_ANALYSIS,
         }),
       ).rejects.toThrow('card missing field "campaignGoal"');
+    });
+
+    it('throws InternalServerErrorException when variationAxes.moment has fewer than 4 values', async () => {
+      mockCreate.mockResolvedValue(
+        buildChatResponse({
+          cards: [
+            {
+              title: '스토리 기반',
+              description: 'desc',
+              coreThesis: 'core',
+              campaignGoal: { type: 'community', description: 'desc' },
+              hookDirection: 'hook',
+              ctaDirection: 'cta',
+              contentFormat: 'format',
+              contentFrequency: 'freq',
+              variationAxes: {
+                moment: ['a', 'b'],
+                emotion: ['a', 'b', 'c', 'd'],
+                time: ['a', 'b', 'c', 'd'],
+              },
+            },
+          ],
+        }),
+      );
+
+      await expect(
+        service.generateCards({
+          productName: 'Varogo',
+          productAnalysis: PRODUCT_ANALYSIS,
+        }),
+      ).rejects.toThrow('variationAxes.moment');
     });
   });
 
@@ -320,8 +381,8 @@ describe('StrategyGenerationService', () => {
       >;
       const prompt = calls[0][0].messages[0].content;
       expect(prompt).toContain(SELECTED_STRATEGY.title);
-      expect(prompt).toContain(SELECTED_STRATEGY.coreMessage);
-      expect(prompt).toContain(SELECTED_STRATEGY.hookAngle);
+      expect(prompt).toContain(SELECTED_STRATEGY.coreThesis);
+      expect(prompt).toContain(SELECTED_STRATEGY.hookDirection);
       expect(prompt).toContain('Threads');
     });
 

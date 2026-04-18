@@ -3,15 +3,22 @@ export interface CampaignGoal {
   description: string;
 }
 
+export interface VariationAxes {
+  moment: string[];
+  emotion: string[];
+  time: string[];
+}
+
 export interface StrategyCardResult {
   title: string;
   description: string;
-  coreMessage: string;
+  coreThesis: string;
   campaignGoal: CampaignGoal;
-  hookAngle: string;
-  callToAction: string;
+  hookDirection: string;
+  ctaDirection: string;
   contentFormat: string;
   contentFrequency: string;
+  variationAxes: VariationAxes;
 }
 
 export interface StrategyGenerationResult {

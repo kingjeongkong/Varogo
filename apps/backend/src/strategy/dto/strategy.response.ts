@@ -1,6 +1,6 @@
 import type { JsonValue } from '@prisma/client/runtime/library';
 import type { BodySection } from '../types/content-template.type';
-import type { CampaignGoal } from '../types/strategy-card.type';
+import type { CampaignGoal, VariationAxes } from '../types/strategy-card.type';
 
 export type StrategyStatus = 'not_started' | 'cards_generated' | 'completed';
 
@@ -9,12 +9,13 @@ export interface StrategyResponse {
   productAnalysisId: string;
   title: string;
   description: string;
-  coreMessage: string;
+  coreThesis: string;
   campaignGoal: CampaignGoal;
-  hookAngle: string;
-  callToAction: string;
+  hookDirection: string;
+  ctaDirection: string;
   contentFormat: string;
   contentFrequency: string;
+  variationAxes: VariationAxes;
   createdAt: Date;
 }
 
@@ -47,12 +48,13 @@ export function toStrategyResponse(strategy: {
   productAnalysisId: string;
   title: string;
   description: string;
-  coreMessage: string;
+  coreThesis: string;
   campaignGoal: JsonValue;
-  hookAngle: string;
-  callToAction: string;
+  hookDirection: string;
+  ctaDirection: string;
   contentFormat: string;
   contentFrequency: string;
+  variationAxes: JsonValue;
   createdAt: Date;
 }): StrategyResponse {
   return {
@@ -60,12 +62,13 @@ export function toStrategyResponse(strategy: {
     productAnalysisId: strategy.productAnalysisId,
     title: strategy.title,
     description: strategy.description,
-    coreMessage: strategy.coreMessage,
+    coreThesis: strategy.coreThesis,
     campaignGoal: strategy.campaignGoal as unknown as CampaignGoal,
-    hookAngle: strategy.hookAngle,
-    callToAction: strategy.callToAction,
+    hookDirection: strategy.hookDirection,
+    ctaDirection: strategy.ctaDirection,
     contentFormat: strategy.contentFormat,
     contentFrequency: strategy.contentFrequency,
+    variationAxes: strategy.variationAxes as unknown as VariationAxes,
     createdAt: strategy.createdAt,
   };
 }
