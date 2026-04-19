@@ -8,6 +8,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { ThreadsCryptoService } from './threads-crypto.service';
+import type {
+  ThreadsApiPost,
+  ThreadsVoiceUnit,
+} from './types/threads-voice-unit.type';
+
+const VOICE_UNIT_MAIN_LIMIT = 25;
+const VOICE_UNIT_PART_SEPARATOR = '\n\n';
 
 const THREADS_AUTH_BASE = 'https://threads.net/oauth/authorize';
 const THREADS_TOKEN_URL = 'https://graph.threads.net/oauth/access_token';
@@ -204,6 +211,110 @@ export class ThreadsService {
     }
 
     return { threadsMediaId: publishData.id, permalink };
+  }
+
+  async getUserVoiceUnits(userId: string): Promise<ThreadsVoiceUnit[]> {
+    const connection = await this.prisma.threadsConnection.findUnique({
+      where: { userId },
+    });
+
+    if (!connection) {
+      throw new NotFoundException('Threads connection not found');
+    }
+
+    const accessToken = await this.resolveAccessToken(userId, connection);
+    const mainPosts = await this.fetchMainPosts(
+      connection.threadsUserId,
+      accessToken,
+    );
+
+    const units: ThreadsVoiceUnit[] = [];
+    for (const main of mainPosts) {
+      const ownReplies = await this.fetchOwnReplies(
+        main.id,
+        connection.threadsUserId,
+        accessToken,
+      );
+      const parts = [main.text ?? '', ...ownReplies.map((r) => r.text ?? '')]
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+
+      if (parts.length === 0) continue;
+
+      units.push({
+        id: main.id,
+        text: parts.join(VOICE_UNIT_PART_SEPARATOR),
+        timestamp: main.timestamp,
+        permalink: main.permalink ?? null,
+        partCount: parts.length,
+      });
+    }
+
+    return units.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  }
+
+  private async fetchMainPosts(
+    threadsUserId: string,
+    accessToken: string,
+  ): Promise<ThreadsApiPost[]> {
+    const params = new URLSearchParams({
+      fields: 'id,text,timestamp,permalink',
+      limit: String(VOICE_UNIT_MAIN_LIMIT),
+    });
+
+    const res = await fetch(
+      `${THREADS_API_BASE}/${threadsUserId}/threads?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+
+    if (res.status === 401) {
+      throw new UnauthorizedException(
+        'Threads token expired. Please reconnect your account.',
+      );
+    }
+
+    if (!res.ok) {
+      this.logger.error(`Threads main posts fetch failed: ${res.status}`);
+      throw new InternalServerErrorException('Failed to fetch Threads posts');
+    }
+
+    const data = (await res.json()) as { data?: ThreadsApiPost[] };
+    return data.data ?? [];
+  }
+
+  private async fetchOwnReplies(
+    parentPostId: string,
+    threadsUserId: string,
+    accessToken: string,
+  ): Promise<ThreadsApiPost[]> {
+    const params = new URLSearchParams({
+      fields: 'id,text,timestamp,from',
+    });
+
+    try {
+      const res = await fetch(
+        `${THREADS_API_BASE}/${parentPostId}/conversation?${params.toString()}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+
+      if (!res.ok) {
+        this.logger.warn(
+          `Conversation fetch failed for ${parentPostId}: ${res.status}. Falling back to main only.`,
+        );
+        return [];
+      }
+
+      const data = (await res.json()) as { data?: ThreadsApiPost[] };
+      const entries = data.data ?? [];
+      return entries
+        .filter((e) => e.from?.id === threadsUserId && e.id !== parentPostId)
+        .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    } catch (error) {
+      this.logger.warn(
+        `Conversation fetch threw for ${parentPostId}: ${String(error)}. Falling back to main only.`,
+      );
+      return [];
+    }
   }
 
   private async resolveAccessToken(

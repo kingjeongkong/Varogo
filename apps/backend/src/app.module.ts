@@ -8,6 +8,7 @@ import { LlmModule } from './llm/llm.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
 import { ThreadsModule } from './threads/threads.module';
+import { VoiceProfileModule } from './voice-profile/voice-profile.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     AuthModule,
     ProductModule,
     ThreadsModule,
+    VoiceProfileModule,
   ],
   controllers: [AppController],
   providers: [
