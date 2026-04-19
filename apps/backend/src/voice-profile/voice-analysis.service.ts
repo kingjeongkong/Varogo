@@ -32,6 +32,7 @@ export class VoiceAnalysisService {
     const styleFingerprint: StyleFingerprint = {
       tonality: qualitative.tonality,
       openingPatterns: qualitative.openingPatterns,
+      signaturePhrases: qualitative.signaturePhrases,
       avgLength: stats.avgLength,
       emojiDensity: stats.emojiDensity,
       hashtagUsage: stats.hashtagUsage,
@@ -99,42 +100,47 @@ export class VoiceAnalysisService {
       .map((u, i) => `${i + 1}. "${u.text.replace(/"/g, '\\"')}"`)
       .join('\n');
 
-    return `You are analyzing a Threads writer's voice from their actual posts.
+    return `You are analyzing a writer's voice from their social-media posts. Identify HOW they write — their formal habits — not WHAT they write about.
+
+If your output describes their topics, opinions, expertise area, or worldview, you have failed. Voice = form, not content.
 
 === Posts ===
 ${enumerated}
 
 === Task ===
-Return JSON with these two fields:
+Return JSON with three fields. Every claim must be grounded in specific posts.
 
-1. "tonality" — ONE sentence (max 25 words) describing how this person writes.
-   MUST contain at least one of these structural elements:
-   - A specific phrase pattern they use (quoted from posts)
-   - A contrast they make (e.g., "X but never Y")
-   - A grammatical habit (e.g., "starts most posts with a question")
-   Forbidden words: "casual", "friendly", "professional", "approachable", "engaging".
+1. "signaturePhrases" — Array of 0-6 exact strings copied verbatim from posts.
+   Each phrase must:
+   - Be 2 to 8 words
+   - Appear verbatim in 2 or more posts
+   - Be distinctive (skip generic openers like "I think" or "you know" — those go in openingPatterns)
+   Copy exactly, including punctuation and capitalization.
+   Return [] if no phrase qualifies.
 
-2. "openingPatterns" — Array of 2-4 strings. Each string is a CONCRETE
-   opening pattern observed in 3+ posts, in this format:
-   "[pattern description] (e.g., post #N)"
+2. "openingPatterns" — Array of 0-3 strings. Patterns observed at the START of 3 or more posts.
+   Required format: "[pattern description]. Posts: #N, #N, #N" (3+ post numbers).
+   If a pattern appears in fewer than 3 posts, do not include it. Return [] if no qualifying patterns.
 
-   Example: "Starts with a self-correction (e.g., post #4, #12, #23)"
-
-Rules:
-- Every claim must reference at least one post by number.
-- No generic adjectives without evidence.
-- If you cannot find a pattern in 3+ posts, do not include it.`;
+3. "tonality" — ONE sentence (max 25 words) describing FORM only.
+   Must mention at least one of: sentence rhythm, paragraph structure, punctuation habits, or transition habits.
+   Forbidden words: "casual", "friendly", "professional", "approachable", "engaging", "dissects", "highlights", "explores", "shares", "reflects".
+   Do NOT describe what the writer thinks about or analyzes — describe the SHAPE of their writing.`;
   }
 
   private readonly responseSchema = {
     type: Type.OBJECT,
     properties: {
-      tonality: { type: Type.STRING },
+      signaturePhrases: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
+      },
       openingPatterns: {
         type: Type.ARRAY,
         items: { type: Type.STRING },
       },
+      tonality: { type: Type.STRING },
     },
-    required: ['tonality', 'openingPatterns'],
+    required: ['signaturePhrases', 'openingPatterns', 'tonality'],
   };
 }

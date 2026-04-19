@@ -87,7 +87,8 @@ describe('VoiceAnalysisService', () => {
         text: JSON.stringify({
           tonality:
             'opens with deadpan single-line observations (e.g., post #1)',
-          openingPatterns: ['Starts with a noun phrase (e.g., post #1, #2)'],
+          openingPatterns: ['Starts with a noun phrase. Posts: #1, #2, #3'],
+          signaturePhrases: ['you can feel it', 'which, fine.'],
         }),
       });
 
@@ -97,6 +98,10 @@ describe('VoiceAnalysisService', () => {
       expect(result.sampleCount).toBe(2);
       expect(result.styleFingerprint.tonality).toContain('deadpan');
       expect(result.styleFingerprint.openingPatterns).toHaveLength(1);
+      expect(result.styleFingerprint.signaturePhrases).toEqual([
+        'you can feel it',
+        'which, fine.',
+      ]);
       expect(result.styleFingerprint.avgLength).toBeGreaterThan(0);
       expect(result.referenceSamples).toHaveLength(2);
       expect(result.referenceSamples[0].text).toBe('first post text');
@@ -108,7 +113,11 @@ describe('VoiceAnalysisService', () => {
         unit(String(i), `post ${i}`),
       );
       mockGenerateContent.mockResolvedValueOnce({
-        text: JSON.stringify({ tonality: 't', openingPatterns: [] }),
+        text: JSON.stringify({
+          tonality: 't',
+          openingPatterns: [],
+          signaturePhrases: [],
+        }),
       });
 
       const result = await service.analyze(many);
@@ -118,7 +127,11 @@ describe('VoiceAnalysisService', () => {
 
     it('uses gemini-2.5-flash-lite with structured JSON output config', async () => {
       mockGenerateContent.mockResolvedValueOnce({
-        text: JSON.stringify({ tonality: 't', openingPatterns: [] }),
+        text: JSON.stringify({
+          tonality: 't',
+          openingPatterns: [],
+          signaturePhrases: [],
+        }),
       });
 
       await service.analyze(sampleUnits);

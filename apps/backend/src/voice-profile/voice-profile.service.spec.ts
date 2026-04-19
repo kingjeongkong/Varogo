@@ -39,6 +39,7 @@ const VALID_ANALYSIS: VoiceAnalysisResult = {
     tonality: 'deadpan single-liners',
     avgLength: 80,
     openingPatterns: ['Starts with a question'],
+    signaturePhrases: ['you can feel it'],
     emojiDensity: 0.5,
     hashtagUsage: 0.2,
   },

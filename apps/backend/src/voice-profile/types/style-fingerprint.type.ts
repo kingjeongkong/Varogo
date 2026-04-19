@@ -2,13 +2,14 @@ export interface StyleFingerprint {
   tonality: string;
   avgLength: number;
   openingPatterns: string[];
+  signaturePhrases: string[];
   emojiDensity: number;
   hashtagUsage: number;
 }
 
 export type QualitativeFingerprint = Pick<
   StyleFingerprint,
-  'tonality' | 'openingPatterns'
+  'tonality' | 'openingPatterns' | 'signaturePhrases'
 >;
 
 export type QuantitativeStats = Pick<
