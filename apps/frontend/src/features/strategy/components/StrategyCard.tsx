@@ -41,12 +41,12 @@ export function StrategyCard({
         {strategy.description}
       </p>
 
-      {/* Core Message */}
+      {/* Core Thesis */}
       <div className="rounded-lg bg-primary-dim border-l-2 border-primary/30 px-4 py-3 mb-3">
         <p className="text-xs font-mono text-primary uppercase tracking-wider mb-1">
-          Core Message
+          Core Thesis
         </p>
-        <p className="text-sm text-text-secondary">{strategy.coreMessage}</p>
+        <p className="text-sm text-text-secondary">{strategy.coreThesis}</p>
       </div>
 
       {/* Campaign Goal */}
@@ -64,20 +64,20 @@ export function StrategyCard({
         </p>
       </div>
 
-      {/* Hook Angle */}
+      {/* Hook Direction */}
       <div className="rounded-lg bg-surface-elevated border-l-2 border-border/60 px-4 py-3 mb-3">
         <p className="text-xs font-mono text-text-muted uppercase tracking-wider mb-1">
-          Hook Angle
+          Hook Direction
         </p>
-        <p className="text-sm text-text-secondary">{strategy.hookAngle}</p>
+        <p className="text-sm text-text-secondary">{strategy.hookDirection}</p>
       </div>
 
-      {/* Call to Action */}
+      {/* CTA Direction */}
       <div className="rounded-lg bg-surface-elevated border-l-2 border-border/60 px-4 py-3 mb-4">
         <p className="text-xs font-mono text-text-muted uppercase tracking-wider mb-1">
-          Call to Action
+          CTA Direction
         </p>
-        <p className="text-sm text-text-secondary">{strategy.callToAction}</p>
+        <p className="text-sm text-text-secondary">{strategy.ctaDirection}</p>
       </div>
 
       {/* Content Format + Frequency */}

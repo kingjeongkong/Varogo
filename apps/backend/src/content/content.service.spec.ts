@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContentGenerationService } from './content-generation.service';
 import { ContentService } from './content.service';
+import type { VariationDirective } from './types/content-generation.type';
 
 const mockPrisma = {
   strategy: {
@@ -73,12 +74,17 @@ const STRATEGY_FIXTURE = {
   productAnalysisId: ANALYSIS_ID,
   title: 'Story Thread',
   description: 'Share your journey',
-  coreMessage: 'Build in public',
+  coreThesis: 'Build in public',
   campaignGoal: { type: 'community', description: 'Build indie community' },
-  hookAngle: 'Failure story as entry point',
-  callToAction: 'Share your experience in comments',
+  hookDirection: 'Failure story as entry point',
+  ctaDirection: 'Share your experience in comments',
   contentFormat: 'Thread',
   contentFrequency: '2-3 times a week',
+  variationAxes: {
+    moment: ['m1', 'm2', 'm3', 'm4'],
+    emotion: ['e1', 'e2', 'e3', 'e4'],
+    time: ['t1', 't2', 't3', 't4'],
+  },
   createdAt: new Date('2026-04-10'),
   contentTemplate: TEMPLATE_FIXTURE,
   productAnalysis: PRODUCT_ANALYSIS_FIXTURE,
@@ -204,7 +210,7 @@ describe('ContentService', () => {
           }) as Record<string, unknown>,
           strategy: expect.objectContaining({
             title: STRATEGY_FIXTURE.title,
-            coreMessage: STRATEGY_FIXTURE.coreMessage,
+            coreThesis: STRATEGY_FIXTURE.coreThesis,
           }) as Record<string, unknown>,
           template: expect.objectContaining({
             toneGuide: TEMPLATE_FIXTURE.toneGuide,
@@ -212,6 +218,18 @@ describe('ContentService', () => {
           }) as Record<string, unknown>,
         }),
       );
+
+      const call = mockContentGenerationService.generateContent.mock
+        .calls[0][0] as { variationDirective: VariationDirective };
+      expect(
+        STRATEGY_FIXTURE.variationAxes.moment,
+      ).toContain(call.variationDirective.moment);
+      expect(
+        STRATEGY_FIXTURE.variationAxes.emotion,
+      ).toContain(call.variationDirective.emotion);
+      expect(
+        STRATEGY_FIXTURE.variationAxes.time,
+      ).toContain(call.variationDirective.time);
       expect(mockPrisma.content.create).toHaveBeenCalledWith({
         data: {
           strategyId: STRATEGY_ID,

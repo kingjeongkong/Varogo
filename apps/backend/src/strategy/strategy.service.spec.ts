@@ -62,18 +62,25 @@ const ANALYSIS_FIXTURE = {
   },
 };
 
+const AXES_FIXTURE = {
+  moment: ['m1', 'm2', 'm3', 'm4'],
+  emotion: ['e1', 'e2', 'e3', 'e4'],
+  time: ['t1', 't2', 't3', 't4'],
+};
+
 function makeStrategy(id: string) {
   return {
     id,
     productAnalysisId: ANALYSIS_ID,
     title: `title-${id}`,
     description: `desc-${id}`,
-    coreMessage: `core-${id}`,
+    coreThesis: `core-${id}`,
     campaignGoal: { type: 'awareness', description: `goal-${id}` },
-    hookAngle: `hook-${id}`,
-    callToAction: `cta-${id}`,
+    hookDirection: `hook-${id}`,
+    ctaDirection: `cta-${id}`,
     contentFormat: `format-${id}`,
     contentFrequency: `freq-${id}`,
+    variationAxes: AXES_FIXTURE,
     createdAt: new Date('2026-04-10'),
   };
 }
@@ -83,22 +90,24 @@ const GENERATED_CARDS = {
     {
       title: 'Story',
       description: 'desc',
-      coreMessage: 'core',
+      coreThesis: 'core',
       campaignGoal: { type: 'community', description: 'goal' },
-      hookAngle: 'hook',
-      callToAction: 'cta',
+      hookDirection: 'hook',
+      ctaDirection: 'cta',
       contentFormat: 'format',
       contentFrequency: 'freq',
+      variationAxes: AXES_FIXTURE,
     },
     {
       title: 'Education',
       description: 'desc2',
-      coreMessage: 'core2',
+      coreThesis: 'core2',
       campaignGoal: { type: 'traffic', description: 'goal2' },
-      hookAngle: 'hook2',
-      callToAction: 'cta2',
+      hookDirection: 'hook2',
+      ctaDirection: 'cta2',
       contentFormat: 'format2',
       contentFrequency: 'freq2',
+      variationAxes: AXES_FIXTURE,
     },
   ],
 };

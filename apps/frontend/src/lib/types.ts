@@ -68,20 +68,27 @@ export interface ProductWithAnalysis extends Product {
 
 export type StrategyStatus = 'not_started' | 'cards_generated' | 'completed';
 
+export interface VariationAxes {
+  moment: string[];
+  emotion: string[];
+  time: string[];
+}
+
 export interface StrategyResponse {
   id: string;
   productAnalysisId: string;
   title: string;
   description: string;
-  coreMessage: string;
+  coreThesis: string;
   campaignGoal: {
     type: 'awareness' | 'traffic' | 'conversion' | 'community';
     description: string;
   };
-  hookAngle: string;
-  callToAction: string;
+  hookDirection: string;
+  ctaDirection: string;
   contentFormat: string;
   contentFrequency: string;
+  variationAxes: VariationAxes;
   createdAt: string;
 }
 

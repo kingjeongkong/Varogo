@@ -1,6 +1,12 @@
 import type { BodySection } from '../../strategy/types/content-template.type';
 import type { CampaignGoal } from '../../strategy/types/strategy-card.type';
 
+export interface VariationDirective {
+  moment: string;
+  emotion: string;
+  time: string;
+}
+
 export interface GenerateContentInput {
   productAnalysis: {
     category: string;
@@ -13,10 +19,10 @@ export interface GenerateContentInput {
   strategy: {
     title: string;
     description: string;
-    coreMessage: string;
+    coreThesis: string;
     campaignGoal: CampaignGoal;
-    hookAngle: string;
-    callToAction: string;
+    hookDirection: string;
+    ctaDirection: string;
     contentFormat: string;
   };
   template: {
@@ -29,6 +35,7 @@ export interface GenerateContentInput {
     platformTips: string[];
     dontDoList: string[];
   };
+  variationDirective: VariationDirective;
 }
 
 export interface ContentGenerationResult {

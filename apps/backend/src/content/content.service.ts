@@ -1,8 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ProductAnalysisResult } from '../product/types/product-analysis.type';
+import type { VariationAxes } from '../strategy/types/strategy-card.type';
 import { ContentGenerationService } from './content-generation.service';
-import type { GenerateContentInput } from './types/content-generation.type';
+import type {
+  GenerateContentInput,
+  VariationDirective,
+} from './types/content-generation.type';
 
 @Injectable()
 export class ContentService {
@@ -58,11 +62,11 @@ export class ContentService {
       strategy: {
         title: strategy.title,
         description: strategy.description,
-        coreMessage: strategy.coreMessage,
+        coreThesis: strategy.coreThesis,
         campaignGoal:
           strategy.campaignGoal as unknown as GenerateContentInput['strategy']['campaignGoal'],
-        hookAngle: strategy.hookAngle,
-        callToAction: strategy.callToAction,
+        hookDirection: strategy.hookDirection,
+        ctaDirection: strategy.ctaDirection,
         contentFormat: strategy.contentFormat,
       },
       template: {
@@ -76,6 +80,9 @@ export class ContentService {
         platformTips: template.platformTips as unknown as string[],
         dontDoList: template.dontDoList as unknown as string[],
       },
+      variationDirective: this.pickDirective(
+        strategy.variationAxes as unknown as VariationAxes,
+      ),
     };
 
     const result = await this.contentGenerationService.generateContent(input);
@@ -100,6 +107,15 @@ export class ContentService {
       }
       throw error;
     }
+  }
+
+  private pickDirective(axes: VariationAxes): VariationDirective {
+    const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+    return {
+      moment: pick(axes.moment),
+      emotion: pick(axes.emotion),
+      time: pick(axes.time),
+    };
   }
 
   private async loadStrategyOrThrow(
