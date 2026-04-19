@@ -66,19 +66,13 @@ export class ProductService {
   async findOneByUser(id: string, userId: string) {
     const product = await this.prisma.product.findFirst({
       where: { id, userId },
-      include: {
-        analyses: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
+      include: { analysis: true },
     });
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    const { analyses, ...rest } = product;
-    return { ...rest, analysis: analyses[0] ?? null };
+    return product;
   }
 }

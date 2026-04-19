@@ -15,13 +15,13 @@ export const TEST_USER = {
  * Update this list after each schema migration that adds new models.
  *
  * Current order:
- *   Content → StrategyContentTemplate → Strategy → ThreadsConnection → RefreshToken → Account → User
+ *   HookOption → PostDraft → VoiceProfile → ThreadsConnection → RefreshToken → Account → User
  *   (cascade deletes handle ProductAnalysis, Product)
  */
 export async function clearDatabase(): Promise<void> {
-  await prisma.content.deleteMany();
-  await prisma.strategyContentTemplate.deleteMany();
-  await prisma.strategy.deleteMany();
+  await prisma.hookOption.deleteMany();
+  await prisma.postDraft.deleteMany();
+  await prisma.voiceProfile.deleteMany();
   await prisma.threadsConnection.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.account.deleteMany();

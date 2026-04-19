@@ -18,6 +18,7 @@ model User {
   accounts          Account[]
   refreshTokens     RefreshToken[]
   products          Product[]
+  voiceProfile      VoiceProfile?
   threadsConnection ThreadsConnection?
 
   @@map("users")
@@ -63,8 +64,9 @@ model Product {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analyses ProductAnalysis[]
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysis ProductAnalysis?
+  posts    PostDraft[]
 
   @@index([userId])
   @@map("products")
@@ -72,7 +74,7 @@ model Product {
 
 model ProductAnalysis {
   id                   String   @id @default(uuid())
-  productId            String   @map("product_id")
+  productId            String   @unique @map("product_id")
   category             String
   jobToBeDone          String   @map("job_to_be_done")
   whyNow               String   @map("why_now")
@@ -83,70 +85,61 @@ model ProductAnalysis {
   positioningStatement String   @map("positioning_statement")
   keywords             Json
   createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
-  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  strategies Strategy[]
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@index([productId])
   @@map("product_analyses")
 }
 
-model Strategy {
-  id                String @id @default(uuid())
-  productAnalysisId String @map("product_analysis_id")
+model VoiceProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  source           String
+  sampleCount      Int      @map("sample_count")
+  styleFingerprint Json     @map("style_fingerprint")
+  referenceSamples Json     @map("reference_samples")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
-  // 전략 방향
-  title       String
-  description String
-  coreThesis  String @map("core_thesis")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // 전략 핵심 요소
-  campaignGoal     Json   @map("campaign_goal")
-  hookDirection    String @map("hook_direction")
-  ctaDirection     String @map("cta_direction")
-  contentFormat    String @map("content_format")
-  contentFrequency String @map("content_frequency")
-
-  // Content variation
-  variationAxes Json @map("variation_axes")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  productAnalysis ProductAnalysis          @relation(fields: [productAnalysisId], references: [id], onDelete: Cascade)
-  contentTemplate StrategyContentTemplate?
-  content         Content?
-
-  @@index([productAnalysisId])
-  @@map("strategies")
+  @@map("voice_profiles")
 }
 
-model StrategyContentTemplate {
-  id             String   @id @default(uuid())
-  strategyId     String   @unique @map("strategy_id")
-  contentPattern String   @map("content_pattern")
-  hookGuide      String   @map("hook_guide")
-  bodyStructure  Json     @map("body_structure")
-  ctaGuide       String   @map("cta_guide")
-  toneGuide      String   @map("tone_guide")
-  lengthGuide    String   @map("length_guide")
-  platformTips   Json     @map("platform_tips")
-  dontDoList     Json     @map("dont_do_list")
-  createdAt      DateTime @default(now()) @map("created_at")
+model PostDraft {
+  id             String    @id @default(uuid())
+  productId      String    @map("product_id")
+  todayInput     String?   @map("today_input")
+  selectedHookId String?   @map("selected_hook_id")
+  body           String
+  status         String
+  publishedAt    DateTime? @map("published_at")
+  threadsMediaId String?   @map("threads_media_id")
+  permalink      String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  hookOptions HookOption[]
 
-  @@map("strategy_content_templates")
+  @@index([productId])
+  @@index([status])
+  @@map("post_drafts")
 }
 
-model Content {
-  id         String   @id @default(uuid())
-  strategyId String   @unique @map("strategy_id")
-  body       String
-  createdAt  DateTime @default(now()) @map("created_at")
+model HookOption {
+  id          String   @id @default(uuid())
+  postDraftId String   @map("post_draft_id")
+  text        String
+  angleLabel  String   @map("angle_label")
+  selected    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  postDraft PostDraft @relation(fields: [postDraftId], references: [id], onDelete: Cascade)
 
-  @@map("contents")
+  @@index([postDraftId])
+  @@map("hook_options")
 }
 
 model ThreadsConnection {

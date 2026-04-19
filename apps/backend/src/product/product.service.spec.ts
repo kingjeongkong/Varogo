@@ -179,7 +179,7 @@ describe('ProductService', () => {
   });
 
   describe('findOneByUser', () => {
-    it('returns product with latest analysis reshaped to single analysis field', async () => {
+    it('returns product with its analysis included', async () => {
       const mockAnalysis = {
         id: 'analysis-1',
         productId: 'product-1',
@@ -190,7 +190,7 @@ describe('ProductService', () => {
         id: 'product-1',
         userId: 'user-1',
         name: 'Test Product',
-        analyses: [mockAnalysis],
+        analysis: mockAnalysis,
       };
       mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
 
@@ -198,29 +198,18 @@ describe('ProductService', () => {
 
       expect(mockPrisma.product.findFirst).toHaveBeenCalledWith({
         where: { id: 'product-1', userId: 'user-1' },
-        include: {
-          analyses: {
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
-        },
+        include: { analysis: true },
       });
 
-      expect(result).toEqual({
-        id: 'product-1',
-        userId: 'user-1',
-        name: 'Test Product',
-        analysis: mockAnalysis,
-      });
-      expect(result).not.toHaveProperty('analyses');
+      expect(result).toEqual(mockProduct);
     });
 
-    it('returns analysis as null when product has no analyses', async () => {
+    it('returns analysis as null when product has no analysis', async () => {
       const mockProduct = {
         id: 'product-1',
         userId: 'user-1',
         name: 'Test Product',
-        analyses: [],
+        analysis: null,
       };
       mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
 
