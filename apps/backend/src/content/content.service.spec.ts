@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContentGenerationService } from './content-generation.service';
 import { ContentService } from './content.service';
+import type { VariationDirective } from './types/content-generation.type';
 
 const mockPrisma = {
   strategy: {
@@ -217,6 +218,18 @@ describe('ContentService', () => {
           }) as Record<string, unknown>,
         }),
       );
+
+      const call = mockContentGenerationService.generateContent.mock
+        .calls[0][0] as { variationDirective: VariationDirective };
+      expect(
+        STRATEGY_FIXTURE.variationAxes.moment,
+      ).toContain(call.variationDirective.moment);
+      expect(
+        STRATEGY_FIXTURE.variationAxes.emotion,
+      ).toContain(call.variationDirective.emotion);
+      expect(
+        STRATEGY_FIXTURE.variationAxes.time,
+      ).toContain(call.variationDirective.time);
       expect(mockPrisma.content.create).toHaveBeenCalledWith({
         data: {
           strategyId: STRATEGY_ID,

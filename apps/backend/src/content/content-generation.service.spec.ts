@@ -68,6 +68,11 @@ const VALID_INPUT: GenerateContentInput = {
     platformTips: ['해시태그 2~3개', '이미지 첨부', '오전 게시'],
     dontDoList: ['직접 홍보 금지', '과장 금지', '링크만 금지'],
   },
+  variationDirective: {
+    moment: '새벽 3시 코드 앞에 앉아 지표를 확인하는 순간',
+    emotion: '조용한 체념',
+    time: '3개월 전',
+  },
 };
 
 const VALID_RESULT: ContentGenerationResult = {

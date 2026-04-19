@@ -54,7 +54,7 @@ export class ContentGenerationService {
   }
 
   private buildPrompt(input: GenerateContentInput): string {
-    const { productAnalysis, strategy, template } = input;
+    const { productAnalysis, strategy, template, variationDirective } = input;
     const targetAudience = productAnalysis.targetAudience as {
       definition: string;
     };
@@ -99,6 +99,17 @@ Platform tips:
 ${platformTipsGuide}
 Things to avoid:
 ${dontDoGuide}
+
+=== Variation direction for THIS post ===
+Approach this post through:
+- Moment: ${variationDirective.moment}
+- Emotion: ${variationDirective.emotion}
+- Time: ${variationDirective.time}
+
+The moment is the scene the narrator opens inside — ground the first line there, concretely (who is where, doing what).
+The emotion is the texture the coreThesis lands with — the voice should feel that way, not announce it.
+The time is when the story happened — use it to frame tense and distance ("last Tuesday", "two years ago", "right now", etc.).
+These are directions, not quotes. Weave them into the narrative; do not list or label them in the output.
 
 === Instructions ===
 Use the template above as reference, but write it as a single naturally flowing piece without section breaks.
