@@ -107,14 +107,23 @@ Approach this post through:
 - Time: ${variationDirective.time}
 
 The moment is the scene the narrator opens inside — ground the first line there, concretely (who is where, doing what).
-The emotion is the texture the coreThesis lands with — the voice should feel that way, not announce it.
+The emotion is the TEXTURE of the voice, not its vocabulary. It shapes WHICH WORDS YOU CHOOSE and the PACING of your sentences. It must NEVER appear as a word in the body.
+  BAD: "I felt a pang of wistful nostalgia" — the directive word is being named
+  BAD: "A quiet determination filled me" — same, the directive is announced
+  GOOD: use softer verbs, longer pauses, past tense — let the reader FEEL wistful nostalgia without ever seeing the words
 The time is when the story happened — use it to frame tense and distance ("last Tuesday", "two years ago", "right now", etc.).
 These are directions, not quotes. Weave them into the narrative; do not list or label them in the output.
 
 === Instructions ===
 Use the template above as reference, but write it as a single naturally flowing piece without section breaks.
 Given Threads' characteristics (conversational, hook-driven), write naturally without sounding like an ad.
-The content body MUST be 300 characters or fewer. Be concise and impactful.
+
+=== Length rule (critical) ===
+The body MUST be 300 characters or fewer, counting spaces and punctuation.
+- A typical strong Threads post in this pipeline lands at 200-270 characters.
+- 300 characters is roughly 45-55 English words.
+- Before returning, count the characters of your draft. If over 300, cut. The fastest cut is usually the middle — collapse the tension + reframe into a single sentence.
+- Do NOT return a body longer than 300 characters.
 
 Respond in JSON format only. The top-level key is "body" and its value is the finished content string. Write all text in English.
 
