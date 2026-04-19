@@ -408,4 +408,188 @@ describe('ThreadsService', () => {
       );
     });
   });
+
+  describe('getUserVoiceUnits', () => {
+    const userId = 'user-123';
+    const threadsUserId = 'threads-user-1';
+    const farFutureExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const mockConnection = {
+      id: 'conn-1',
+      userId,
+      threadsUserId,
+      username: 'testuser',
+      accessTokenEncrypted: 'encrypted-token',
+      tokenExpiresAt: farFutureExpiry,
+    };
+
+    beforeEach(() => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(mockConnection);
+      mockCrypto.decrypt.mockReturnValue('decrypted-access-token');
+    });
+
+    it('throws NotFoundException when no connection', async () => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(null);
+
+      await expect(service.getUserVoiceUnits(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('returns voice units with own-replies concatenated and others filtered out', async () => {
+      mockFetchSequence([
+        // main posts
+        {
+          ok: true,
+          body: {
+            data: [
+              {
+                id: 'p1',
+                text: 'Main post 1',
+                timestamp: '2026-04-19T12:00:00Z',
+                permalink: 'https://t.co/p1',
+              },
+              {
+                id: 'p2',
+                text: 'Main post 2',
+                timestamp: '2026-04-18T12:00:00Z',
+                permalink: 'https://t.co/p2',
+              },
+            ],
+          },
+        },
+        // conversation for p1 — own reply + other user's reply
+        {
+          ok: true,
+          body: {
+            data: [
+              {
+                id: 'p1',
+                text: 'Main post 1',
+                timestamp: '2026-04-19T12:00:00Z',
+                from: { id: threadsUserId },
+              },
+              {
+                id: 'r1',
+                text: 'Own reply 1',
+                timestamp: '2026-04-19T12:01:00Z',
+                from: { id: threadsUserId },
+              },
+              {
+                id: 'r2',
+                text: 'Stranger reply',
+                timestamp: '2026-04-19T12:02:00Z',
+                from: { id: 'other-user' },
+              },
+              {
+                id: 'r3',
+                text: 'Own reply 2',
+                timestamp: '2026-04-19T12:03:00Z',
+                from: { id: threadsUserId },
+              },
+            ],
+          },
+        },
+        // conversation for p2 — no own replies
+        {
+          ok: true,
+          body: { data: [] },
+        },
+      ]);
+
+      const units = await service.getUserVoiceUnits(userId);
+
+      expect(units).toHaveLength(2);
+      expect(units[0]).toEqual({
+        id: 'p1',
+        text: 'Main post 1\n\nOwn reply 1\n\nOwn reply 2',
+        timestamp: '2026-04-19T12:00:00Z',
+        permalink: 'https://t.co/p1',
+        partCount: 3,
+      });
+      expect(units[1]).toEqual({
+        id: 'p2',
+        text: 'Main post 2',
+        timestamp: '2026-04-18T12:00:00Z',
+        permalink: 'https://t.co/p2',
+        partCount: 1,
+      });
+    });
+
+    it('falls back to main only when conversation fetch fails', async () => {
+      mockFetchSequence([
+        {
+          ok: true,
+          body: {
+            data: [
+              {
+                id: 'p1',
+                text: 'Main post 1',
+                timestamp: '2026-04-19T12:00:00Z',
+                permalink: 'https://t.co/p1',
+              },
+            ],
+          },
+        },
+        { ok: false, body: { error: 'rate_limit' }, status: 429 },
+      ]);
+
+      const units = await service.getUserVoiceUnits(userId);
+
+      expect(units).toHaveLength(1);
+      expect(units[0].text).toBe('Main post 1');
+      expect(units[0].partCount).toBe(1);
+    });
+
+    it('skips main posts whose text and own-replies are all empty', async () => {
+      mockFetchSequence([
+        {
+          ok: true,
+          body: {
+            data: [
+              {
+                id: 'p1',
+                text: '',
+                timestamp: '2026-04-19T12:00:00Z',
+                permalink: null,
+              },
+              {
+                id: 'p2',
+                text: 'Real post',
+                timestamp: '2026-04-18T12:00:00Z',
+                permalink: null,
+              },
+            ],
+          },
+        },
+        // conversation for p1 — empty
+        { ok: true, body: { data: [] } },
+        // conversation for p2 — empty
+        { ok: true, body: { data: [] } },
+      ]);
+
+      const units = await service.getUserVoiceUnits(userId);
+
+      expect(units).toHaveLength(1);
+      expect(units[0].id).toBe('p2');
+    });
+
+    it('throws UnauthorizedException on 401 main fetch', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'token_expired' }, status: 401 },
+      ]);
+
+      await expect(service.getUserVoiceUnits(userId)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('returns empty array when main fetch returns no posts', async () => {
+      mockFetchSequence([{ ok: true, body: { data: [] } }]);
+
+      const units = await service.getUserVoiceUnits(userId);
+
+      expect(units).toEqual([]);
+    });
+  });
 });
