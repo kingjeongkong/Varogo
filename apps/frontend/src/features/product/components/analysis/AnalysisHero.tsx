@@ -1,4 +1,7 @@
+import Link from 'next/link';
+
 interface AnalysisHeroProps {
+  productId: string;
   productName: string;
   productUrl: string;
   category: string;
@@ -6,6 +9,7 @@ interface AnalysisHeroProps {
 }
 
 export function AnalysisHero({
+  productId,
   productName,
   productUrl,
   category,
@@ -13,14 +17,22 @@ export function AnalysisHero({
 }: AnalysisHeroProps) {
   return (
     <section className="animate-fade-in">
-      <div className="mb-2">
-        <p className="text-xs font-mono text-text-muted tracking-widest uppercase mb-3">
-          Product Analysis
-        </p>
-        <h1 className="font-heading text-3xl font-bold text-text-primary tracking-tight">
-          {productName}
-        </h1>
-        <p className="mt-1 text-sm text-text-muted">{productUrl}</p>
+      <div className="mb-2 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-mono text-text-muted tracking-widest uppercase mb-3">
+            Product Analysis
+          </p>
+          <h1 className="font-heading text-3xl font-bold text-text-primary tracking-tight">
+            {productName}
+          </h1>
+          <p className="mt-1 text-sm text-text-muted">{productUrl}</p>
+        </div>
+        <Link
+          href={`/product/${productId}/post/new`}
+          className="shrink-0 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-base font-medium text-white bg-primary hover:bg-primary-hover hover:shadow-md hover:shadow-primary/20 active:scale-[0.97] transition-all duration-200"
+        >
+          + New Post
+        </Link>
       </div>
 
       <div className="mt-6 relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-dim via-surface to-surface border border-border-accent p-8">
