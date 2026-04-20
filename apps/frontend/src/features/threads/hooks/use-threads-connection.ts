@@ -1,19 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http-client';
 import type { PublishThreadsResponse } from '@/lib/types';
 import {
-  fetchThreadsConnection,
   fetchThreadsAuthUrl,
   deleteThreadsConnection,
   publishToThreads,
 } from '../api-client';
-
-export function useThreadsConnectionStatus() {
-  return useQuery({
-    queryKey: ['threads', 'connection'],
-    queryFn: fetchThreadsConnection,
-  });
-}
 
 export function useThreadsConnect() {
   return useMutation({
