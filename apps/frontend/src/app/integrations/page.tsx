@@ -4,8 +4,8 @@ import { Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
+import { useThreadsConnectionStatus } from '@/hooks/use-threads-connection';
 import {
-  useThreadsConnectionStatus,
   useThreadsConnect,
   useThreadsDisconnect,
 } from '@/features/threads/hooks/use-threads-connection';

@@ -79,3 +79,28 @@ export interface PublishThreadsResponse {
   threadsMediaId: string;
   permalink: string | null;
 }
+
+export interface StyleFingerprint {
+  tonality: string;
+  avgLength: number;
+  openingPatterns: string[];
+  signaturePhrases: string[];
+  emojiDensity: number;
+  hashtagUsage: number;
+}
+
+export interface ReferenceSample {
+  text: string;
+  date: string;
+}
+
+export interface VoiceProfileResponse {
+  id: string;
+  userId: string;
+  source: string;
+  sampleCount: number;
+  styleFingerprint: StyleFingerprint;
+  referenceSamples: ReferenceSample[];
+  createdAt: string;
+  updatedAt: string;
+}
