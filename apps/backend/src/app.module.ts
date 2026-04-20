@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
 import { ThreadsModule } from './threads/threads.module';
 import { VoiceProfileModule } from './voice-profile/voice-profile.module';
+import { PostDraftModule } from './post-draft/post-draft.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -20,6 +21,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     ProductModule,
     ThreadsModule,
     VoiceProfileModule,
+    PostDraftModule,
   ],
   controllers: [AppController],
   providers: [
