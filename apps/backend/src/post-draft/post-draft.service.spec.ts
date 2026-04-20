@@ -293,7 +293,7 @@ describe('PostDraftService', () => {
         expect.objectContaining({ todayInput: null }),
       );
       expect(mockTx.postDraft.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ todayInput: null }),
+        data: expect.objectContaining({ todayInput: null }) as unknown,
       });
     });
 
