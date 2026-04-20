@@ -104,3 +104,22 @@ export interface VoiceProfileResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface HookOptionResponse {
+  id: string;
+  text: string;
+  angleLabel: string;
+  selected: boolean;
+}
+
+export interface PostDraftResponse {
+  id: string;
+  productId: string;
+  todayInput: string | null;
+  body: string;
+  status: string;
+  selectedHookId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  hooks: HookOptionResponse[];
+}

@@ -1,7 +1,16 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload';
 import { CreatePostDraftDto } from './dto/create-post-draft.dto';
+import { UpdatePostDraftDto } from './dto/update-post-draft.dto';
 import { toPostDraftResponse } from './dto/post-draft.response';
 import { PostDraftService } from './post-draft.service';
 
@@ -15,6 +24,25 @@ export class PostDraftController {
     @Body() dto: CreatePostDraftDto,
   ) {
     const draft = await this.postDraftService.create(user.sub, dto);
+    return toPostDraftResponse(draft);
+  }
+
+  @Get(':id')
+  async findOne(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const draft = await this.postDraftService.findOneByUser(id, user.sub);
+    return toPostDraftResponse(draft);
+  }
+
+  @Patch(':id')
+  async update(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdatePostDraftDto,
+  ) {
+    const draft = await this.postDraftService.update(id, user.sub, dto);
     return toPostDraftResponse(draft);
   }
 }

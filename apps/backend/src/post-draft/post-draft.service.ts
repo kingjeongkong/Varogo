@@ -10,6 +10,7 @@ import type {
   StyleFingerprint,
 } from '../voice-profile/types/style-fingerprint.type';
 import { CreatePostDraftDto } from './dto/create-post-draft.dto';
+import { UpdatePostDraftDto } from './dto/update-post-draft.dto';
 import { HookGenerationService } from './hook-generation.service';
 
 @Injectable()
@@ -93,5 +94,43 @@ export class PostDraftService {
 
       return draftWithHooks;
     });
+  }
+
+  async findOneByUser(id: string, userId: string) {
+    const draft = await this.prisma.postDraft.findFirst({
+      where: { id, product: { userId } },
+      include: { hookOptions: true },
+    });
+
+    if (!draft) {
+      throw new NotFoundException('Post draft not found');
+    }
+
+    return draft;
+  }
+
+  async update(id: string, userId: string, dto: UpdatePostDraftDto) {
+    const draft = await this.findOneByUser(id, userId);
+
+    if (
+      dto.selectedHookId !== undefined &&
+      !draft.hookOptions.some((h) => h.id === dto.selectedHookId)
+    ) {
+      throw new BadRequestException('Invalid hook id');
+    }
+
+    const data: { todayInput?: string | null; selectedHookId?: string | null } =
+      {};
+    if (dto.todayInput !== undefined) data.todayInput = dto.todayInput;
+    if (dto.selectedHookId !== undefined)
+      data.selectedHookId = dto.selectedHookId;
+
+    const updated = await this.prisma.postDraft.update({
+      where: { id },
+      data,
+      include: { hookOptions: true },
+    });
+
+    return updated;
   }
 }

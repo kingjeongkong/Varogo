@@ -11,6 +11,7 @@ export interface PostDraftResponse {
   todayInput: string | null;
   body: string;
   status: string;
+  selectedHookId: string | null;
   createdAt: Date;
   updatedAt: Date;
   hooks: HookOptionResponse[];
@@ -22,13 +23,13 @@ export function toPostDraftResponse(draft: {
   todayInput: string | null;
   body: string;
   status: string;
+  selectedHookId: string | null;
   createdAt: Date;
   updatedAt: Date;
   hookOptions: Array<{
     id: string;
     text: string;
     angleLabel: string;
-    selected: boolean;
   }>;
 }): PostDraftResponse {
   return {
@@ -37,13 +38,14 @@ export function toPostDraftResponse(draft: {
     todayInput: draft.todayInput,
     body: draft.body,
     status: draft.status,
+    selectedHookId: draft.selectedHookId,
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
     hooks: draft.hookOptions.map((h) => ({
       id: h.id,
       text: h.text,
       angleLabel: h.angleLabel,
-      selected: h.selected,
+      selected: h.id === draft.selectedHookId,
     })),
   };
 }

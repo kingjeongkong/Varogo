@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import type { ProductWithAnalysis } from '@/lib/types';
 import { AnalysisHero } from './AnalysisHero';
-import { TargetAudienceSection } from './TargetAudienceSection';
 import { AlternativesSection } from './AlternativesSection';
 import { SectionLabel } from './SectionLabel';
+import { TargetAudienceSection } from './TargetAudienceSection';
 
 interface AnalysisResultProps {
   product: ProductWithAnalysis;
@@ -43,6 +43,7 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
   return (
     <div className="space-y-10">
       <AnalysisHero
+        productId={product.id}
         productName={product.name}
         productUrl={product.url}
         category={category}
@@ -141,23 +142,6 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
         </div>
       </section>
 
-      {/* ── Next Step CTA ── */}
-      <div
-        className="animate-slide-up pt-4 pb-2"
-        style={{ animationDelay: '0.35s', opacity: 0 }}
-      >
-        <div className="rounded-xl border border-dashed border-border-hover bg-surface/50 p-6 text-center">
-          <p className="text-sm text-text-muted mb-3">
-            Choose a strategy to continue to the next step
-          </p>
-          <Link
-            href={`/product/${product.id}/strategies`}
-            className="inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
-          >
-            Choose Strategy
-          </Link>
-        </div>
-      </div>
     </div>
   );
 }
