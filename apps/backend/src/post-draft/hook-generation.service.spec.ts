@@ -10,7 +10,18 @@ import type {
 import { HookGenerationService } from './hook-generation.service';
 import type { HookGenerationInput } from './types/hook-generation.type';
 
-const mockCreate = jest.fn();
+interface CreateCall {
+  model: string;
+  messages: Array<{ role: string; content: string }>;
+  response_format: unknown;
+}
+
+const mockCreate: jest.Mock = jest.fn();
+
+function nthCall(n: number): CreateCall {
+  const calls = mockCreate.mock.calls as unknown as CreateCall[][];
+  return calls[n][0];
+}
 
 const mockOpenAiService = {
   getClient: jest.fn().mockReturnValue({
@@ -134,8 +145,7 @@ describe('HookGenerationService', () => {
 
       await service.generate(buildInput());
 
-      const promptContent = mockCreate.mock.calls[0][0].messages[0]
-        .content as string;
+      const promptContent = nthCall(0).messages[0].content;
 
       expect(promptContent).toContain(analysisFixture.category);
       expect(promptContent).toContain(styleFingerprintFixture.tonality);
@@ -146,18 +156,17 @@ describe('HookGenerationService', () => {
       );
     });
 
-    it('uses fallback message in prompt when todayInput is null', async () => {
+    it('blocks Data angle and forbids invented numbers in prompt when todayInput is null', async () => {
       mockConfigService.get.mockReturnValue(undefined);
       mockCreate.mockResolvedValueOnce(makeCompletion(validHooks));
 
       await service.generate(buildInput({ todayInput: null }));
 
-      const promptContent = mockCreate.mock.calls[0][0].messages[0]
-        .content as string;
+      const promptContent = nthCall(0).messages[0].content;
 
-      expect(promptContent).toContain(
-        "No specific update today. Draw from the product's positioning.",
-      );
+      expect(promptContent).toContain('No specific update today');
+      expect(promptContent).toContain('DO NOT use Data');
+      expect(promptContent).toContain('DO NOT invent statistics');
     });
 
     it('throws InternalServerErrorException when OpenAI returns fewer than 3 hooks', async () => {
@@ -189,7 +198,7 @@ describe('HookGenerationService', () => {
 
       await service.generate(buildInput());
 
-      expect(mockCreate.mock.calls[0][0].model).toBe('gpt-4o-mini');
+      expect(nthCall(0).model).toBe('gpt-4o-mini');
     });
 
     it('uses OPENAI_MODEL env value when configured', async () => {
@@ -199,7 +208,7 @@ describe('HookGenerationService', () => {
       await service.generate(buildInput());
 
       expect(mockConfigService.get).toHaveBeenCalledWith('OPENAI_MODEL');
-      expect(mockCreate.mock.calls[0][0].model).toBe('gpt-4o');
+      expect(nthCall(0).model).toBe('gpt-4o');
     });
   });
 });

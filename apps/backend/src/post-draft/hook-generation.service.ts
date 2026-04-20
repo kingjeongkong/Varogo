@@ -5,14 +5,24 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OpenAiService } from '../llm/openai.service';
+import type { ReferenceSample } from '../voice-profile/types/style-fingerprint.type';
 import type {
   GeneratedHook,
   HookGenerationInput,
   HookGenerationResult,
 } from './types/hook-generation.type';
 
-const REFERENCE_SAMPLE_LIMIT = 3;
+const REFERENCE_SAMPLE_LIMIT = 5;
 const DEFAULT_MODEL = 'gpt-4o-mini';
+const MAX_RETRIES = 2;
+
+interface FormattingStats {
+  exclamationPerPost: number;
+  emDashPerPost: number;
+  bulletListRate: number;
+  allCapsWordCount: number;
+  avgParagraphWords: number;
+}
 
 @Injectable()
 export class HookGenerationService {
@@ -28,6 +38,35 @@ export class HookGenerationService {
     const model =
       this.configService.get<string>('OPENAI_MODEL') ?? DEFAULT_MODEL;
 
+    let lastHooks: GeneratedHook[] | undefined;
+    let lastViolations: string[] = [];
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const hooks = await this.callOnce(prompt, model);
+      const violations = this.findVoiceViolations(hooks, input);
+      if (violations.length === 0) {
+        if (attempt > 0) {
+          this.logger.log(`Hook gen recovered on attempt ${attempt + 1}`);
+        }
+        return { hooks };
+      }
+      lastHooks = hooks;
+      lastViolations = violations;
+      this.logger.warn(
+        `Hook violations on attempt ${attempt + 1}: ${violations.join(', ')}`,
+      );
+    }
+
+    this.logger.warn(
+      `Returning hooks with unresolved violations after ${MAX_RETRIES + 1} attempts: ${lastViolations.join(', ')}`,
+    );
+    return { hooks: lastHooks ?? [] };
+  }
+
+  private async callOnce(
+    prompt: string,
+    model: string,
+  ): Promise<GeneratedHook[]> {
     try {
       const completion = await this.openAi.getClient().chat.completions.create({
         model,
@@ -50,8 +89,7 @@ export class HookGenerationService {
           `Expected exactly 3 hooks, got ${parsed.hooks?.length ?? 0}`,
         );
       }
-
-      return { hooks: parsed.hooks };
+      return parsed.hooks;
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
       this.logger.error('OpenAI hook generation failed', error);
@@ -59,13 +97,111 @@ export class HookGenerationService {
     }
   }
 
+  private findVoiceViolations(
+    hooks: GeneratedHook[],
+    input: HookGenerationInput,
+  ): string[] {
+    const violations: string[] = [];
+    const sampleText = input.referenceSamples.map((s) => s.text).join('\n');
+    const samplesHasExclamation = /!/.test(sampleText);
+    const samplesHasEmoji = /\p{Extended_Pictographic}/u.test(sampleText);
+    const samplesHasYeoreobun = /여러분/.test(sampleText);
+
+    hooks.forEach((h, i) => {
+      const tag = `hook${i + 1}`;
+      const text = h.text;
+
+      if (!samplesHasExclamation && /!/.test(text))
+        violations.push(`${tag}:exclamation_mark`);
+      if (
+        /^\s*(Six months ago|A few years ago|Last summer|Last year|Three days ago|A year ago|Two weeks ago)\b/i.test(
+          text,
+        )
+      )
+        violations.push(`${tag}:ai_cliche_opening`);
+      if (/\bgame[-\s]changer\b/i.test(text))
+        violations.push(`${tag}:game_changer`);
+      if (!samplesHasEmoji && /\p{Extended_Pictographic}/u.test(text))
+        violations.push(`${tag}:emoji_in_non_emoji_voice`);
+      if (!samplesHasYeoreobun && /여러분/.test(text))
+        violations.push(`${tag}:yeoreobun`);
+    });
+
+    return violations;
+  }
+
+  private computeFormattingStats(samples: ReferenceSample[]): FormattingStats {
+    if (samples.length === 0) {
+      return {
+        exclamationPerPost: 0,
+        emDashPerPost: 0,
+        bulletListRate: 0,
+        allCapsWordCount: 0,
+        avgParagraphWords: 0,
+      };
+    }
+
+    let exclamations = 0;
+    let emDashes = 0;
+    let bulletPosts = 0;
+    let allCapsWords = 0;
+    let paragraphWordsTotal = 0;
+    let paragraphCount = 0;
+
+    for (const s of samples) {
+      exclamations += (s.text.match(/!/g) ?? []).length;
+      emDashes += (s.text.match(/—/g) ?? []).length;
+      if (/^\s*[-•*]\s/m.test(s.text)) bulletPosts++;
+      allCapsWords += (s.text.match(/\b[A-Z]{2,}\b/g) ?? []).length;
+      const paragraphs = s.text.split(/\n\s*\n/).filter((p) => p.trim());
+      for (const p of paragraphs) {
+        const words = p.trim().split(/\s+/).filter(Boolean);
+        paragraphWordsTotal += words.length;
+        paragraphCount++;
+      }
+    }
+
+    return {
+      exclamationPerPost: +(exclamations / samples.length).toFixed(2),
+      emDashPerPost: +(emDashes / samples.length).toFixed(2),
+      bulletListRate: +(bulletPosts / samples.length).toFixed(2),
+      allCapsWordCount: allCapsWords,
+      avgParagraphWords:
+        paragraphCount === 0
+          ? 0
+          : Math.round(paragraphWordsTotal / paragraphCount),
+    };
+  }
+
+  private describeFormattingStats(stats: FormattingStats): string {
+    const lines: string[] = [];
+    lines.push(
+      `Exclamation marks: ${stats.exclamationPerPost === 0 ? 'NEVER uses (strict)' : `~${stats.exclamationPerPost} per post`}`,
+    );
+    lines.push(
+      `Em-dashes (—): ${stats.emDashPerPost >= 1 ? `uses frequently (~${stats.emDashPerPost} per post)` : 'rarely uses'}`,
+    );
+    lines.push(
+      `Bulleted lists: ${stats.bulletListRate >= 0.5 ? `uses frequently (${Math.round(stats.bulletListRate * 100)}% of posts)` : 'rarely uses'}`,
+    );
+    lines.push(
+      `ALL-CAPS emphasis: ${stats.allCapsWordCount > 0 ? 'uses occasionally' : 'NEVER uses'}`,
+    );
+    lines.push(`Avg paragraph length: ~${stats.avgParagraphWords} words`);
+    return lines.join('\n');
+  }
+
   private buildPrompt(input: HookGenerationInput): string {
     const { analysis, styleFingerprint, referenceSamples, todayInput } = input;
+
+    const stats = this.computeFormattingStats(referenceSamples);
+    const formattingBlock = this.describeFormattingStats(stats);
+    const hasToday = !!(todayInput && todayInput.trim().length > 0);
 
     const samples = referenceSamples
       .slice(0, REFERENCE_SAMPLE_LIMIT)
       .map((s, i) => `${i + 1}. "${s.text.replace(/"/g, '\\"')}"`)
-      .join('\n');
+      .join('\n\n');
 
     const alternatives = analysis.alternatives
       .map((a) => `${a.name} (weakness: ${a.weaknessWeExploit})`)
@@ -76,17 +212,53 @@ export class HookGenerationService {
       ...analysis.keywords.secondary,
     ].join(', ');
 
-    const signaturePhrases =
+    const signaturePhrasesLine =
       styleFingerprint.signaturePhrases.length > 0
         ? styleFingerprint.signaturePhrases.join(', ')
         : '(none detected)';
 
-    const todayContext =
-      todayInput && todayInput.trim().length > 0
-        ? todayInput
-        : "No specific update today. Draw from the product's positioning.";
+    const noEmoji = styleFingerprint.emojiDensity < 0.01;
+    const noExclamation = stats.exclamationPerPost === 0;
 
-    return `=== Your Product ===
+    const angleOptions = hasToday
+      ? 'Story, Contrarian, Data, Positioning, Technical'
+      : 'Story, Contrarian, Positioning, Technical (DO NOT use Data — no numbers available)';
+
+    const todayContextBlock = hasToday
+      ? `=== Today's context (raw material, NOT the narrative spine) ===
+${todayInput}
+
+How to use today's context:
+- Do NOT begin the hook with the headline fact (e.g., "42%.", "This week we shipped...", "Six months ago,")
+- Do NOT narrate the fact chronologically (before → after arc)
+- The FIRST sentence must come from the voice's opening patterns below, not from the fact
+- Embed the fact mid-hook as evidence for the angle, not as the angle itself`
+      : `=== Today's context ===
+No specific update today. Draw from the product's positioning and voice.
+DO NOT use Data angle. DO NOT invent statistics.`;
+
+    return `You are writing 3 Threads post hooks FOR the user, IN the user's voice. The voice is non-negotiable — it beats any "good marketing hook" instinct you have.
+
+=== Your voice (preserve first, always) ===
+Style: ${styleFingerprint.tonality}
+Typical length: ${styleFingerprint.avgLength} chars
+
+Opening patterns (REQUIRED — AT LEAST 2 of 3 hooks must begin with one of these, or a close structural variation using the same syntactic shape):
+${styleFingerprint.openingPatterns.map((p) => `  • ${p}`).join('\n')}
+
+Signature phrases: ${signaturePhrasesLine}
+  Use ONLY when the phrase's meaning in the reference posts still applies. Preserve grammar exactly — do NOT re-assemble ("the constraint is the feature" must stay as-is, not become "the constraint was the X"). Better to omit than to misuse.
+
+Formatting habits (respect exactly):
+${formattingBlock}
+
+Emoji: ${noEmoji ? 'NEVER use (strict)' : `density ~${styleFingerprint.emojiDensity}`}
+Hashtag: ${styleFingerprint.hashtagUsage === 0 ? 'NEVER use' : `density ~${styleFingerprint.hashtagUsage}`}
+
+=== Reference posts from the user (your writing target — match this rhythm) ===
+${samples}
+
+=== The product you're posting about ===
 Category: ${analysis.category}
 Job to be done: ${analysis.jobToBeDone}
 Positioning: ${analysis.positioningStatement}
@@ -95,55 +267,46 @@ Alternatives: ${alternatives}
 Why now: ${analysis.whyNow}
 Keywords: ${keywords}
 
-=== Your Voice ===
-Style: ${styleFingerprint.tonality}
-Typical length: ${styleFingerprint.avgLength} chars
-Usual opening patterns: ${styleFingerprint.openingPatterns.join(' | ')}
-Signature phrases (use these naturally when fitting): ${signaturePhrases}
-Emoji: ${styleFingerprint.emojiDensity} | Hashtag: ${styleFingerprint.hashtagUsage}
-
-Here are 3 of your actual posts:
-${samples}
-
-=== Today's Context ===
-${todayContext}
+${todayContextBlock}
 
 === Task ===
-Generate 3 hooks for a Threads post (max 500 chars).
+Generate 3 hooks (max 500 chars each). Each hook has:
+- "text": the hook body
+- "angleLabel": 2-3 word label for its angle
 
-Each hook:
-1. Matches the user's voice — same person writes all three
-2. Takes a different angle from the others (no redundancy)
-3. If today's context is given, anchors concretely to that fact
-4. For each hook, label the angle in 2-3 words
+Angle choices: ${angleOptions}
+Pick 3 DIFFERENT angles. No redundancy.
 
-Consider angles from these categories (pick 3 different ones):
-- Story (personal narrative, failure, reflection)
-- Contrarian (challenge a common belief)
-- Data (specific number as hook)
-- Positioning (unique category frame)
-- Technical (builder's inside detail)
+Per-angle CONTENT shape (opening still comes from voice, not from these patterns):
+- Story: micro-incident with one specific artifact (tool, number, named place, named person)
+- Contrarian: challenges a common belief
+- Data: anchors to a specific number FROM today's context (not invented)
+- Positioning: names a category boundary
+- Technical: references a specific mechanism (function, API, tool)
 
-For each hook, the opening must fit the angle's structural pattern:
-- Story → must contain one specific artifact (tool / number / named person or place) in the first 15 words
-- Contrarian → must begin with "Most X" or "Everyone thinks Y" form
-- Data → must begin with a specific number (not "many" or "most")
-- Positioning → must begin by naming a category boundary
-- Technical → must reference a specific mechanism (function / API / tool), not an abstract concept
+Priority order when rules conflict (strict):
+1. User's opening pattern (≥ 2 of 3 hooks) — beats the angle's "typical" opener
+2. Voice's forbidden habits (${noExclamation ? 'NO exclamation marks' : 'exclamation OK'}; ${noEmoji ? 'NO emojis' : 'emojis OK'})
+3. Signature phrase original meaning preserved (or omitted)
+4. Angle's content shape
+5. Today's input as embedded evidence (never as opener or narrative spine)
+
+Hard rules — NEVER break:
+- No AI-cliche openings: "Last summer, I was...", "Six months ago,", "A few years ago,", "Three days ago,", "Last year,", "A year ago,", "Two weeks ago,"
+- No marketing cliches: "game changer", "game-changer"
+${noExclamation ? '- No exclamation marks (!) anywhere' : ''}
+${noEmoji ? '- No emojis anywhere' : ''}
+- Emotion shows through word choice, never named directly
+- ${hasToday ? "Numbers: use ONLY numbers from today's context above. NEVER invent statistics." : 'No numbers. Do not invent statistics.'}
 
 Return JSON:
 {
   "hooks": [
-    { "text": "...", "angleLabel": "Failure → Success" },
-    { "text": "...", "angleLabel": "Data Hook" },
-    { "text": "...", "angleLabel": "Positioning" }
+    { "text": "...", "angleLabel": "..." },
+    { "text": "...", "angleLabel": "..." },
+    { "text": "...", "angleLabel": "..." }
   ]
-}
-
-Rules:
-- No AI-cliche openings ("Last summer, I was...", "Three days ago, I sat...")
-- Emotion must show through word choice, never named directly
-- If mentioning numbers, use the user's actual numbers from today's input, not invented`;
+}`;
   }
 
   private readonly responseSchema = {
