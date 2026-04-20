@@ -21,6 +21,10 @@ const mockPrisma = {
   voiceProfile: {
     findUnique: jest.fn(),
   },
+  postDraft: {
+    findFirst: jest.fn(),
+    update: jest.fn(),
+  },
   $transaction: jest.fn((cb: (tx: typeof mockTx) => Promise<unknown>) =>
     cb(mockTx),
   ),
@@ -105,6 +109,45 @@ const generatedHooks = [
   { text: 'hook two text', angleLabel: 'Data' },
   { text: 'hook three text', angleLabel: 'Contrarian' },
 ];
+
+const draftId = '22222222-2222-2222-2222-222222222222';
+const hookOneId = '33333333-3333-3333-3333-333333333333';
+const hookTwoId = '44444444-4444-4444-4444-444444444444';
+const hookThreeId = '55555555-5555-5555-5555-555555555555';
+
+const mockDraftWithHooks = {
+  id: draftId,
+  productId,
+  todayInput: 'Shipped the hook generator today.',
+  body: '',
+  status: 'draft',
+  selectedHookId: null,
+  createdAt: new Date('2026-04-19T11:00:00Z'),
+  updatedAt: new Date('2026-04-19T11:00:00Z'),
+  hookOptions: [
+    {
+      id: hookOneId,
+      postDraftId: draftId,
+      text: 'hook one text',
+      angleLabel: 'Story',
+      createdAt: new Date('2026-04-19T11:00:00Z'),
+    },
+    {
+      id: hookTwoId,
+      postDraftId: draftId,
+      text: 'hook two text',
+      angleLabel: 'Data',
+      createdAt: new Date('2026-04-19T11:00:00Z'),
+    },
+    {
+      id: hookThreeId,
+      postDraftId: draftId,
+      text: 'hook three text',
+      angleLabel: 'Contrarian',
+      createdAt: new Date('2026-04-19T11:00:00Z'),
+    },
+  ],
+};
 
 describe('PostDraftService', () => {
   let service: PostDraftService;
@@ -310,6 +353,130 @@ describe('PostDraftService', () => {
       await expect(service.create(userId, dto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('findOneByUser', () => {
+    it('returns draft with hookOptions when found for the user', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+
+      const result = await service.findOneByUser(draftId, userId);
+
+      expect(mockPrisma.postDraft.findFirst).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.postDraft.findFirst).toHaveBeenCalledWith({
+        where: { id: draftId, product: { userId } },
+        include: { hookOptions: true },
+      });
+      expect(result).toEqual(mockDraftWithHooks);
+      expect(result.hookOptions).toHaveLength(3);
+    });
+
+    it('throws NotFoundException when draft does not exist or belongs to another user', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(null);
+
+      await expect(service.findOneByUser(draftId, userId)).rejects.toThrow(
+        new NotFoundException('Post draft not found'),
+      );
+
+      expect(mockPrisma.postDraft.findFirst).toHaveBeenCalledWith({
+        where: { id: draftId, product: { userId } },
+        include: { hookOptions: true },
+      });
+    });
+  });
+
+  describe('update', () => {
+    const otherUserHookId = '66666666-6666-6666-6666-666666666666';
+
+    it('throws NotFoundException when draft does not exist or belongs to another user', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.update(draftId, userId, { todayInput: 'new input' }),
+      ).rejects.toThrow(new NotFoundException('Post draft not found'));
+
+      expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
+    });
+
+    it('throws BadRequestException when selectedHookId is not among draft hookOptions', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+
+      await expect(
+        service.update(draftId, userId, { selectedHookId: otherUserHookId }),
+      ).rejects.toThrow(new BadRequestException('Invalid hook id'));
+
+      expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
+    });
+
+    it('updates selectedHookId only when dto.selectedHookId is provided', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+      const updatedDraft = {
+        ...mockDraftWithHooks,
+        selectedHookId: hookTwoId,
+      };
+      mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
+
+      const result = await service.update(draftId, userId, {
+        selectedHookId: hookTwoId,
+      });
+
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
+        where: { id: draftId },
+        data: { selectedHookId: hookTwoId },
+        include: { hookOptions: true },
+      });
+      expect(result).toEqual(updatedDraft);
+      expect(result.hookOptions).toHaveLength(3);
+    });
+
+    it('updates todayInput only when dto.todayInput is provided', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+      const updatedDraft = {
+        ...mockDraftWithHooks,
+        todayInput: 'Updated today input',
+      };
+      mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
+
+      const result = await service.update(draftId, userId, {
+        todayInput: 'Updated today input',
+      });
+
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
+        where: { id: draftId },
+        data: { todayInput: 'Updated today input' },
+        include: { hookOptions: true },
+      });
+      expect(result).toEqual(updatedDraft);
+      expect(result.hookOptions).toHaveLength(3);
+    });
+
+    it('updates both todayInput and selectedHookId together when both are provided', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+      const updatedDraft = {
+        ...mockDraftWithHooks,
+        todayInput: 'Both fields updated',
+        selectedHookId: hookThreeId,
+      };
+      mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
+
+      const result = await service.update(draftId, userId, {
+        todayInput: 'Both fields updated',
+        selectedHookId: hookThreeId,
+      });
+
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
+        where: { id: draftId },
+        data: {
+          todayInput: 'Both fields updated',
+          selectedHookId: hookThreeId,
+        },
+        include: { hookOptions: true },
+      });
+      expect(result).toEqual(updatedDraft);
+      expect(result.hookOptions).toHaveLength(3);
     });
   });
 });
