@@ -33,3 +33,17 @@ export function updatePostDraft(
     body: JSON.stringify(data),
   });
 }
+
+export interface PublishPostDraftInput {
+  body: string;
+}
+
+export function publishPostDraft(
+  id: string,
+  data: PublishPostDraftInput,
+): Promise<PostDraftResponse> {
+  return apiFetch<PostDraftResponse>(`/post-drafts/${id}/publish`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
