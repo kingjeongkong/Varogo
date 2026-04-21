@@ -408,11 +408,12 @@ describe('PostDraftService', () => {
       expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
     });
 
-    it('updates selectedHookId only when dto.selectedHookId is provided', async () => {
+    it('copies selected hook text into body when body is empty', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
       const updatedDraft = {
         ...mockDraftWithHooks,
         selectedHookId: hookTwoId,
+        body: 'hook two text',
       };
       mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
 
@@ -423,11 +424,34 @@ describe('PostDraftService', () => {
       expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
       expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
         where: { id: draftId },
-        data: { selectedHookId: hookTwoId },
+        data: { selectedHookId: hookTwoId, body: 'hook two text' },
         include: { hookOptions: true },
       });
       expect(result).toEqual(updatedDraft);
       expect(result.hookOptions).toHaveLength(3);
+    });
+
+    it('does not overwrite body when body is already non-empty', async () => {
+      const draftWithBody = {
+        ...mockDraftWithHooks,
+        body: 'User-edited body text',
+      };
+      mockPrisma.postDraft.findFirst.mockResolvedValue(draftWithBody);
+      const updatedDraft = {
+        ...draftWithBody,
+        selectedHookId: hookTwoId,
+      };
+      mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
+
+      await service.update(draftId, userId, {
+        selectedHookId: hookTwoId,
+      });
+
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
+        where: { id: draftId },
+        data: { selectedHookId: hookTwoId },
+        include: { hookOptions: true },
+      });
     });
 
     it('updates todayInput only when dto.todayInput is provided', async () => {
@@ -472,6 +496,7 @@ describe('PostDraftService', () => {
         data: {
           todayInput: 'Both fields updated',
           selectedHookId: hookThreeId,
+          body: 'hook three text',
         },
         include: { hookOptions: true },
       });

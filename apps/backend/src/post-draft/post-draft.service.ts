@@ -119,11 +119,21 @@ export class PostDraftService {
       throw new BadRequestException('Invalid hook id');
     }
 
-    const data: { todayInput?: string | null; selectedHookId?: string | null } =
-      {};
+    const data: {
+      todayInput?: string | null;
+      selectedHookId?: string;
+      body?: string;
+    } = {};
     if (dto.todayInput !== undefined) data.todayInput = dto.todayInput;
-    if (dto.selectedHookId !== undefined)
+    if (dto.selectedHookId !== undefined) {
       data.selectedHookId = dto.selectedHookId;
+      if (draft.body === '') {
+        const selectedHook = draft.hookOptions.find(
+          (h) => h.id === dto.selectedHookId,
+        );
+        if (selectedHook) data.body = selectedHook.text;
+      }
+    }
 
     const updated = await this.prisma.postDraft.update({
       where: { id },
