@@ -12,8 +12,13 @@ import type {
 } from '../voice-profile/types/style-fingerprint.type';
 import { ThreadsService } from '../threads/threads.service';
 import { CreatePostDraftDto } from './dto/create-post-draft.dto';
+import { ListPostDraftsQueryDto } from './dto/list-post-drafts.query.dto';
 import { PublishPostDraftDto } from './dto/publish-post-draft.dto';
 import { UpdatePostDraftDto } from './dto/update-post-draft.dto';
+import {
+  toPostDraftResponse,
+  type PostDraftResponse,
+} from './dto/post-draft.response';
 import { HookGenerationService } from './hook-generation.service';
 
 @Injectable()
@@ -23,6 +28,51 @@ export class PostDraftService {
     private readonly hookGenerationService: HookGenerationService,
     private readonly threadsService: ThreadsService,
   ) {}
+
+  async list(
+    userId: string,
+    query: ListPostDraftsQueryDto,
+  ): Promise<{
+    items: PostDraftResponse[];
+    nextOffset: number | null;
+    total: number;
+  }> {
+    const limit = query.limit!;
+    const offset = query.offset!;
+
+    const where = {
+      productId: query.productId,
+      status: query.status,
+      product: { userId },
+    };
+
+    const orderBy =
+      query.status === 'published'
+        ? { publishedAt: 'desc' as const }
+        : { updatedAt: 'desc' as const };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.postDraft.findMany({
+        where,
+        orderBy,
+        take: limit,
+        skip: offset,
+        include: { hookOptions: true },
+      }),
+      this.prisma.postDraft.count({ where }),
+    ]);
+
+    const nextOffset =
+      items.length === limit && offset + items.length < total
+        ? offset + items.length
+        : null;
+
+    return {
+      items: items.map((draft) => toPostDraftResponse(draft)),
+      nextOffset,
+      total,
+    };
+  }
 
   async create(userId: string, dto: CreatePostDraftDto) {
     const product = await this.prisma.product.findFirst({

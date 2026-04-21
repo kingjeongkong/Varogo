@@ -6,6 +6,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { ThreadsService } from '../threads/threads.service';
+import { ListPostDraftsQueryDto } from './dto/list-post-drafts.query.dto';
 import { PublishPostDraftDto } from './dto/publish-post-draft.dto';
 import { HookGenerationService } from './hook-generation.service';
 import { PostDraftService } from './post-draft.service';
@@ -29,10 +30,17 @@ const mockPrisma = {
   },
   postDraft: {
     findFirst: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
     update: jest.fn(),
   },
-  $transaction: jest.fn((cb: (tx: typeof mockTx) => Promise<unknown>) =>
-    cb(mockTx),
+  $transaction: jest.fn(
+    (arg: ((tx: typeof mockTx) => Promise<unknown>) | Promise<unknown>[]) => {
+      if (typeof arg === 'function') {
+        return arg(mockTx);
+      }
+      return Promise.all(arg);
+    },
   ),
 };
 
@@ -207,7 +215,12 @@ describe('PostDraftService', () => {
     jest.clearAllMocks();
 
     mockPrisma.$transaction.mockImplementation(
-      (cb: (tx: typeof mockTx) => Promise<unknown>) => cb(mockTx),
+      (arg: ((tx: typeof mockTx) => Promise<unknown>) | Promise<unknown>[]) => {
+        if (typeof arg === 'function') {
+          return arg(mockTx);
+        }
+        return Promise.all(arg);
+      },
     );
   });
 
@@ -672,6 +685,168 @@ describe('PostDraftService', () => {
       ).rejects.toThrow(threadsError);
 
       expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('list', () => {
+    const makeQuery = (
+      overrides: Partial<ListPostDraftsQueryDto> = {},
+    ): ListPostDraftsQueryDto =>
+      Object.assign(new ListPostDraftsQueryDto(), {
+        productId,
+        status: 'draft' as const,
+        limit: 20,
+        offset: 0,
+        ...overrides,
+      });
+
+    const makeDraftItem = (id: string, status: 'draft' | 'published') => ({
+      id,
+      productId,
+      todayInput: null,
+      body: '',
+      status,
+      selectedHookId: null,
+      publishedAt:
+        status === 'published' ? new Date('2026-04-20T10:00:00Z') : null,
+      threadsMediaId: null,
+      permalink: null,
+      createdAt: new Date('2026-04-19T11:00:00Z'),
+      updatedAt: new Date('2026-04-20T09:00:00Z'),
+      hookOptions: [],
+    });
+
+    it('returns empty items when ownership does not match — asserts nested product.userId in where clause', async () => {
+      mockPrisma.postDraft.findMany.mockResolvedValue([]);
+      mockPrisma.postDraft.count.mockResolvedValue(0);
+
+      const query = makeQuery();
+      const result = await service.list('other-user', query);
+
+      expect(result).toEqual({ items: [], total: 0, nextOffset: null });
+      expect(mockPrisma.postDraft.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            product: { userId: 'other-user' },
+          }) as unknown,
+        }),
+      );
+      expect(mockPrisma.postDraft.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            product: { userId: 'other-user' },
+          }) as unknown,
+        }),
+      );
+    });
+
+    it('orders by updatedAt DESC for status=draft', async () => {
+      mockPrisma.postDraft.findMany.mockResolvedValue([]);
+      mockPrisma.postDraft.count.mockResolvedValue(0);
+
+      await service.list(userId, makeQuery({ status: 'draft' }));
+
+      expect(mockPrisma.postDraft.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { updatedAt: 'desc' },
+        }),
+      );
+    });
+
+    it('orders by publishedAt DESC for status=published', async () => {
+      mockPrisma.postDraft.findMany.mockResolvedValue([]);
+      mockPrisma.postDraft.count.mockResolvedValue(0);
+
+      await service.list(userId, makeQuery({ status: 'published' }));
+
+      expect(mockPrisma.postDraft.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { publishedAt: 'desc' },
+        }),
+      );
+    });
+
+    it('passes take and skip from query limit and offset to findMany', async () => {
+      mockPrisma.postDraft.findMany.mockResolvedValue([]);
+      mockPrisma.postDraft.count.mockResolvedValue(0);
+
+      await service.list(userId, makeQuery({ limit: 10, offset: 30 }));
+
+      expect(mockPrisma.postDraft.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 10, skip: 30 }),
+      );
+    });
+
+    it('total in response reflects count result independently of findMany page size', async () => {
+      mockPrisma.postDraft.findMany.mockResolvedValue([
+        makeDraftItem('d1', 'draft'),
+      ]);
+      mockPrisma.postDraft.count.mockResolvedValue(42);
+
+      const result = await service.list(
+        userId,
+        makeQuery({ limit: 1, offset: 0 }),
+      );
+
+      expect(result.total).toBe(42);
+    });
+
+    it('nextOffset is a number when page is full and more records remain', async () => {
+      const items = [
+        makeDraftItem('d1', 'draft'),
+        makeDraftItem('d2', 'draft'),
+      ];
+      mockPrisma.postDraft.findMany.mockResolvedValue(items);
+      mockPrisma.postDraft.count.mockResolvedValue(5);
+
+      const result = await service.list(
+        userId,
+        makeQuery({ limit: 2, offset: 0 }),
+      );
+
+      expect(result.nextOffset).toBe(2);
+    });
+
+    it('nextOffset is null when page is partial (fewer items than limit)', async () => {
+      const items = Array.from({ length: 7 }, (_, i) =>
+        makeDraftItem(`d${i}`, 'draft'),
+      );
+      mockPrisma.postDraft.findMany.mockResolvedValue(items);
+      mockPrisma.postDraft.count.mockResolvedValue(7);
+
+      const result = await service.list(
+        userId,
+        makeQuery({ limit: 20, offset: 0 }),
+      );
+
+      expect(result.nextOffset).toBeNull();
+    });
+
+    it('nextOffset is null when page is full but no more records remain (exact boundary)', async () => {
+      const items = [
+        makeDraftItem('d5', 'draft'),
+        makeDraftItem('d6', 'draft'),
+      ];
+      mockPrisma.postDraft.findMany.mockResolvedValue(items);
+      mockPrisma.postDraft.count.mockResolvedValue(6);
+
+      const result = await service.list(
+        userId,
+        makeQuery({ limit: 2, offset: 4 }),
+      );
+
+      expect(result.nextOffset).toBeNull();
+    });
+
+    it('findMany is called with include: { hookOptions: true }', async () => {
+      mockPrisma.postDraft.findMany.mockResolvedValue([]);
+      mockPrisma.postDraft.count.mockResolvedValue(0);
+
+      await service.list(userId, makeQuery());
+
+      expect(mockPrisma.postDraft.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ include: { hookOptions: true } }),
+      );
     });
   });
 });

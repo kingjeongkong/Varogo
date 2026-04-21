@@ -8,10 +8,12 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload';
 import { CreatePostDraftDto } from './dto/create-post-draft.dto';
+import { ListPostDraftsQueryDto } from './dto/list-post-drafts.query.dto';
 import { PublishPostDraftDto } from './dto/publish-post-draft.dto';
 import { UpdatePostDraftDto } from './dto/update-post-draft.dto';
 import { toPostDraftResponse } from './dto/post-draft.response';
@@ -20,6 +22,14 @@ import { PostDraftService } from './post-draft.service';
 @Controller('post-drafts')
 export class PostDraftController {
   constructor(private readonly postDraftService: PostDraftService) {}
+
+  @Get()
+  async list(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: ListPostDraftsQueryDto,
+  ) {
+    return this.postDraftService.list(user.sub, query);
+  }
 
   @Post()
   async create(
