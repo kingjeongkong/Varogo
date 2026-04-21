@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,7 +10,9 @@ import type {
   ReferenceSample,
   StyleFingerprint,
 } from '../voice-profile/types/style-fingerprint.type';
+import { ThreadsService } from '../threads/threads.service';
 import { CreatePostDraftDto } from './dto/create-post-draft.dto';
+import { PublishPostDraftDto } from './dto/publish-post-draft.dto';
 import { UpdatePostDraftDto } from './dto/update-post-draft.dto';
 import { HookGenerationService } from './hook-generation.service';
 
@@ -18,6 +21,7 @@ export class PostDraftService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly hookGenerationService: HookGenerationService,
+    private readonly threadsService: ThreadsService,
   ) {}
 
   async create(userId: string, dto: CreatePostDraftDto) {
@@ -119,15 +123,62 @@ export class PostDraftService {
       throw new BadRequestException('Invalid hook id');
     }
 
-    const data: { todayInput?: string | null; selectedHookId?: string | null } =
-      {};
+    const data: {
+      todayInput?: string | null;
+      selectedHookId?: string;
+      body?: string;
+    } = {};
     if (dto.todayInput !== undefined) data.todayInput = dto.todayInput;
-    if (dto.selectedHookId !== undefined)
+    if (dto.selectedHookId !== undefined) {
       data.selectedHookId = dto.selectedHookId;
+      if (draft.body === '') {
+        const selectedHook = draft.hookOptions.find(
+          (h) => h.id === dto.selectedHookId,
+        );
+        if (selectedHook) data.body = selectedHook.text;
+      }
+    }
 
     const updated = await this.prisma.postDraft.update({
       where: { id },
       data,
+      include: { hookOptions: true },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Publish the draft to Threads and persist publish state atomically.
+   *
+   * `dto.body` is the final version of the body — it may differ from the
+   * stored `draft.body` (e.g. the user edited in the Step 3 textarea before
+   * clicking Publish). We persist `dto.body` alongside the Threads metadata
+   * so "publish" combines save + publish per the Publish-only design.
+   */
+  async publish(id: string, userId: string, dto: PublishPostDraftDto) {
+    const draft = await this.findOneByUser(id, userId);
+
+    if (draft.status === 'published') {
+      throw new ConflictException('Draft is already published');
+    }
+
+    if (!draft.selectedHookId) {
+      throw new BadRequestException('Select a hook first');
+    }
+
+    const { threadsMediaId, permalink } =
+      await this.threadsService.publishToThreads(userId, dto.body);
+
+    const updated = await this.prisma.postDraft.update({
+      where: { id },
+      data: {
+        body: dto.body,
+        status: 'published',
+        publishedAt: new Date(),
+        threadsMediaId,
+        permalink,
+      },
       include: { hookOptions: true },
     });
 

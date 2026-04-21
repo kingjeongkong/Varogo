@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
@@ -13,15 +12,14 @@ interface HookSelectionProps {
 
 export function HookSelection({ draft }: HookSelectionProps) {
   const mutation = useUpdatePostDraft(draft.id);
-  const hasSelection = draft.selectedHookId !== null;
   const [localSelected, setLocalSelected] = useState<string | null>(null);
 
-  const activeSelected = hasSelection ? draft.selectedHookId : localSelected;
-
   const handleSave = () => {
-    if (!localSelected || hasSelection || mutation.isPending) return;
+    if (!localSelected || mutation.isPending) return;
     mutation.mutate({ selectedHookId: localSelected });
   };
+
+  const interactive = !mutation.isPending;
 
   return (
     <section className="space-y-4">
@@ -37,9 +35,8 @@ export function HookSelection({ draft }: HookSelectionProps) {
 
       <ul className="space-y-3" role="radiogroup" aria-label="Hook options">
         {draft.hooks.map((hook) => {
-          const isActive = activeSelected === hook.id;
-          const isDimmed = activeSelected !== null && !isActive;
-          const interactive = !hasSelection && !mutation.isPending;
+          const isActive = localSelected === hook.id;
+          const isDimmed = localSelected !== null && !isActive;
 
           return (
             <li key={hook.id}>
@@ -82,33 +79,17 @@ export function HookSelection({ draft }: HookSelectionProps) {
 
       {mutation.isError && <Alert>{mutation.error.message}</Alert>}
 
-      {!hasSelection && (
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            loading={mutation.isPending}
-            loadingText="Saving..."
-            disabled={!localSelected}
-            onClick={handleSave}
-          >
-            Save hook
-          </Button>
-        </div>
-      )}
-
-      {hasSelection && (
-        <div className="rounded-xl border border-dashed border-border-hover bg-surface/50 p-6 text-center space-y-3">
-          <p className="text-sm text-text-secondary">
-            Draft saved. Body editor is coming in the next update.
-          </p>
-          <Link
-            href={`/product/${draft.productId}/analysis`}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-text-secondary hover:border-border-hover hover:bg-surface-hover hover:text-text-primary transition-colors"
-          >
-            Back to product
-          </Link>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          loading={mutation.isPending}
+          loadingText="Saving..."
+          disabled={!localSelected}
+          onClick={handleSave}
+        >
+          Save hook
+        </Button>
+      </div>
     </section>
   );
 }

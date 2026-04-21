@@ -3,8 +3,10 @@ import type { PostDraftResponse } from '@/lib/types';
 import {
   createPostDraft,
   getPostDraft,
+  publishPostDraft,
   updatePostDraft,
   type CreatePostDraftInput,
+  type PublishPostDraftInput,
   type UpdatePostDraftInput,
 } from '../api-client';
 
@@ -33,6 +35,17 @@ export function useUpdatePostDraft(id: string) {
 
   return useMutation({
     mutationFn: (data: UpdatePostDraftInput) => updatePostDraft(id, data),
+    onSuccess: (draft: PostDraftResponse) => {
+      queryClient.setQueryData(['post-draft', id], draft);
+    },
+  });
+}
+
+export function usePublishPostDraft(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: PublishPostDraftInput) => publishPostDraft(id, data),
     onSuccess: (draft: PostDraftResponse) => {
       queryClient.setQueryData(['post-draft', id], draft);
     },

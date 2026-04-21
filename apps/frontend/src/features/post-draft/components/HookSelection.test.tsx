@@ -44,6 +44,9 @@ const PENDING_DRAFT: PostDraftResponse = {
   body: '',
   status: 'draft',
   selectedHookId: null,
+  publishedAt: null,
+  threadsMediaId: null,
+  permalink: null,
   createdAt: '2026-04-20T00:00:00.000Z',
   updatedAt: '2026-04-20T00:00:00.000Z',
   hooks: [
@@ -66,17 +69,6 @@ const PENDING_DRAFT: PostDraftResponse = {
       selected: false,
     },
   ],
-};
-
-const SELECTED_ID = 'hook-2';
-
-const COMPLETED_DRAFT: PostDraftResponse = {
-  ...PENDING_DRAFT,
-  selectedHookId: SELECTED_ID,
-  hooks: PENDING_DRAFT.hooks.map((hook) => ({
-    ...hook,
-    selected: hook.id === SELECTED_ID,
-  })),
 };
 
 describe('HookSelection', () => {
@@ -211,59 +203,4 @@ describe('HookSelection', () => {
     });
   });
 
-  describe('selection completed (selectedHookId !== null)', () => {
-    it('marks every card as disabled', () => {
-      render(<HookSelection draft={COMPLETED_DRAFT} />);
-
-      screen.getAllByRole('radio').forEach((radio) => {
-        expect(radio).toBeDisabled();
-      });
-    });
-
-    it('marks the server-selected card with aria-checked=true and shows "Selected"', () => {
-      render(<HookSelection draft={COMPLETED_DRAFT} />);
-
-      const radios = screen.getAllByRole('radio');
-      const selectedCard = radios[1];
-      expect(selectedCard).toHaveAttribute('aria-checked', 'true');
-      expect(within(selectedCard).getByText('Selected')).toBeInTheDocument();
-    });
-
-    it('leaves unselected cards with aria-checked=false and without the Selected label', () => {
-      render(<HookSelection draft={COMPLETED_DRAFT} />);
-
-      const radios = screen.getAllByRole('radio');
-      [radios[0], radios[2]].forEach((radio) => {
-        expect(radio).toHaveAttribute('aria-checked', 'false');
-        expect(within(radio).queryByText('Selected')).not.toBeInTheDocument();
-      });
-    });
-
-    it('hides the Save hook button in completed state', () => {
-      render(<HookSelection draft={COMPLETED_DRAFT} />);
-
-      expect(
-        screen.queryByRole('button', { name: /save hook/i }),
-      ).not.toBeInTheDocument();
-    });
-
-    it('renders the Draft saved guidance and Back to product link', () => {
-      render(<HookSelection draft={COMPLETED_DRAFT} />);
-
-      expect(
-        screen.getByText(/draft saved\. body editor is coming in the next update\./i),
-      ).toBeInTheDocument();
-      const link = screen.getByRole('link', { name: /back to product/i });
-      expect(link).toHaveAttribute('href', '/product/prod-1/analysis');
-    });
-
-    it('does not call mutate when a card is clicked', async () => {
-      render(<HookSelection draft={COMPLETED_DRAFT} />);
-
-      const [firstCard] = screen.getAllByRole('radio');
-      await userEvent.click(firstCard);
-
-      expect(mockUpdateMutate).not.toHaveBeenCalled();
-    });
-  });
 });

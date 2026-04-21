@@ -119,6 +119,9 @@ export interface PostDraftResponse {
   body: string;
   status: string;
   selectedHookId: string | null;
+  publishedAt: string | null;
+  threadsMediaId: string | null;
+  permalink: string | null;
   createdAt: string;
   updatedAt: string;
   hooks: HookOptionResponse[];
