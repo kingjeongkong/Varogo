@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import { ProductList } from '@/features/product/components/ProductList';
-import { VoiceProfileSummary } from '@/features/voice-profile/components/VoiceProfileSummary';
 
 export default function DashboardPage() {
   return (
@@ -9,8 +8,6 @@ export default function DashboardPage() {
       <Header />
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <VoiceProfileSummary />
-
         <div className="mb-8 flex items-center justify-between animate-fade-in">
           <div>
             <h2 className="text-2xl font-bold text-text-primary font-heading">
