@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -10,6 +12,7 @@ import {
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload';
 import { CreatePostDraftDto } from './dto/create-post-draft.dto';
+import { PublishPostDraftDto } from './dto/publish-post-draft.dto';
 import { UpdatePostDraftDto } from './dto/update-post-draft.dto';
 import { toPostDraftResponse } from './dto/post-draft.response';
 import { PostDraftService } from './post-draft.service';
@@ -43,6 +46,17 @@ export class PostDraftController {
     @Body() dto: UpdatePostDraftDto,
   ) {
     const draft = await this.postDraftService.update(id, user.sub, dto);
+    return toPostDraftResponse(draft);
+  }
+
+  @Post(':id/publish')
+  @HttpCode(HttpStatus.OK)
+  async publish(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PublishPostDraftDto,
+  ) {
+    const draft = await this.postDraftService.publish(id, user.sub, dto);
     return toPostDraftResponse(draft);
   }
 }

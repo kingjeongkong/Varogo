@@ -12,6 +12,9 @@ export interface PostDraftResponse {
   body: string;
   status: string;
   selectedHookId: string | null;
+  publishedAt: Date | null;
+  threadsMediaId: string | null;
+  permalink: string | null;
   createdAt: Date;
   updatedAt: Date;
   hooks: HookOptionResponse[];
@@ -24,6 +27,9 @@ export function toPostDraftResponse(draft: {
   body: string;
   status: string;
   selectedHookId: string | null;
+  publishedAt: Date | null;
+  threadsMediaId: string | null;
+  permalink: string | null;
   createdAt: Date;
   updatedAt: Date;
   hookOptions: Array<{
@@ -39,6 +45,9 @@ export function toPostDraftResponse(draft: {
     body: draft.body,
     status: draft.status,
     selectedHookId: draft.selectedHookId,
+    publishedAt: draft.publishedAt,
+    threadsMediaId: draft.threadsMediaId,
+    permalink: draft.permalink,
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
     hooks: draft.hookOptions.map((h) => ({

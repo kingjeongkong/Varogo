@@ -1,6 +1,12 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
+import { ThreadsService } from '../threads/threads.service';
+import { PublishPostDraftDto } from './dto/publish-post-draft.dto';
 import { HookGenerationService } from './hook-generation.service';
 import { PostDraftService } from './post-draft.service';
 
@@ -32,6 +38,10 @@ const mockPrisma = {
 
 const mockHookGenerationService = {
   generate: jest.fn(),
+};
+
+const mockThreadsService = {
+  publishToThreads: jest.fn(),
 };
 
 const userId = 'user-1';
@@ -149,6 +159,34 @@ const mockDraftWithHooks = {
   ],
 };
 
+const bodyDraftId = 'draft-1';
+const selectedHookId = 'hook-1';
+
+// Fixture for publish tests — findOneByUser uses a simpler include (hookOptions only),
+// so no nested product.analysis is loaded.
+const publishHookShort = {
+  id: selectedHookId,
+  postDraftId: bodyDraftId,
+  text: 'Short hook',
+  angleLabel: 'X',
+  createdAt: new Date('2026-04-19T11:00:00Z'),
+};
+
+const mockDraftForPublish = {
+  id: bodyDraftId,
+  productId,
+  todayInput: 'Shipped today',
+  body: '',
+  status: 'draft',
+  selectedHookId,
+  createdAt: new Date('2026-04-19T11:00:00Z'),
+  updatedAt: new Date('2026-04-19T11:00:00Z'),
+  publishedAt: null,
+  threadsMediaId: null,
+  permalink: null,
+  hookOptions: [publishHookShort],
+};
+
 describe('PostDraftService', () => {
   let service: PostDraftService;
 
@@ -161,6 +199,7 @@ describe('PostDraftService', () => {
           provide: HookGenerationService,
           useValue: mockHookGenerationService,
         },
+        { provide: ThreadsService, useValue: mockThreadsService },
       ],
     }).compile();
 
@@ -502,6 +541,137 @@ describe('PostDraftService', () => {
       });
       expect(result).toEqual(updatedDraft);
       expect(result.hookOptions).toHaveLength(3);
+    });
+  });
+
+  describe('publish', () => {
+    const publishDto: PublishPostDraftDto = { body: 'Body text here' };
+
+    it('publishes draft to Threads and updates DB with published status (happy path)', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
+      mockThreadsService.publishToThreads.mockResolvedValue({
+        threadsMediaId: 'tm-1',
+        permalink: 'https://threads.net/p/1',
+      });
+
+      const updatedDraft = {
+        ...mockDraftForPublish,
+        body: 'Body text here',
+        status: 'published',
+        publishedAt: new Date('2026-04-21T10:00:00Z'),
+        threadsMediaId: 'tm-1',
+        permalink: 'https://threads.net/p/1',
+      };
+      mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
+
+      const result = await service.publish(bodyDraftId, userId, publishDto);
+
+      expect(mockThreadsService.publishToThreads).toHaveBeenCalledTimes(1);
+      expect(mockThreadsService.publishToThreads).toHaveBeenCalledWith(
+        userId,
+        'Body text here',
+      );
+
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
+        where: { id: bodyDraftId },
+        data: {
+          body: 'Body text here',
+          status: 'published',
+          publishedAt: expect.any(Date) as unknown as Date,
+          threadsMediaId: 'tm-1',
+          permalink: 'https://threads.net/p/1',
+        },
+        include: { hookOptions: true },
+      });
+
+      expect(result).toEqual(updatedDraft);
+    });
+
+    it('propagates null permalink returned by ThreadsService to DB update', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
+      mockThreadsService.publishToThreads.mockResolvedValue({
+        threadsMediaId: 'tm-1',
+        permalink: null,
+      });
+
+      const updatedDraft = {
+        ...mockDraftForPublish,
+        body: 'Body text here',
+        status: 'published',
+        publishedAt: new Date('2026-04-21T10:00:00Z'),
+        threadsMediaId: 'tm-1',
+        permalink: null,
+      };
+      mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
+
+      await service.publish(bodyDraftId, userId, publishDto);
+
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
+        where: { id: bodyDraftId },
+        data: {
+          body: 'Body text here',
+          status: 'published',
+          publishedAt: expect.any(Date) as unknown as Date,
+          threadsMediaId: 'tm-1',
+          permalink: null,
+        },
+        include: { hookOptions: true },
+      });
+    });
+
+    it('throws NotFoundException when draft not found and does not call Threads or update', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.publish(bodyDraftId, userId, publishDto),
+      ).rejects.toThrow(new NotFoundException('Post draft not found'));
+
+      expect(mockThreadsService.publishToThreads).not.toHaveBeenCalled();
+      expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictException when draft is already published (idempotency guard)', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue({
+        ...mockDraftForPublish,
+        status: 'published',
+        publishedAt: new Date('2026-04-21T10:00:00Z'),
+        threadsMediaId: 'tm-existing',
+        permalink: 'https://threads.net/p/existing',
+      });
+
+      await expect(
+        service.publish(bodyDraftId, userId, publishDto),
+      ).rejects.toThrow(new ConflictException('Draft is already published'));
+
+      expect(mockThreadsService.publishToThreads).not.toHaveBeenCalled();
+      expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
+    });
+
+    it('throws BadRequestException when selectedHookId is null and does not call Threads', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue({
+        ...mockDraftForPublish,
+        selectedHookId: null,
+      });
+
+      await expect(
+        service.publish(bodyDraftId, userId, publishDto),
+      ).rejects.toThrow(new BadRequestException('Select a hook first'));
+
+      expect(mockThreadsService.publishToThreads).not.toHaveBeenCalled();
+      expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
+    });
+
+    it('propagates ThreadsService errors and does not update the DB', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
+      const threadsError = new Error('Threads API failure');
+      mockThreadsService.publishToThreads.mockRejectedValue(threadsError);
+
+      await expect(
+        service.publish(bodyDraftId, userId, publishDto),
+      ).rejects.toThrow(threadsError);
+
+      expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
     });
   });
 });
