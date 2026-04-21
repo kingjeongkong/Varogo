@@ -126,3 +126,9 @@ export interface PostDraftResponse {
   updatedAt: string;
   hooks: HookOptionResponse[];
 }
+
+export interface PostDraftsListResponse {
+  items: PostDraftResponse[];
+  nextOffset: number | null;
+  total: number;
+}
