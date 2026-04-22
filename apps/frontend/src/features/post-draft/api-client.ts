@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/http-client';
-import type { PostDraftResponse } from '@/lib/types';
+import type { PostDraftResponse, PostDraftsListResponse } from '@/lib/types';
 
 export interface CreatePostDraftInput {
   productId: string;
@@ -46,4 +46,26 @@ export function publishPostDraft(
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+export interface ListPostDraftsInput {
+  productId: string;
+  status: 'draft' | 'published';
+  limit?: number;
+  offset?: number;
+}
+
+export function listPostDrafts(
+  params: ListPostDraftsInput,
+): Promise<PostDraftsListResponse> {
+  const queryParams = new URLSearchParams();
+  queryParams.append('productId', params.productId);
+  queryParams.append('status', params.status);
+  if (params.limit !== undefined) {
+    queryParams.append('limit', String(params.limit));
+  }
+  if (params.offset !== undefined) {
+    queryParams.append('offset', String(params.offset));
+  }
+  return apiFetch<PostDraftsListResponse>(`/post-drafts?${queryParams.toString()}`);
 }
