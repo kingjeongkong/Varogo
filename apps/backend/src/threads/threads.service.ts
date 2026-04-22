@@ -27,6 +27,10 @@ const STATE_MAX_AGE_MS = 10 * 60 * 1000; // 10 minutes
 const TOKEN_REFRESH_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const LONG_LIVED_TOKEN_DURATION_MS = 60 * 24 * 60 * 60 * 1000; // 60 days
 
+const POLL_INITIAL_DELAY_MS = 1000;
+const POLL_MAX_DELAY_MS = 3000;
+const POLL_TIMEOUT_MS = 10_000;
+
 @Injectable()
 export class ThreadsService {
   private readonly logger = new Logger(ThreadsService.name);
@@ -474,5 +478,9 @@ export class ThreadsService {
     });
 
     return data.access_token;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
