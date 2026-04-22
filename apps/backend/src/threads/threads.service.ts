@@ -257,6 +257,31 @@ export class ThreadsService {
     return units.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   }
 
+  private async fetchContainerStatus(
+    containerId: string,
+    accessToken: string,
+  ): Promise<{ status: string; error_message?: string }> {
+    const params = new URLSearchParams({
+      fields: 'status,error_message',
+    });
+
+    const res = await fetch(
+      `${THREADS_API_BASE}/${containerId}?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+
+    if (!res.ok) {
+      this.logger.error(
+        `Container status fetch failed for ${containerId}: ${res.status}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to fetch Threads container status',
+      );
+    }
+
+    return res.json() as Promise<{ status: string; error_message?: string }>;
+  }
+
   private async fetchMainPosts(
     threadsUserId: string,
     accessToken: string,

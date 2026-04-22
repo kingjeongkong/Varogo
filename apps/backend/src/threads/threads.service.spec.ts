@@ -592,4 +592,81 @@ describe('ThreadsService', () => {
       expect(units).toEqual([]);
     });
   });
+
+  describe('fetchContainerStatus', () => {
+    const containerId = 'container-abc123';
+    const accessToken = 'test-access-token';
+
+    /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+    const callMethod = (svc: any) =>
+      svc.fetchContainerStatus(containerId, accessToken) as Promise<{
+        status: string;
+        error_message?: string;
+      }>;
+    /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
+    it('Test A: returns { status } when Meta returns 200 with FINISHED', async () => {
+      mockFetchSequence([{ ok: true, body: { status: 'FINISHED' } }]);
+
+      const result = await callMethod(service);
+
+      expect(result).toEqual({ status: 'FINISHED' });
+    });
+
+    it('Test B: returns { status, error_message } when present in response body', async () => {
+      mockFetchSequence([
+        {
+          ok: true,
+          body: { status: 'ERROR', error_message: 'some meta reason' },
+        },
+      ]);
+
+      const result = await callMethod(service);
+
+      expect(result).toEqual({
+        status: 'ERROR',
+        error_message: 'some meta reason',
+      });
+    });
+
+    it('Test C: throws InternalServerErrorException when response is non-2xx', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'server_error' }, status: 500 },
+      ]);
+
+      await expect(callMethod(service)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+
+    it('Test D: fetch URL contains container id and fields=status,error_message', async () => {
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { status: 'IN_PROGRESS' } },
+      ]);
+
+      await callMethod(service);
+
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+      const calledUrl = fetchCalls[0][0];
+      expect(calledUrl).toContain(containerId);
+      expect(calledUrl).toContain('fields=');
+      expect(calledUrl).toContain('status');
+      expect(calledUrl).toContain('error_message');
+    });
+
+    it('Test E: Authorization header is set correctly', async () => {
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { status: 'FINISHED' } },
+      ]);
+
+      await callMethod(service);
+
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+      expect(fetchCalls[0][1].headers).toEqual(
+        expect.objectContaining({
+          Authorization: `Bearer ${accessToken}`,
+        }),
+      );
+    });
+  });
 });
