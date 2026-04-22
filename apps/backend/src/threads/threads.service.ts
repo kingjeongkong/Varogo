@@ -27,6 +27,10 @@ const STATE_MAX_AGE_MS = 10 * 60 * 1000; // 10 minutes
 const TOKEN_REFRESH_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const LONG_LIVED_TOKEN_DURATION_MS = 60 * 24 * 60 * 60 * 1000; // 60 days
 
+const POLL_INITIAL_DELAY_MS = 1000;
+const POLL_MAX_DELAY_MS = 3000;
+const POLL_TIMEOUT_MS = 10_000;
+
 @Injectable()
 export class ThreadsService {
   private readonly logger = new Logger(ThreadsService.name);
@@ -150,17 +154,21 @@ export class ThreadsService {
         `Threads container creation failed: ${containerRes.status}`,
       );
       throw new InternalServerErrorException(
-        'Failed to create Threads post container',
+        "We couldn't start a Threads post. Please try again.",
       );
     }
 
     const containerData = (await containerRes.json()) as { id: string };
 
     if (!containerData.id) {
+      this.logger.error('Threads container creation returned no ID');
       throw new InternalServerErrorException(
-        'Threads container creation returned no ID',
+        "We couldn't start a Threads post. Please try again.",
       );
     }
+
+    // Step 1.5: Wait for container to be ready
+    await this.waitForContainerReady(containerData.id, accessToken);
 
     // Step 2: Publish the container
     const publishRes = await fetch(
@@ -179,7 +187,9 @@ export class ThreadsService {
 
     if (!publishRes.ok) {
       this.logger.error(`Threads publish failed: ${publishRes.status}`);
-      throw new InternalServerErrorException('Failed to publish to Threads');
+      throw new InternalServerErrorException(
+        'Threads accepted the post but publishing failed. Please try again.',
+      );
     }
 
     const publishData = (await publishRes.json()) as { id: string };
@@ -251,6 +261,82 @@ export class ThreadsService {
     }
 
     return units.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  }
+
+  private async waitForContainerReady(
+    containerId: string,
+    accessToken: string,
+  ): Promise<void> {
+    let delay = POLL_INITIAL_DELAY_MS;
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    let loggedUnknown = false;
+
+    while (true) {
+      let result: { status: string; error_message?: string } | null = null;
+      try {
+        result = await this.fetchContainerStatus(containerId, accessToken);
+      } catch (err) {
+        this.logger.warn(
+          `Container status poll failed for ${containerId}: ${err}`,
+        );
+        // fall through to deadline check + sleep
+      }
+
+      if (result) {
+        if (result.status === 'FINISHED') return;
+        if (result.status === 'ERROR') {
+          throw new InternalServerErrorException(
+            `We couldn't publish to Threads: ${result.error_message ?? 'Threads rejected the post'}. Please try again.`,
+          );
+        }
+        if (result.status === 'EXPIRED') {
+          throw new InternalServerErrorException(
+            'The Threads post expired before we could publish it. Please try again.',
+          );
+        }
+        // Unknown status — log once per invocation, keep polling
+        if (!loggedUnknown) {
+          this.logger.warn(
+            `Unknown Threads container status "${result.status}" for ${containerId}`,
+          );
+          loggedUnknown = true;
+        }
+      }
+
+      if (Date.now() + delay >= deadline) {
+        throw new InternalServerErrorException(
+          'Threads is taking longer than usual to prepare your post. Please try again in a moment.',
+        );
+      }
+
+      await this.sleep(delay);
+      delay = Math.min(Math.ceil(delay * 1.5), POLL_MAX_DELAY_MS);
+    }
+  }
+
+  private async fetchContainerStatus(
+    containerId: string,
+    accessToken: string,
+  ): Promise<{ status: string; error_message?: string }> {
+    const params = new URLSearchParams({
+      fields: 'status,error_message',
+    });
+
+    const res = await fetch(
+      `${THREADS_API_BASE}/${containerId}?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+
+    if (!res.ok) {
+      this.logger.error(
+        `Container status fetch failed for ${containerId}: ${res.status}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to fetch Threads container status',
+      );
+    }
+
+    return res.json() as Promise<{ status: string; error_message?: string }>;
   }
 
   private async fetchMainPosts(
@@ -474,5 +560,9 @@ export class ThreadsService {
     });
 
     return data.access_token;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
