@@ -48,6 +48,7 @@ export function usePublishPostDraft(id: string) {
     mutationFn: (data: PublishPostDraftInput) => publishPostDraft(id, data),
     onSuccess: (draft: PostDraftResponse) => {
       queryClient.setQueryData(['post-draft', id], draft);
+      queryClient.invalidateQueries({ queryKey: ['post-drafts-list', draft.productId] });
     },
   });
 }
