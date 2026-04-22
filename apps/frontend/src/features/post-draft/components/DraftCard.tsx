@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { PostDraftResponse } from '@/lib/types';
-import { formatRelativeTime } from '../relative-time';
+import { formatRelativeTime } from '@/lib/utils';
 
 interface DraftCardProps {
   draft: PostDraftResponse;

@@ -1,5 +1,5 @@
 import type { PostDraftResponse } from '@/lib/types';
-import { formatRelativeTime } from '../relative-time';
+import { formatRelativeTime } from '@/lib/utils';
 
 interface PublishedCardProps {
   draft: PostDraftResponse;
