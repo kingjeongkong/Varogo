@@ -213,16 +213,16 @@ export class PostDraftService {
       throw new BadRequestException('Select a hook first');
     }
 
-    // Optimistic lock: atomically move the draft from `draft` → `publishing`.
-    // If the conditional update affects 0 rows, someone else already claimed
-    // the publish (or the draft is already published) — we refuse without
-    // calling Threads.
-    const lock = await this.prisma.postDraft.updateMany({
+    // Atomic claim: only one request can transition `draft` → `published`.
+    // Concurrent second requests see count=0 and are refused before we ever
+    // call Threads. Metadata (publishedAt / threadsMediaId / permalink) is
+    // filled in after the Threads call succeeds; status is already set.
+    const claim = await this.prisma.postDraft.updateMany({
       where: { id, status: 'draft', product: { userId } },
-      data: { status: 'publishing' },
+      data: { status: 'published' },
     });
 
-    if (lock.count === 0) {
+    if (claim.count === 0) {
       throw new ConflictException(
         'This post is already being published or has been published. Please refresh.',
       );
@@ -236,7 +236,6 @@ export class PostDraftService {
         where: { id },
         data: {
           body: dto.body,
-          status: 'published',
           publishedAt: new Date(),
           threadsMediaId,
           permalink,
@@ -246,8 +245,8 @@ export class PostDraftService {
 
       return updated;
     } catch (err) {
-      // Release the lock so the user can retry. Body is intentionally not
-      // touched — keep whatever was there before the failed attempt.
+      // Threads call failed — roll the status back to `draft` so the user
+      // can retry. Body was not yet written, so nothing else to undo.
       await this.prisma.postDraft.update({
         where: { id },
         data: { status: 'draft' },

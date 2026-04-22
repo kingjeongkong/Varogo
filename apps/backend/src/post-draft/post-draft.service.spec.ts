@@ -561,7 +561,7 @@ describe('PostDraftService', () => {
   describe('publish', () => {
     const publishDto: PublishPostDraftDto = { body: 'Body text here' };
 
-    it('claims the optimistic lock, publishes to Threads, and updates DB (happy path)', async () => {
+    it('claims the optimistic lock (draft→published), publishes to Threads, and writes metadata (happy path)', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
       mockPrisma.postDraft.updateMany.mockResolvedValue({ count: 1 });
       mockThreadsService.publishToThreads.mockResolvedValue({
@@ -581,11 +581,12 @@ describe('PostDraftService', () => {
 
       const result = await service.publish(bodyDraftId, userId, publishDto);
 
-      // Lock claim was atomic: scoped to this user's draft + status=draft
+      // Lock claim was atomic: scoped to this user's draft + status=draft,
+      // transitioning directly to 'published'
       expect(mockPrisma.postDraft.updateMany).toHaveBeenCalledTimes(1);
       expect(mockPrisma.postDraft.updateMany).toHaveBeenCalledWith({
         where: { id: bodyDraftId, status: 'draft', product: { userId } },
-        data: { status: 'publishing' },
+        data: { status: 'published' },
       });
 
       // Threads called exactly once, with the DTO body
@@ -595,13 +596,12 @@ describe('PostDraftService', () => {
         'Body text here',
       );
 
-      // Final published update written
+      // Metadata written (status already set by claim, so not repeated here)
       expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
       expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
         where: { id: bodyDraftId },
         data: {
           body: 'Body text here',
-          status: 'published',
           publishedAt: expect.any(Date) as unknown as Date,
           threadsMediaId: 'tm-1',
           permalink: 'https://threads.net/p/1',
@@ -636,7 +636,6 @@ describe('PostDraftService', () => {
         where: { id: bodyDraftId },
         data: {
           body: 'Body text here',
-          status: 'published',
           publishedAt: expect.any(Date) as unknown as Date,
           threadsMediaId: 'tm-1',
           permalink: null,
