@@ -154,17 +154,21 @@ export class ThreadsService {
         `Threads container creation failed: ${containerRes.status}`,
       );
       throw new InternalServerErrorException(
-        'Failed to create Threads post container',
+        "We couldn't start a Threads post. Please try again.",
       );
     }
 
     const containerData = (await containerRes.json()) as { id: string };
 
     if (!containerData.id) {
+      this.logger.error('Threads container creation returned no ID');
       throw new InternalServerErrorException(
-        'Threads container creation returned no ID',
+        "We couldn't start a Threads post. Please try again.",
       );
     }
+
+    // Step 1.5: Wait for container to be ready
+    await this.waitForContainerReady(containerData.id, accessToken);
 
     // Step 2: Publish the container
     const publishRes = await fetch(
@@ -183,7 +187,9 @@ export class ThreadsService {
 
     if (!publishRes.ok) {
       this.logger.error(`Threads publish failed: ${publishRes.status}`);
-      throw new InternalServerErrorException('Failed to publish to Threads');
+      throw new InternalServerErrorException(
+        'Threads accepted the post but publishing failed. Please try again.',
+      );
     }
 
     const publishData = (await publishRes.json()) as { id: string };

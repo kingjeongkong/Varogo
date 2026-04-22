@@ -300,9 +300,18 @@ describe('ThreadsService', () => {
       mockCrypto.decrypt.mockReturnValue('decrypted-access-token');
     });
 
-    it('creates container, publishes, fetches permalink, and returns result', async () => {
+    let sleepSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      sleepSpy = jest
+        .spyOn(service as any, 'sleep')
+        .mockResolvedValue(undefined);
+    });
+
+    it('creates container, polls status, publishes, fetches permalink, and returns result', async () => {
       const fetchMock = mockFetchSequence([
         { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'FINISHED' } },
         { ok: true, body: { id: 'media-456' } },
         {
           ok: true,
@@ -328,8 +337,8 @@ describe('ThreadsService', () => {
       // Verify crypto.decrypt was called with encrypted token
       expect(mockCrypto.decrypt).toHaveBeenCalledWith('encrypted-token');
 
-      // Verify 3 fetch calls: container creation, publish, permalink
-      expect(fetchMock).toHaveBeenCalledTimes(3);
+      // Verify 4 fetch calls: container creation, status poll, publish, permalink
+      expect(fetchMock).toHaveBeenCalledTimes(4);
       const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
 
       // Container creation call
@@ -344,21 +353,22 @@ describe('ThreadsService', () => {
       );
 
       // Publish call
-      expect(fetchCalls[1][0]).toBe(
+      expect(fetchCalls[2][0]).toBe(
         'https://graph.threads.net/v1.0/threads-user-1/threads_publish',
       );
-      expect(fetchCalls[1][1].method).toBe('POST');
+      expect(fetchCalls[2][1].method).toBe('POST');
 
       // Permalink fetch call
-      expect(fetchCalls[2][0]).toContain(
+      expect(fetchCalls[3][0]).toContain(
         'https://graph.threads.net/v1.0/media-456',
       );
-      expect(fetchCalls[2][0]).toContain('fields=id%2Cpermalink');
+      expect(fetchCalls[3][0]).toContain('fields=id%2Cpermalink');
     });
 
     it('returns null permalink when permalink fetch fails gracefully', async () => {
-      mockFetchSequence([
+      const fetchMock = mockFetchSequence([
         { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'FINISHED' } },
         { ok: true, body: { id: 'media-456' } },
         { ok: false, body: { error: 'not_found' }, status: 404 },
       ]);
@@ -369,6 +379,8 @@ describe('ThreadsService', () => {
         threadsMediaId: 'media-456',
         permalink: null,
       });
+
+      expect(fetchMock).toHaveBeenCalledTimes(4);
     });
 
     it('throws NotFoundException when connection not found', async () => {
@@ -385,7 +397,7 @@ describe('ThreadsService', () => {
       ]);
 
       await expect(service.publishToThreads(userId, text)).rejects.toThrow(
-        'Failed to create Threads post container',
+        "We couldn't start a Threads post. Please try again.",
       );
     });
 
@@ -393,19 +405,84 @@ describe('ThreadsService', () => {
       mockFetchSequence([{ ok: true, body: {} }]);
 
       await expect(service.publishToThreads(userId, text)).rejects.toThrow(
-        'Threads container creation returned no ID',
+        "We couldn't start a Threads post. Please try again.",
       );
     });
 
     it('throws InternalServerErrorException when publish API fails', async () => {
       mockFetchSequence([
         { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'FINISHED' } },
         { ok: false, body: { error: 'publish_error' }, status: 500 },
       ]);
 
       await expect(service.publishToThreads(userId, text)).rejects.toThrow(
-        'Failed to publish to Threads',
+        'Threads accepted the post but publishing failed. Please try again.',
       );
+    });
+
+    it('throws when polling returns ERROR with error_message; threads_publish never called', async () => {
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'ERROR', error_message: 'rate_limited' } },
+      ]);
+
+      const err = await service
+        .publishToThreads(userId, text)
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(
+        /rate_limited/,
+      );
+      expect((err as InternalServerErrorException).message).toMatch(
+        /We couldn't publish to Threads:/,
+      );
+
+      // threads_publish must never have been called
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+      const calledUrls = fetchCalls.map((c) => c[0]);
+      expect(calledUrls.some((u) => u.includes('threads_publish'))).toBe(false);
+    });
+
+    it('throws timeout error when polling exhausts deadline; threads_publish never called', async () => {
+      // Use Date.now mocking to force deadline exhaustion after a couple of IN_PROGRESS polls
+      const start = 1_000_000;
+      const dateNowSpy = jest
+        .spyOn(Date, 'now')
+        // First call inside waitForContainerReady: sets deadline = start + 10_000
+        .mockReturnValueOnce(start)
+        // Deadline check after first IN_PROGRESS poll: start + 3_000 + 1_000 < start + 10_000 → continue
+        .mockReturnValueOnce(start + 3_000)
+        // Deadline check after second IN_PROGRESS poll: start + 9_000 + 3_000 >= start + 10_000 → timeout
+        .mockReturnValueOnce(start + 9_000);
+
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'IN_PROGRESS' } },
+        { ok: true, body: { status: 'IN_PROGRESS' } },
+      ]);
+
+      const err = await service
+        .publishToThreads(userId, text)
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(
+        /taking longer than usual/,
+      );
+
+      // threads_publish must never have been called
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+      const calledUrls = fetchCalls.map((c) => c[0]);
+      expect(calledUrls.some((u) => u.includes('threads_publish'))).toBe(false);
+
+      dateNowSpy.mockRestore();
+    });
+
+    afterEach(() => {
+      sleepSpy.mockRestore();
     });
   });
 
