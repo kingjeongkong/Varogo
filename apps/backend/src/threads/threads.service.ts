@@ -257,6 +257,57 @@ export class ThreadsService {
     return units.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   }
 
+  private async waitForContainerReady(
+    containerId: string,
+    accessToken: string,
+  ): Promise<void> {
+    let delay = POLL_INITIAL_DELAY_MS;
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    let loggedUnknown = false;
+
+    while (true) {
+      let result: { status: string; error_message?: string } | null = null;
+      try {
+        result = await this.fetchContainerStatus(containerId, accessToken);
+      } catch (err) {
+        this.logger.warn(
+          `Container status poll failed for ${containerId}: ${err}`,
+        );
+        // fall through to deadline check + sleep
+      }
+
+      if (result) {
+        if (result.status === 'FINISHED') return;
+        if (result.status === 'ERROR') {
+          throw new InternalServerErrorException(
+            `We couldn't publish to Threads: ${result.error_message ?? 'Threads rejected the post'}. Please try again.`,
+          );
+        }
+        if (result.status === 'EXPIRED') {
+          throw new InternalServerErrorException(
+            'The Threads post expired before we could publish it. Please try again.',
+          );
+        }
+        // Unknown status — log once per invocation, keep polling
+        if (!loggedUnknown) {
+          this.logger.warn(
+            `Unknown Threads container status "${result.status}" for ${containerId}`,
+          );
+          loggedUnknown = true;
+        }
+      }
+
+      if (Date.now() + delay >= deadline) {
+        throw new InternalServerErrorException(
+          'Threads is taking longer than usual to prepare your post. Please try again in a moment.',
+        );
+      }
+
+      await this.sleep(delay);
+      delay = Math.min(Math.ceil(delay * 1.5), POLL_MAX_DELAY_MS);
+    }
+  }
+
   private async fetchContainerStatus(
     containerId: string,
     accessToken: string,

@@ -593,6 +593,167 @@ describe('ThreadsService', () => {
     });
   });
 
+  describe('waitForContainerReady', () => {
+    const containerId = 'container-xyz';
+    const accessToken = 'test-token';
+
+    /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+    const callMethod = (svc: any) =>
+      svc.waitForContainerReady(containerId, accessToken) as Promise<void>;
+    /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
+    let sleepSpy: jest.SpyInstance;
+    let fetchContainerStatusSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      sleepSpy = jest
+        .spyOn(service as any, 'sleep')
+        .mockResolvedValue(undefined);
+      fetchContainerStatusSpy = jest.spyOn(
+        service as any,
+        'fetchContainerStatus',
+      );
+    });
+
+    // Happy paths
+
+    it('resolves immediately when FINISHED on first poll; sleep called 0 times; fetchContainerStatus called 1 time', async () => {
+      fetchContainerStatusSpy.mockResolvedValueOnce({ status: 'FINISHED' });
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(1);
+      expect(sleepSpy).toHaveBeenCalledTimes(0);
+    });
+
+    it('resolves after IN_PROGRESS, IN_PROGRESS, FINISHED; sleep called 2 times; fetchContainerStatus called 3 times', async () => {
+      fetchContainerStatusSpy
+        .mockResolvedValueOnce({ status: 'IN_PROGRESS' })
+        .mockResolvedValueOnce({ status: 'IN_PROGRESS' })
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(3);
+      expect(sleepSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('resolves when unknown status QUEUED then FINISHED; logger.warn called at least once with "QUEUED"', async () => {
+      fetchContainerStatusSpy
+        .mockResolvedValueOnce({ status: 'QUEUED' })
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const warnSpy = jest.spyOn((service as any).logger, 'warn');
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      const warnMessages = (warnSpy.mock.calls as string[][]).map((c) => c[0]);
+      expect(warnMessages.some((m) => m.includes('QUEUED'))).toBe(true);
+    });
+
+    // Terminal statuses
+
+    it('throws InternalServerErrorException with error_message and "We couldn\'t publish to Threads" for ERROR status with error_message', async () => {
+      fetchContainerStatusSpy.mockResolvedValue({
+        status: 'ERROR',
+        error_message: 'rate_limited',
+      });
+
+      const err = await callMethod(service).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(
+        /rate_limited/,
+      );
+      expect((err as InternalServerErrorException).message).toMatch(
+        /We couldn't publish to Threads/,
+      );
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws InternalServerErrorException with "Threads rejected the post" for ERROR status without error_message', async () => {
+      fetchContainerStatusSpy.mockResolvedValueOnce({ status: 'ERROR' });
+
+      const err = await callMethod(service).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(
+        /Threads rejected the post/,
+      );
+    });
+
+    it('throws InternalServerErrorException with "expired" for EXPIRED status; fetchContainerStatus called once per invocation', async () => {
+      fetchContainerStatusSpy.mockResolvedValueOnce({ status: 'EXPIRED' });
+
+      const err = await callMethod(service).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(/expired/i);
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(1);
+    });
+
+    // Timeout
+
+    it('throws timeout error containing "taking longer than usual" when deadline is exceeded', async () => {
+      // Mock Date.now to simulate time passing past the deadline on each call
+      const start = 1_000_000;
+      const dateNowSpy = jest
+        .spyOn(Date, 'now')
+        // First call: sets deadline = start + 10_000
+        .mockReturnValueOnce(start)
+        // Second call: deadline check — start + 1000 >= start + 10_000? No, keep polling
+        .mockReturnValueOnce(start + 3_000)
+        // Third call: deadline check — start + 3_000 + 1000 >= start + 10_000? No
+        .mockReturnValueOnce(start + 6_000)
+        // Fourth call: deadline check — start + 6_000 + 1000 >= start + 10_000? No... but next
+        .mockReturnValueOnce(start + 9_000)
+        // Fifth call: deadline check — start + 9_000 + 3_000 >= start + 10_000? Yes → timeout
+        .mockReturnValueOnce(start + 9_000);
+
+      fetchContainerStatusSpy.mockResolvedValue({ status: 'IN_PROGRESS' });
+
+      await expect(callMethod(service)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+      await expect(callMethod(service)).rejects.toThrow(
+        /taking longer than usual/,
+      );
+
+      dateNowSpy.mockRestore();
+    });
+
+    // Transient failure tolerance
+
+    it('resolves when fetchContainerStatus throws on first call then returns FINISHED; logger.warn called once with containerId', async () => {
+      fetchContainerStatusSpy
+        .mockRejectedValueOnce(new Error('network error'))
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const warnSpy = jest.spyOn((service as any).logger, 'warn');
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      const warnMessages = (warnSpy.mock.calls as string[][]).map((c) => c[0]);
+      expect(warnMessages.some((m) => m.includes(containerId))).toBe(true);
+    });
+
+    it('resolves when fetchContainerStatus throws twice then returns FINISHED; logger.warn called twice', async () => {
+      fetchContainerStatusSpy
+        .mockRejectedValueOnce(new Error('timeout 1'))
+        .mockRejectedValueOnce(new Error('timeout 2'))
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const warnSpy = jest.spyOn((service as any).logger, 'warn');
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      const warnCalls = (warnSpy.mock.calls as string[][]).filter((c) =>
+        c[0].includes(containerId),
+      );
+      expect(warnCalls).toHaveLength(2);
+    });
+  });
+
   describe('fetchContainerStatus', () => {
     const containerId = 'container-abc123';
     const accessToken = 'test-access-token';
