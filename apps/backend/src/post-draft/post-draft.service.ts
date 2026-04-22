@@ -209,29 +209,50 @@ export class PostDraftService {
   async publish(id: string, userId: string, dto: PublishPostDraftDto) {
     const draft = await this.findOneByUser(id, userId);
 
-    if (draft.status === 'published') {
-      throw new ConflictException('Draft is already published');
-    }
-
     if (!draft.selectedHookId) {
       throw new BadRequestException('Select a hook first');
     }
 
-    const { threadsMediaId, permalink } =
-      await this.threadsService.publishToThreads(userId, dto.body);
-
-    const updated = await this.prisma.postDraft.update({
-      where: { id },
-      data: {
-        body: dto.body,
-        status: 'published',
-        publishedAt: new Date(),
-        threadsMediaId,
-        permalink,
-      },
-      include: { hookOptions: true },
+    // Optimistic lock: atomically move the draft from `draft` → `publishing`.
+    // If the conditional update affects 0 rows, someone else already claimed
+    // the publish (or the draft is already published) — we refuse without
+    // calling Threads.
+    const lock = await this.prisma.postDraft.updateMany({
+      where: { id, status: 'draft', product: { userId } },
+      data: { status: 'publishing' },
     });
 
-    return updated;
+    if (lock.count === 0) {
+      throw new ConflictException(
+        'This post is already being published or has been published. Please refresh.',
+      );
+    }
+
+    try {
+      const { threadsMediaId, permalink } =
+        await this.threadsService.publishToThreads(userId, dto.body);
+
+      const updated = await this.prisma.postDraft.update({
+        where: { id },
+        data: {
+          body: dto.body,
+          status: 'published',
+          publishedAt: new Date(),
+          threadsMediaId,
+          permalink,
+        },
+        include: { hookOptions: true },
+      });
+
+      return updated;
+    } catch (err) {
+      // Release the lock so the user can retry. Body is intentionally not
+      // touched — keep whatever was there before the failed attempt.
+      await this.prisma.postDraft.update({
+        where: { id },
+        data: { status: 'draft' },
+      });
+      throw err;
+    }
   }
 }

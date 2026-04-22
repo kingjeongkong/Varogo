@@ -33,6 +33,7 @@ const mockPrisma = {
     findMany: jest.fn(),
     count: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   },
   $transaction: jest.fn(
     (arg: ((tx: typeof mockTx) => Promise<unknown>) | Promise<unknown>[]) => {
@@ -560,8 +561,9 @@ describe('PostDraftService', () => {
   describe('publish', () => {
     const publishDto: PublishPostDraftDto = { body: 'Body text here' };
 
-    it('publishes draft to Threads and updates DB with published status (happy path)', async () => {
+    it('claims the optimistic lock, publishes to Threads, and updates DB (happy path)', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
+      mockPrisma.postDraft.updateMany.mockResolvedValue({ count: 1 });
       mockThreadsService.publishToThreads.mockResolvedValue({
         threadsMediaId: 'tm-1',
         permalink: 'https://threads.net/p/1',
@@ -579,12 +581,21 @@ describe('PostDraftService', () => {
 
       const result = await service.publish(bodyDraftId, userId, publishDto);
 
+      // Lock claim was atomic: scoped to this user's draft + status=draft
+      expect(mockPrisma.postDraft.updateMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.postDraft.updateMany).toHaveBeenCalledWith({
+        where: { id: bodyDraftId, status: 'draft', product: { userId } },
+        data: { status: 'publishing' },
+      });
+
+      // Threads called exactly once, with the DTO body
       expect(mockThreadsService.publishToThreads).toHaveBeenCalledTimes(1);
       expect(mockThreadsService.publishToThreads).toHaveBeenCalledWith(
         userId,
         'Body text here',
       );
 
+      // Final published update written
       expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
       expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
         where: { id: bodyDraftId },
@@ -603,6 +614,7 @@ describe('PostDraftService', () => {
 
     it('propagates null permalink returned by ThreadsService to DB update', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
+      mockPrisma.postDraft.updateMany.mockResolvedValue({ count: 1 });
       mockThreadsService.publishToThreads.mockResolvedValue({
         threadsMediaId: 'tm-1',
         permalink: null,
@@ -633,35 +645,36 @@ describe('PostDraftService', () => {
       });
     });
 
-    it('throws NotFoundException when draft not found and does not call Threads or update', async () => {
+    it('throws NotFoundException when draft not found and does not call Threads or lock', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue(null);
 
       await expect(
         service.publish(bodyDraftId, userId, publishDto),
       ).rejects.toThrow(new NotFoundException('Post draft not found'));
 
+      expect(mockPrisma.postDraft.updateMany).not.toHaveBeenCalled();
       expect(mockThreadsService.publishToThreads).not.toHaveBeenCalled();
       expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
     });
 
-    it('throws ConflictException when draft is already published (idempotency guard)', async () => {
-      mockPrisma.postDraft.findFirst.mockResolvedValue({
-        ...mockDraftForPublish,
-        status: 'published',
-        publishedAt: new Date('2026-04-21T10:00:00Z'),
-        threadsMediaId: 'tm-existing',
-        permalink: 'https://threads.net/p/existing',
-      });
+    it('throws ConflictException when the optimistic lock claim affects 0 rows (already published or concurrent publish)', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
+      mockPrisma.postDraft.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
         service.publish(bodyDraftId, userId, publishDto),
-      ).rejects.toThrow(new ConflictException('Draft is already published'));
+      ).rejects.toThrow(
+        new ConflictException(
+          'This post is already being published or has been published. Please refresh.',
+        ),
+      );
 
+      expect(mockPrisma.postDraft.updateMany).toHaveBeenCalledTimes(1);
       expect(mockThreadsService.publishToThreads).not.toHaveBeenCalled();
       expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
     });
 
-    it('throws BadRequestException when selectedHookId is null and does not call Threads', async () => {
+    it('throws BadRequestException when selectedHookId is null and does not lock or call Threads', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue({
         ...mockDraftForPublish,
         selectedHookId: null,
@@ -671,20 +684,28 @@ describe('PostDraftService', () => {
         service.publish(bodyDraftId, userId, publishDto),
       ).rejects.toThrow(new BadRequestException('Select a hook first'));
 
+      expect(mockPrisma.postDraft.updateMany).not.toHaveBeenCalled();
       expect(mockThreadsService.publishToThreads).not.toHaveBeenCalled();
       expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
     });
 
-    it('propagates ThreadsService errors and does not update the DB', async () => {
+    it('releases the lock (status -> draft) and rethrows when ThreadsService fails', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
+      mockPrisma.postDraft.updateMany.mockResolvedValue({ count: 1 });
       const threadsError = new Error('Threads API failure');
       mockThreadsService.publishToThreads.mockRejectedValue(threadsError);
+      mockPrisma.postDraft.update.mockResolvedValue(mockDraftForPublish);
 
       await expect(
         service.publish(bodyDraftId, userId, publishDto),
       ).rejects.toThrow(threadsError);
 
-      expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
+      // Rollback update to status='draft' was called (and only that — no published write)
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
+        where: { id: bodyDraftId },
+        data: { status: 'draft' },
+      });
     });
   });
 
