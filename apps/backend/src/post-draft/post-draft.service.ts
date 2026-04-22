@@ -209,29 +209,49 @@ export class PostDraftService {
   async publish(id: string, userId: string, dto: PublishPostDraftDto) {
     const draft = await this.findOneByUser(id, userId);
 
-    if (draft.status === 'published') {
-      throw new ConflictException('Draft is already published');
-    }
-
     if (!draft.selectedHookId) {
       throw new BadRequestException('Select a hook first');
     }
 
-    const { threadsMediaId, permalink } =
-      await this.threadsService.publishToThreads(userId, dto.body);
-
-    const updated = await this.prisma.postDraft.update({
-      where: { id },
-      data: {
-        body: dto.body,
-        status: 'published',
-        publishedAt: new Date(),
-        threadsMediaId,
-        permalink,
-      },
-      include: { hookOptions: true },
+    // Atomic claim: only one request can transition `draft` → `published`.
+    // Concurrent second requests see count=0 and are refused before we ever
+    // call Threads. Metadata (publishedAt / threadsMediaId / permalink) is
+    // filled in after the Threads call succeeds; status is already set.
+    const claim = await this.prisma.postDraft.updateMany({
+      where: { id, status: 'draft', product: { userId } },
+      data: { status: 'published' },
     });
 
-    return updated;
+    if (claim.count === 0) {
+      throw new ConflictException(
+        'This post is already being published or has been published. Please refresh.',
+      );
+    }
+
+    try {
+      const { threadsMediaId, permalink } =
+        await this.threadsService.publishToThreads(userId, dto.body);
+
+      const updated = await this.prisma.postDraft.update({
+        where: { id },
+        data: {
+          body: dto.body,
+          publishedAt: new Date(),
+          threadsMediaId,
+          permalink,
+        },
+        include: { hookOptions: true },
+      });
+
+      return updated;
+    } catch (err) {
+      // Threads call failed — roll the status back to `draft` so the user
+      // can retry. Body was not yet written, so nothing else to undo.
+      await this.prisma.postDraft.update({
+        where: { id },
+        data: { status: 'draft' },
+      });
+      throw err;
+    }
   }
 }
