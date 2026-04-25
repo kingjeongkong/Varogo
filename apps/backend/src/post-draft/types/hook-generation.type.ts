@@ -18,4 +18,5 @@ export interface GeneratedHook {
 
 export interface HookGenerationResult {
   hooks: GeneratedHook[];
+  evaluationFeedback?: string[];
 }
