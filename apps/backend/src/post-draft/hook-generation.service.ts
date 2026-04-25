@@ -11,10 +11,11 @@ import type {
   HookGenerationInput,
   HookGenerationResult,
 } from './types/hook-generation.type';
+import type { VoiceEvaluationResult } from './types/voice-evaluation.type';
+import { VoiceEvaluatorService } from './voice-evaluator.service';
 
 const REFERENCE_SAMPLE_LIMIT = 5;
 const DEFAULT_MODEL = 'gpt-4o-mini';
-const MAX_RETRIES = 2;
 
 interface FormattingStats {
   exclamationPerPost: number;
@@ -31,36 +32,127 @@ export class HookGenerationService {
   constructor(
     private readonly openAi: OpenAiService,
     private readonly configService: ConfigService,
+    private readonly voiceEvaluator: VoiceEvaluatorService,
   ) {}
 
   async generate(input: HookGenerationInput): Promise<HookGenerationResult> {
-    const prompt = this.buildPrompt(input);
     const model =
       this.configService.get<string>('OPENAI_MODEL') ?? DEFAULT_MODEL;
 
-    let lastHooks: GeneratedHook[] | undefined;
-    let lastViolations: string[] = [];
+    const firstHooks = await this.callOnce(this.buildPrompt(input), model);
+    const firstFeedback = await this.assessHooks(firstHooks, input);
 
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      const hooks = await this.callOnce(prompt, model);
-      const violations = this.findVoiceViolations(hooks, input);
-      if (violations.length === 0) {
-        if (attempt > 0) {
-          this.logger.log(`Hook gen recovered on attempt ${attempt + 1}`);
-        }
-        return { hooks };
-      }
-      lastHooks = hooks;
-      lastViolations = violations;
-      this.logger.warn(
-        `Hook violations on attempt ${attempt + 1}: ${violations.join(', ')}`,
-      );
+    if (firstFeedback === null) {
+      // Inconclusive (evaluator unreachable, no clear-cut cliches) — graceful pass.
+      return { hooks: firstHooks };
+    }
+    if (firstFeedback.length === 0) {
+      return { hooks: firstHooks };
     }
 
     this.logger.warn(
-      `Returning hooks with unresolved violations after ${MAX_RETRIES + 1} attempts: ${lastViolations.join(', ')}`,
+      `Voice mismatch on first attempt, retrying with feedback: ${firstFeedback.join('; ')}`,
     );
-    return { hooks: lastHooks ?? [] };
+
+    const secondHooks = await this.callOnce(
+      this.buildPrompt(input, firstFeedback),
+      model,
+    );
+    const secondFeedback = await this.assessHooks(secondHooks, input);
+
+    if (secondFeedback === null) {
+      return { hooks: secondHooks };
+    }
+    if (secondFeedback.length === 0) {
+      this.logger.log('Voice match achieved on retry');
+      return { hooks: secondHooks };
+    }
+
+    this.logger.warn(
+      `Voice mismatch persisted after retry: ${secondFeedback.join('; ')}`,
+    );
+    return { hooks: secondHooks, evaluationFeedback: secondFeedback };
+  }
+
+  /**
+   * Returns the combined voice-mismatch feedback for a hook set:
+   *  - Cheap regex pre-filter for unambiguous cliches (deterministic, always run)
+   *  - LLM evaluator for qualitative voice match (gracefully degrades on error)
+   *
+   * Returns:
+   *  - `string[]` of feedback items (empty array = clean, non-empty = retry)
+   *  - `null`     when neither layer can speak (evaluator down AND no cliches caught)
+   *               so the caller can pass the hooks through without a retry.
+   */
+  private async assessHooks(
+    hooks: GeneratedHook[],
+    input: HookGenerationInput,
+  ): Promise<string[] | null> {
+    const clicheFeedback = this.prefilterCliches(hooks);
+
+    let evaluatorResult: VoiceEvaluationResult | null;
+    try {
+      evaluatorResult = await this.voiceEvaluator.evaluate({
+        hooks,
+        styleFingerprint: input.styleFingerprint,
+        referenceSamples: input.referenceSamples,
+        todayInput: input.todayInput,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Voice evaluator unavailable — falling back to cliche-only check: ${message}`,
+      );
+      evaluatorResult = null;
+    }
+
+    if (evaluatorResult === null) {
+      // Evaluator unreachable — only the cliche layer has signal.
+      return clicheFeedback.length > 0 ? clicheFeedback : null;
+    }
+
+    const evalFeedback = evaluatorResult.allMatched
+      ? []
+      : this.flattenEvaluatorFeedback(evaluatorResult);
+    return [...clicheFeedback, ...evalFeedback];
+  }
+
+  /**
+   * Deterministic pre-filter for unambiguous LLM artifacts that don't need
+   * qualitative judgment. Any pattern in this list is a known regression of
+   * the LLM evaluator (it skipped them in early observations) and is cheap
+   * enough to keep as a hard guard.
+   */
+  private prefilterCliches(hooks: GeneratedHook[]): string[] {
+    const violations: string[] = [];
+
+    hooks.forEach((h, i) => {
+      const tag = `hook${i + 1}`;
+      const text = h.text;
+
+      const clicheOpener =
+        /^\s*(Six months ago|A few years ago|Last summer|Last year|Three days ago|A year ago|Two weeks ago)\b/i.exec(
+          text,
+        );
+      if (clicheOpener) {
+        violations.push(
+          `${tag}: AI-cliche opener "${clicheOpener[1]}" — rewrite the opening using the user's voice patterns instead`,
+        );
+      }
+      if (/\bgame[-\s]changer\b/i.test(text)) {
+        violations.push(
+          `${tag}: contains marketing cliche "game changer" — drop or rephrase`,
+        );
+      }
+    });
+
+    return violations;
+  }
+
+  private flattenEvaluatorFeedback(result: VoiceEvaluationResult): string[] {
+    return result.perHookFeedback
+      .filter((e) => !e.matched && e.mismatches.length > 0)
+      .flatMap((e) => e.mismatches.map((m) => `hook${e.hookIndex + 1}: ${m}`));
   }
 
   private async callOnce(
@@ -95,39 +187,6 @@ export class HookGenerationService {
       this.logger.error('OpenAI hook generation failed', error);
       throw new InternalServerErrorException('Hook generation failed');
     }
-  }
-
-  private findVoiceViolations(
-    hooks: GeneratedHook[],
-    input: HookGenerationInput,
-  ): string[] {
-    const violations: string[] = [];
-    const sampleText = input.referenceSamples.map((s) => s.text).join('\n');
-    const samplesHasExclamation = /!/.test(sampleText);
-    const samplesHasEmoji = /\p{Extended_Pictographic}/u.test(sampleText);
-    const samplesHasYeoreobun = /여러분/.test(sampleText);
-
-    hooks.forEach((h, i) => {
-      const tag = `hook${i + 1}`;
-      const text = h.text;
-
-      if (!samplesHasExclamation && /!/.test(text))
-        violations.push(`${tag}:exclamation_mark`);
-      if (
-        /^\s*(Six months ago|A few years ago|Last summer|Last year|Three days ago|A year ago|Two weeks ago)\b/i.test(
-          text,
-        )
-      )
-        violations.push(`${tag}:ai_cliche_opening`);
-      if (/\bgame[-\s]changer\b/i.test(text))
-        violations.push(`${tag}:game_changer`);
-      if (!samplesHasEmoji && /\p{Extended_Pictographic}/u.test(text))
-        violations.push(`${tag}:emoji_in_non_emoji_voice`);
-      if (!samplesHasYeoreobun && /여러분/.test(text))
-        violations.push(`${tag}:yeoreobun`);
-    });
-
-    return violations;
   }
 
   private computeFormattingStats(samples: ReferenceSample[]): FormattingStats {
@@ -191,7 +250,7 @@ export class HookGenerationService {
     return lines.join('\n');
   }
 
-  private buildPrompt(input: HookGenerationInput): string {
+  private buildPrompt(input: HookGenerationInput, feedback?: string[]): string {
     const { analysis, styleFingerprint, referenceSamples, todayInput } = input;
 
     const stats = this.computeFormattingStats(referenceSamples);
@@ -237,6 +296,14 @@ How to use today's context:
 No specific update today. Draw from the product's positioning and voice.
 DO NOT use Data angle. DO NOT invent statistics.`;
 
+    const feedbackBlock =
+      feedback && feedback.length > 0
+        ? `
+
+=== Previous attempt feedback (the prior hooks failed voice review — fix these issues) ===
+${feedback.map((f) => `- ${f}`).join('\n')}`
+        : '';
+
     return `You are writing 3 Threads post hooks FOR the user, IN the user's voice. The voice is non-negotiable — it beats any "good marketing hook" instinct you have.
 
 === Your voice (preserve first, always) ===
@@ -267,7 +334,7 @@ Alternatives: ${alternatives}
 Why now: ${analysis.whyNow}
 Keywords: ${keywords}
 
-${todayContextBlock}
+${todayContextBlock}${feedbackBlock}
 
 === Task ===
 Generate 3 hooks (max 500 chars each). Each hook has:
@@ -292,10 +359,8 @@ Priority order when rules conflict (strict):
 5. Today's input as embedded evidence (never as opener or narrative spine)
 
 Hard rules — NEVER break:
-- No AI-cliche openings: "Last summer, I was...", "Six months ago,", "A few years ago,", "Three days ago,", "Last year,", "A year ago,", "Two weeks ago,"
+- No AI-cliche openers: "Last summer, ...", "Six months ago, ...", "A few years ago, ...", "Three days ago, ...", "Last year, ...", "A year ago, ...", "Two weeks ago, ..."
 - No marketing cliches: "game changer", "game-changer"
-${noExclamation ? '- No exclamation marks (!) anywhere' : ''}
-${noEmoji ? '- No emojis anywhere' : ''}
 - Emotion shows through word choice, never named directly
 - ${hasToday ? "Numbers: use ONLY numbers from today's context above. NEVER invent statistics." : 'No numbers. Do not invent statistics.'}
 

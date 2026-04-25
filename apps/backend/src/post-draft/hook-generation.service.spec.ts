@@ -9,6 +9,8 @@ import type {
 } from '../voice-profile/types/style-fingerprint.type';
 import { HookGenerationService } from './hook-generation.service';
 import type { HookGenerationInput } from './types/hook-generation.type';
+import type { VoiceEvaluationResult } from './types/voice-evaluation.type';
+import { VoiceEvaluatorService } from './voice-evaluator.service';
 
 interface CreateCall {
   model: string;
@@ -32,6 +34,34 @@ const mockOpenAiService = {
 const mockConfigService = {
   get: jest.fn(),
 };
+
+const mockEvaluate = jest.fn();
+const mockVoiceEvaluator = {
+  evaluate: mockEvaluate,
+};
+
+const allMatchedResult: VoiceEvaluationResult = {
+  allMatched: true,
+  perHookFeedback: [
+    { hookIndex: 0, matched: true, mismatches: [] },
+    { hookIndex: 1, matched: true, mismatches: [] },
+    { hookIndex: 2, matched: true, mismatches: [] },
+  ],
+};
+
+function mismatchResult(
+  mismatches: Array<{ hookIndex: number; reasons: string[] }>,
+): VoiceEvaluationResult {
+  return {
+    allMatched: false,
+    perHookFeedback: [0, 1, 2].map((i) => {
+      const found = mismatches.find((m) => m.hookIndex === i);
+      return found
+        ? { hookIndex: i, matched: false, mismatches: found.reasons }
+        : { hookIndex: i, matched: true, mismatches: [] };
+    }),
+  };
+}
 
 const analysisFixture: ProductAnalysisResult = {
   category: 'marketing copilot for indie devs',
@@ -100,6 +130,21 @@ function makeCompletion(hooks: unknown): {
   };
 }
 
+const validHooks = [
+  { text: 'Story hook text here.', angleLabel: 'Failure → Success' },
+  { text: '87% of founders say...', angleLabel: 'Data Hook' },
+  {
+    text: 'Most indie devs think marketing is optional.',
+    angleLabel: 'Contrarian',
+  },
+];
+
+const retryHooks = [
+  { text: 'Retry story hook.', angleLabel: 'Story' },
+  { text: 'Retry contrarian hook.', angleLabel: 'Contrarian' },
+  { text: 'Retry positioning hook.', angleLabel: 'Positioning' },
+];
+
 describe('HookGenerationService', () => {
   let service: HookGenerationService;
 
@@ -109,6 +154,7 @@ describe('HookGenerationService', () => {
         HookGenerationService,
         { provide: OpenAiService, useValue: mockOpenAiService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: VoiceEvaluatorService, useValue: mockVoiceEvaluator },
       ],
     }).compile();
 
@@ -118,30 +164,24 @@ describe('HookGenerationService', () => {
     mockOpenAiService.getClient.mockReturnValue({
       chat: { completions: { create: mockCreate } },
     });
+    mockConfigService.get.mockReturnValue(undefined);
   });
 
-  describe('generate', () => {
-    const validHooks = [
-      { text: 'Story hook text here.', angleLabel: 'Failure → Success' },
-      { text: '87% of founders say...', angleLabel: 'Data Hook' },
-      {
-        text: 'Most indie devs think marketing is optional.',
-        angleLabel: 'Contrarian',
-      },
-    ];
-
-    it('returns { hooks } when OpenAI returns 3 valid hooks', async () => {
-      mockConfigService.get.mockReturnValue(undefined);
+  describe('generate — happy path', () => {
+    it('returns { hooks } when OpenAI returns 3 valid hooks and evaluator passes', async () => {
       mockCreate.mockResolvedValueOnce(makeCompletion(validHooks));
+      mockEvaluate.mockResolvedValueOnce(allMatchedResult);
 
       const result = await service.generate(buildInput());
 
       expect(result).toEqual({ hooks: validHooks });
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+      expect(mockEvaluate).toHaveBeenCalledTimes(1);
     });
 
     it('includes analysis.category, tonality, signaturePhrases, and todayInput in the prompt', async () => {
-      mockConfigService.get.mockReturnValue(undefined);
       mockCreate.mockResolvedValueOnce(makeCompletion(validHooks));
+      mockEvaluate.mockResolvedValueOnce(allMatchedResult);
 
       await service.generate(buildInput());
 
@@ -157,8 +197,8 @@ describe('HookGenerationService', () => {
     });
 
     it('blocks Data angle and forbids invented numbers in prompt when todayInput is null', async () => {
-      mockConfigService.get.mockReturnValue(undefined);
       mockCreate.mockResolvedValueOnce(makeCompletion(validHooks));
+      mockEvaluate.mockResolvedValueOnce(allMatchedResult);
 
       await service.generate(buildInput({ todayInput: null }));
 
@@ -169,8 +209,29 @@ describe('HookGenerationService', () => {
       expect(promptContent).toContain('DO NOT invent statistics');
     });
 
+    it('uses default "gpt-4o-mini" model when OPENAI_MODEL env is not set', async () => {
+      mockCreate.mockResolvedValueOnce(makeCompletion(validHooks));
+      mockEvaluate.mockResolvedValueOnce(allMatchedResult);
+
+      await service.generate(buildInput());
+
+      expect(nthCall(0).model).toBe('gpt-4o-mini');
+    });
+
+    it('uses OPENAI_MODEL env value when configured', async () => {
+      mockConfigService.get.mockReturnValue('gpt-4o');
+      mockCreate.mockResolvedValueOnce(makeCompletion(validHooks));
+      mockEvaluate.mockResolvedValueOnce(allMatchedResult);
+
+      await service.generate(buildInput());
+
+      expect(mockConfigService.get).toHaveBeenCalledWith('OPENAI_MODEL');
+      expect(nthCall(0).model).toBe('gpt-4o');
+    });
+  });
+
+  describe('generate — error paths from OpenAI', () => {
     it('throws InternalServerErrorException when OpenAI returns fewer than 3 hooks', async () => {
-      mockConfigService.get.mockReturnValue(undefined);
       mockCreate.mockResolvedValueOnce(
         makeCompletion([
           { text: 'only one hook', angleLabel: 'Story' },
@@ -181,34 +242,167 @@ describe('HookGenerationService', () => {
       await expect(service.generate(buildInput())).rejects.toThrow(
         InternalServerErrorException,
       );
+      expect(mockEvaluate).not.toHaveBeenCalled();
     });
 
     it('throws InternalServerErrorException("Hook generation failed") when OpenAI call rejects', async () => {
-      mockConfigService.get.mockReturnValue(undefined);
       mockCreate.mockRejectedValueOnce(new Error('API timeout'));
 
       await expect(service.generate(buildInput())).rejects.toThrow(
         new InternalServerErrorException('Hook generation failed'),
       );
+      expect(mockEvaluate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('generate — voice evaluator retry loop', () => {
+    it('retries once with feedback when first evaluation is mismatch and returns regenerated hooks if second pass is matched', async () => {
+      mockCreate
+        .mockResolvedValueOnce(makeCompletion(validHooks))
+        .mockResolvedValueOnce(makeCompletion(retryHooks));
+      mockEvaluate
+        .mockResolvedValueOnce(
+          mismatchResult([
+            {
+              hookIndex: 1,
+              reasons: ['uses exclamation; reference posts have zero'],
+            },
+          ]),
+        )
+        .mockResolvedValueOnce(allMatchedResult);
+
+      const result = await service.generate(buildInput());
+
+      expect(result).toEqual({ hooks: retryHooks });
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+      expect(mockEvaluate).toHaveBeenCalledTimes(2);
+      // Retry prompt must include feedback section.
+      const retryPrompt = nthCall(1).messages[0].content;
+      expect(retryPrompt).toContain('Previous attempt feedback');
+      expect(retryPrompt).toContain(
+        'hook2: uses exclamation; reference posts have zero',
+      );
     });
 
-    it('uses default "gpt-4o-mini" model when OPENAI_MODEL env is not set', async () => {
-      mockConfigService.get.mockReturnValue(undefined);
+    it('returns hooks with evaluationFeedback when both attempts mismatch', async () => {
+      mockCreate
+        .mockResolvedValueOnce(makeCompletion(validHooks))
+        .mockResolvedValueOnce(makeCompletion(retryHooks));
+      mockEvaluate
+        .mockResolvedValueOnce(
+          mismatchResult([{ hookIndex: 0, reasons: ['too long'] }]),
+        )
+        .mockResolvedValueOnce(
+          mismatchResult([{ hookIndex: 2, reasons: ['hashtag used'] }]),
+        );
+
+      const result = await service.generate(buildInput());
+
+      expect(result.hooks).toEqual(retryHooks);
+      expect(result.evaluationFeedback).toEqual(['hook3: hashtag used']);
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('generate — graceful degradation when evaluator fails', () => {
+    it('returns first-pass hooks without evaluationFeedback when first evaluator call throws and no cliches present', async () => {
       mockCreate.mockResolvedValueOnce(makeCompletion(validHooks));
+      mockEvaluate.mockRejectedValueOnce(new Error('Gemini down'));
 
-      await service.generate(buildInput());
+      const result = await service.generate(buildInput());
 
-      expect(nthCall(0).model).toBe('gpt-4o-mini');
+      expect(result).toEqual({ hooks: validHooks });
+      expect(result.evaluationFeedback).toBeUndefined();
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+      expect(mockEvaluate).toHaveBeenCalledTimes(1);
     });
 
-    it('uses OPENAI_MODEL env value when configured', async () => {
-      mockConfigService.get.mockReturnValue('gpt-4o');
-      mockCreate.mockResolvedValueOnce(makeCompletion(validHooks));
+    it('returns retry hooks without evaluationFeedback when second evaluator call throws after first reported mismatch', async () => {
+      mockCreate
+        .mockResolvedValueOnce(makeCompletion(validHooks))
+        .mockResolvedValueOnce(makeCompletion(retryHooks));
+      mockEvaluate
+        .mockResolvedValueOnce(
+          mismatchResult([{ hookIndex: 0, reasons: ['cliche opener'] }]),
+        )
+        .mockRejectedValueOnce(new Error('Gemini timeout on retry'));
 
-      await service.generate(buildInput());
+      const result = await service.generate(buildInput());
 
-      expect(mockConfigService.get).toHaveBeenCalledWith('OPENAI_MODEL');
-      expect(nthCall(0).model).toBe('gpt-4o');
+      expect(result).toEqual({ hooks: retryHooks });
+      expect(result.evaluationFeedback).toBeUndefined();
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+      expect(mockEvaluate).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('generate — deterministic cliche pre-filter', () => {
+    const clicheHooks = [
+      { text: 'Story hook text here.', angleLabel: 'Story' },
+      {
+        text: 'Six months ago, I was lost in copywriting.',
+        angleLabel: 'Story',
+      },
+      {
+        text: 'This product is a game-changer for indie devs.',
+        angleLabel: 'Positioning',
+      },
+    ];
+
+    it('triggers retry with cliche feedback when evaluator says all-matched but pre-filter catches cliches', async () => {
+      mockCreate
+        .mockResolvedValueOnce(makeCompletion(clicheHooks))
+        .mockResolvedValueOnce(makeCompletion(validHooks));
+      mockEvaluate
+        .mockResolvedValueOnce(allMatchedResult)
+        .mockResolvedValueOnce(allMatchedResult);
+
+      const result = await service.generate(buildInput());
+
+      expect(result).toEqual({ hooks: validHooks });
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+
+      const retryPrompt = nthCall(1).messages[0].content;
+      expect(retryPrompt).toContain('Previous attempt feedback');
+      expect(retryPrompt).toContain('AI-cliche opener "Six months ago"');
+      expect(retryPrompt).toContain('marketing cliche "game changer"');
+    });
+
+    it('triggers retry with cliche feedback even when evaluator throws, instead of silently passing', async () => {
+      mockCreate
+        .mockResolvedValueOnce(makeCompletion(clicheHooks))
+        .mockResolvedValueOnce(makeCompletion(validHooks));
+      mockEvaluate
+        .mockRejectedValueOnce(new Error('Gemini down'))
+        .mockResolvedValueOnce(allMatchedResult);
+
+      const result = await service.generate(buildInput());
+
+      expect(result).toEqual({ hooks: validHooks });
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+      const retryPrompt = nthCall(1).messages[0].content;
+      expect(retryPrompt).toContain('AI-cliche opener "Six months ago"');
+      expect(retryPrompt).toContain('marketing cliche "game changer"');
+    });
+
+    it('returns hooks with persisted cliche feedback when retry still contains cliches and evaluator agrees match', async () => {
+      mockCreate
+        .mockResolvedValueOnce(makeCompletion(clicheHooks))
+        .mockResolvedValueOnce(makeCompletion(clicheHooks));
+      mockEvaluate
+        .mockResolvedValueOnce(allMatchedResult)
+        .mockResolvedValueOnce(allMatchedResult);
+
+      const result = await service.generate(buildInput());
+
+      expect(result.hooks).toEqual(clicheHooks);
+      expect(result.evaluationFeedback).toBeDefined();
+      expect(result.evaluationFeedback).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('AI-cliche opener "Six months ago"'),
+          expect.stringContaining('marketing cliche "game changer"'),
+        ]),
+      );
     });
   });
 });
