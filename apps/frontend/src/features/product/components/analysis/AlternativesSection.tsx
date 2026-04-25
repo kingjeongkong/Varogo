@@ -13,7 +13,7 @@ export function AlternativesSection({
       className="animate-slide-up"
       style={{ animationDelay: '0.15s', opacity: 0 }}
     >
-      <SectionLabel number="04" title="Alternatives" />
+      <SectionLabel number="02" title="Alternatives" />
       <div className="grid gap-4 sm:grid-cols-2">
         {alternatives.map((alt) => (
           <div

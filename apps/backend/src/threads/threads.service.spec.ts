@@ -300,9 +300,18 @@ describe('ThreadsService', () => {
       mockCrypto.decrypt.mockReturnValue('decrypted-access-token');
     });
 
-    it('creates container, publishes, fetches permalink, and returns result', async () => {
+    let sleepSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      sleepSpy = jest
+        .spyOn(service as any, 'sleep')
+        .mockResolvedValue(undefined);
+    });
+
+    it('creates container, polls status, publishes, fetches permalink, and returns result', async () => {
       const fetchMock = mockFetchSequence([
         { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'FINISHED' } },
         { ok: true, body: { id: 'media-456' } },
         {
           ok: true,
@@ -328,8 +337,8 @@ describe('ThreadsService', () => {
       // Verify crypto.decrypt was called with encrypted token
       expect(mockCrypto.decrypt).toHaveBeenCalledWith('encrypted-token');
 
-      // Verify 3 fetch calls: container creation, publish, permalink
-      expect(fetchMock).toHaveBeenCalledTimes(3);
+      // Verify 4 fetch calls: container creation, status poll, publish, permalink
+      expect(fetchMock).toHaveBeenCalledTimes(4);
       const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
 
       // Container creation call
@@ -344,21 +353,22 @@ describe('ThreadsService', () => {
       );
 
       // Publish call
-      expect(fetchCalls[1][0]).toBe(
+      expect(fetchCalls[2][0]).toBe(
         'https://graph.threads.net/v1.0/threads-user-1/threads_publish',
       );
-      expect(fetchCalls[1][1].method).toBe('POST');
+      expect(fetchCalls[2][1].method).toBe('POST');
 
       // Permalink fetch call
-      expect(fetchCalls[2][0]).toContain(
+      expect(fetchCalls[3][0]).toContain(
         'https://graph.threads.net/v1.0/media-456',
       );
-      expect(fetchCalls[2][0]).toContain('fields=id%2Cpermalink');
+      expect(fetchCalls[3][0]).toContain('fields=id%2Cpermalink');
     });
 
     it('returns null permalink when permalink fetch fails gracefully', async () => {
-      mockFetchSequence([
+      const fetchMock = mockFetchSequence([
         { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'FINISHED' } },
         { ok: true, body: { id: 'media-456' } },
         { ok: false, body: { error: 'not_found' }, status: 404 },
       ]);
@@ -369,6 +379,8 @@ describe('ThreadsService', () => {
         threadsMediaId: 'media-456',
         permalink: null,
       });
+
+      expect(fetchMock).toHaveBeenCalledTimes(4);
     });
 
     it('throws NotFoundException when connection not found', async () => {
@@ -385,7 +397,7 @@ describe('ThreadsService', () => {
       ]);
 
       await expect(service.publishToThreads(userId, text)).rejects.toThrow(
-        'Failed to create Threads post container',
+        "We couldn't start a Threads post. Please try again.",
       );
     });
 
@@ -393,18 +405,505 @@ describe('ThreadsService', () => {
       mockFetchSequence([{ ok: true, body: {} }]);
 
       await expect(service.publishToThreads(userId, text)).rejects.toThrow(
-        'Threads container creation returned no ID',
+        "We couldn't start a Threads post. Please try again.",
       );
     });
 
     it('throws InternalServerErrorException when publish API fails', async () => {
       mockFetchSequence([
         { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'FINISHED' } },
         { ok: false, body: { error: 'publish_error' }, status: 500 },
       ]);
 
       await expect(service.publishToThreads(userId, text)).rejects.toThrow(
-        'Failed to publish to Threads',
+        'Threads accepted the post but publishing failed. Please try again.',
+      );
+    });
+
+    it('throws when polling returns ERROR with error_message; threads_publish never called', async () => {
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'ERROR', error_message: 'rate_limited' } },
+      ]);
+
+      const err = await service
+        .publishToThreads(userId, text)
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(
+        /rate_limited/,
+      );
+      expect((err as InternalServerErrorException).message).toMatch(
+        /We couldn't publish to Threads:/,
+      );
+
+      // threads_publish must never have been called
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+      const calledUrls = fetchCalls.map((c) => c[0]);
+      expect(calledUrls.some((u) => u.includes('threads_publish'))).toBe(false);
+    });
+
+    it('throws timeout error when polling exhausts deadline; threads_publish never called', async () => {
+      // Use Date.now mocking to force deadline exhaustion after a couple of IN_PROGRESS polls
+      const start = 1_000_000;
+      const dateNowSpy = jest
+        .spyOn(Date, 'now')
+        // First call inside waitForContainerReady: sets deadline = start + 10_000
+        .mockReturnValueOnce(start)
+        // Deadline check after first IN_PROGRESS poll: start + 3_000 + 1_000 < start + 10_000 → continue
+        .mockReturnValueOnce(start + 3_000)
+        // Deadline check after second IN_PROGRESS poll: start + 9_000 + 3_000 >= start + 10_000 → timeout
+        .mockReturnValueOnce(start + 9_000);
+
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { id: 'container-123' } },
+        { ok: true, body: { status: 'IN_PROGRESS' } },
+        { ok: true, body: { status: 'IN_PROGRESS' } },
+      ]);
+
+      const err = await service
+        .publishToThreads(userId, text)
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(
+        /taking longer than usual/,
+      );
+
+      // threads_publish must never have been called
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+      const calledUrls = fetchCalls.map((c) => c[0]);
+      expect(calledUrls.some((u) => u.includes('threads_publish'))).toBe(false);
+
+      dateNowSpy.mockRestore();
+    });
+
+    afterEach(() => {
+      sleepSpy.mockRestore();
+    });
+  });
+
+  describe('getUserVoiceUnits', () => {
+    const userId = 'user-123';
+    const threadsUserId = 'threads-user-1';
+    const farFutureExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const mockConnection = {
+      id: 'conn-1',
+      userId,
+      threadsUserId,
+      username: 'testuser',
+      accessTokenEncrypted: 'encrypted-token',
+      tokenExpiresAt: farFutureExpiry,
+    };
+
+    beforeEach(() => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(mockConnection);
+      mockCrypto.decrypt.mockReturnValue('decrypted-access-token');
+    });
+
+    it('throws NotFoundException when no connection', async () => {
+      mockPrisma.threadsConnection.findUnique.mockResolvedValue(null);
+
+      await expect(service.getUserVoiceUnits(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('returns voice units with own-replies concatenated and others filtered out', async () => {
+      mockFetchSequence([
+        // main posts
+        {
+          ok: true,
+          body: {
+            data: [
+              {
+                id: 'p1',
+                text: 'Main post 1',
+                timestamp: '2026-04-19T12:00:00Z',
+                permalink: 'https://t.co/p1',
+              },
+              {
+                id: 'p2',
+                text: 'Main post 2',
+                timestamp: '2026-04-18T12:00:00Z',
+                permalink: 'https://t.co/p2',
+              },
+            ],
+          },
+        },
+        // conversation for p1 — own reply + other user's reply
+        {
+          ok: true,
+          body: {
+            data: [
+              {
+                id: 'p1',
+                text: 'Main post 1',
+                timestamp: '2026-04-19T12:00:00Z',
+                from: { id: threadsUserId },
+              },
+              {
+                id: 'r1',
+                text: 'Own reply 1',
+                timestamp: '2026-04-19T12:01:00Z',
+                from: { id: threadsUserId },
+              },
+              {
+                id: 'r2',
+                text: 'Stranger reply',
+                timestamp: '2026-04-19T12:02:00Z',
+                from: { id: 'other-user' },
+              },
+              {
+                id: 'r3',
+                text: 'Own reply 2',
+                timestamp: '2026-04-19T12:03:00Z',
+                from: { id: threadsUserId },
+              },
+            ],
+          },
+        },
+        // conversation for p2 — no own replies
+        {
+          ok: true,
+          body: { data: [] },
+        },
+      ]);
+
+      const units = await service.getUserVoiceUnits(userId);
+
+      expect(units).toHaveLength(2);
+      expect(units[0]).toEqual({
+        id: 'p1',
+        text: 'Main post 1\n\nOwn reply 1\n\nOwn reply 2',
+        timestamp: '2026-04-19T12:00:00Z',
+        permalink: 'https://t.co/p1',
+        partCount: 3,
+      });
+      expect(units[1]).toEqual({
+        id: 'p2',
+        text: 'Main post 2',
+        timestamp: '2026-04-18T12:00:00Z',
+        permalink: 'https://t.co/p2',
+        partCount: 1,
+      });
+    });
+
+    it('falls back to main only when conversation fetch fails', async () => {
+      mockFetchSequence([
+        {
+          ok: true,
+          body: {
+            data: [
+              {
+                id: 'p1',
+                text: 'Main post 1',
+                timestamp: '2026-04-19T12:00:00Z',
+                permalink: 'https://t.co/p1',
+              },
+            ],
+          },
+        },
+        { ok: false, body: { error: 'rate_limit' }, status: 429 },
+      ]);
+
+      const units = await service.getUserVoiceUnits(userId);
+
+      expect(units).toHaveLength(1);
+      expect(units[0].text).toBe('Main post 1');
+      expect(units[0].partCount).toBe(1);
+    });
+
+    it('skips main posts whose text and own-replies are all empty', async () => {
+      mockFetchSequence([
+        {
+          ok: true,
+          body: {
+            data: [
+              {
+                id: 'p1',
+                text: '',
+                timestamp: '2026-04-19T12:00:00Z',
+                permalink: null,
+              },
+              {
+                id: 'p2',
+                text: 'Real post',
+                timestamp: '2026-04-18T12:00:00Z',
+                permalink: null,
+              },
+            ],
+          },
+        },
+        // conversation for p1 — empty
+        { ok: true, body: { data: [] } },
+        // conversation for p2 — empty
+        { ok: true, body: { data: [] } },
+      ]);
+
+      const units = await service.getUserVoiceUnits(userId);
+
+      expect(units).toHaveLength(1);
+      expect(units[0].id).toBe('p2');
+    });
+
+    it('throws UnauthorizedException on 401 main fetch', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'token_expired' }, status: 401 },
+      ]);
+
+      await expect(service.getUserVoiceUnits(userId)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('returns empty array when main fetch returns no posts', async () => {
+      mockFetchSequence([{ ok: true, body: { data: [] } }]);
+
+      const units = await service.getUserVoiceUnits(userId);
+
+      expect(units).toEqual([]);
+    });
+  });
+
+  describe('waitForContainerReady', () => {
+    const containerId = 'container-xyz';
+    const accessToken = 'test-token';
+
+    /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+    const callMethod = (svc: any) =>
+      svc.waitForContainerReady(containerId, accessToken) as Promise<void>;
+    /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
+    let sleepSpy: jest.SpyInstance;
+    let fetchContainerStatusSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      sleepSpy = jest
+        .spyOn(service as any, 'sleep')
+        .mockResolvedValue(undefined);
+      fetchContainerStatusSpy = jest.spyOn(
+        service as any,
+        'fetchContainerStatus',
+      );
+    });
+
+    // Happy paths
+
+    it('resolves immediately when FINISHED on first poll; sleep called 0 times; fetchContainerStatus called 1 time', async () => {
+      fetchContainerStatusSpy.mockResolvedValueOnce({ status: 'FINISHED' });
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(1);
+      expect(sleepSpy).toHaveBeenCalledTimes(0);
+    });
+
+    it('resolves after IN_PROGRESS, IN_PROGRESS, FINISHED; sleep called 2 times; fetchContainerStatus called 3 times', async () => {
+      fetchContainerStatusSpy
+        .mockResolvedValueOnce({ status: 'IN_PROGRESS' })
+        .mockResolvedValueOnce({ status: 'IN_PROGRESS' })
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(3);
+      expect(sleepSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('resolves when unknown status QUEUED then FINISHED; logger.warn called at least once with "QUEUED"', async () => {
+      fetchContainerStatusSpy
+        .mockResolvedValueOnce({ status: 'QUEUED' })
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const warnSpy = jest.spyOn((service as any).logger, 'warn');
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      const warnMessages = (warnSpy.mock.calls as string[][]).map((c) => c[0]);
+      expect(warnMessages.some((m) => m.includes('QUEUED'))).toBe(true);
+    });
+
+    // Terminal statuses
+
+    it('throws InternalServerErrorException with error_message and "We couldn\'t publish to Threads" for ERROR status with error_message', async () => {
+      fetchContainerStatusSpy.mockResolvedValue({
+        status: 'ERROR',
+        error_message: 'rate_limited',
+      });
+
+      const err = await callMethod(service).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(
+        /rate_limited/,
+      );
+      expect((err as InternalServerErrorException).message).toMatch(
+        /We couldn't publish to Threads/,
+      );
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws InternalServerErrorException with "Threads rejected the post" for ERROR status without error_message', async () => {
+      fetchContainerStatusSpy.mockResolvedValueOnce({ status: 'ERROR' });
+
+      const err = await callMethod(service).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(
+        /Threads rejected the post/,
+      );
+    });
+
+    it('throws InternalServerErrorException with "expired" for EXPIRED status; fetchContainerStatus called once per invocation', async () => {
+      fetchContainerStatusSpy.mockResolvedValueOnce({ status: 'EXPIRED' });
+
+      const err = await callMethod(service).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(InternalServerErrorException);
+      expect((err as InternalServerErrorException).message).toMatch(/expired/i);
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(1);
+    });
+
+    // Timeout
+
+    it('throws timeout error containing "taking longer than usual" when deadline is exceeded', async () => {
+      // Mock Date.now to simulate time passing past the deadline on each call
+      const start = 1_000_000;
+      const dateNowSpy = jest
+        .spyOn(Date, 'now')
+        // First call: sets deadline = start + 10_000
+        .mockReturnValueOnce(start)
+        // Second call: deadline check — start + 1000 >= start + 10_000? No, keep polling
+        .mockReturnValueOnce(start + 3_000)
+        // Third call: deadline check — start + 3_000 + 1000 >= start + 10_000? No
+        .mockReturnValueOnce(start + 6_000)
+        // Fourth call: deadline check — start + 6_000 + 1000 >= start + 10_000? No... but next
+        .mockReturnValueOnce(start + 9_000)
+        // Fifth call: deadline check — start + 9_000 + 3_000 >= start + 10_000? Yes → timeout
+        .mockReturnValueOnce(start + 9_000);
+
+      fetchContainerStatusSpy.mockResolvedValue({ status: 'IN_PROGRESS' });
+
+      await expect(callMethod(service)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+      await expect(callMethod(service)).rejects.toThrow(
+        /taking longer than usual/,
+      );
+
+      dateNowSpy.mockRestore();
+    });
+
+    // Transient failure tolerance
+
+    it('resolves when fetchContainerStatus throws on first call then returns FINISHED; logger.warn called once with containerId', async () => {
+      fetchContainerStatusSpy
+        .mockRejectedValueOnce(new Error('network error'))
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const warnSpy = jest.spyOn((service as any).logger, 'warn');
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      const warnMessages = (warnSpy.mock.calls as string[][]).map((c) => c[0]);
+      expect(warnMessages.some((m) => m.includes(containerId))).toBe(true);
+    });
+
+    it('resolves when fetchContainerStatus throws twice then returns FINISHED; logger.warn called twice', async () => {
+      fetchContainerStatusSpy
+        .mockRejectedValueOnce(new Error('timeout 1'))
+        .mockRejectedValueOnce(new Error('timeout 2'))
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const warnSpy = jest.spyOn((service as any).logger, 'warn');
+
+      await expect(callMethod(service)).resolves.toBeUndefined();
+
+      const warnCalls = (warnSpy.mock.calls as string[][]).filter((c) =>
+        c[0].includes(containerId),
+      );
+      expect(warnCalls).toHaveLength(2);
+    });
+  });
+
+  describe('fetchContainerStatus', () => {
+    const containerId = 'container-abc123';
+    const accessToken = 'test-access-token';
+
+    /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+    const callMethod = (svc: any) =>
+      svc.fetchContainerStatus(containerId, accessToken) as Promise<{
+        status: string;
+        error_message?: string;
+      }>;
+    /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
+    it('Test A: returns { status } when Meta returns 200 with FINISHED', async () => {
+      mockFetchSequence([{ ok: true, body: { status: 'FINISHED' } }]);
+
+      const result = await callMethod(service);
+
+      expect(result).toEqual({ status: 'FINISHED' });
+    });
+
+    it('Test B: returns { status, error_message } when present in response body', async () => {
+      mockFetchSequence([
+        {
+          ok: true,
+          body: { status: 'ERROR', error_message: 'some meta reason' },
+        },
+      ]);
+
+      const result = await callMethod(service);
+
+      expect(result).toEqual({
+        status: 'ERROR',
+        error_message: 'some meta reason',
+      });
+    });
+
+    it('Test C: throws InternalServerErrorException when response is non-2xx', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'server_error' }, status: 500 },
+      ]);
+
+      await expect(callMethod(service)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+
+    it('Test D: fetch URL contains container id and fields=status,error_message', async () => {
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { status: 'IN_PROGRESS' } },
+      ]);
+
+      await callMethod(service);
+
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+      const calledUrl = fetchCalls[0][0];
+      expect(calledUrl).toContain(containerId);
+      expect(calledUrl).toContain('fields=');
+      expect(calledUrl).toContain('status');
+      expect(calledUrl).toContain('error_message');
+    });
+
+    it('Test E: Authorization header is set correctly', async () => {
+      const fetchMock = mockFetchSequence([
+        { ok: true, body: { status: 'FINISHED' } },
+      ]);
+
+      await callMethod(service);
+
+      const fetchCalls = fetchMock.mock.calls as [string, RequestInit][];
+      expect(fetchCalls[0][1].headers).toEqual(
+        expect.objectContaining({
+          Authorization: `Bearer ${accessToken}`,
+        }),
       );
     });
   });

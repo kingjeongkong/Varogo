@@ -37,8 +37,10 @@ export interface CurrentTraction {
 export interface ProductAnalysis {
   id: string;
   productId: string;
+  category: string;
+  jobToBeDone: string;
+  whyNow: string;
   targetAudience: TargetAudience;
-  problem: string;
   valueProposition: string;
   alternatives: Alternative[];
   differentiators: string[];
@@ -64,63 +66,6 @@ export interface ProductWithAnalysis extends Product {
   analysis: ProductAnalysis | null;
 }
 
-export type StrategyStatus = 'not_started' | 'cards_generated' | 'completed';
-
-export interface StrategyResponse {
-  id: string;
-  productAnalysisId: string;
-  title: string;
-  description: string;
-  coreMessage: string;
-  campaignGoal: {
-    type: 'awareness' | 'traffic' | 'conversion' | 'community';
-    description: string;
-  };
-  hookAngle: string;
-  callToAction: string;
-  contentFormat: string;
-  contentFrequency: string;
-  createdAt: string;
-}
-
-export interface BodySection {
-  name: string;
-  guide: string;
-  exampleSnippet: string;
-}
-
-export interface ContentTemplateResponse {
-  id: string;
-  strategyId: string;
-  contentPattern: 'series' | 'standalone' | 'one-off';
-  hookGuide: string;
-  bodyStructure: BodySection[];
-  ctaGuide: string;
-  toneGuide: string;
-  lengthGuide: string;
-  platformTips: string[];
-  dontDoList: string[];
-  createdAt: string;
-}
-
-export interface StrategyListResponse {
-  status: StrategyStatus;
-  strategies: StrategyResponse[];
-}
-
-export interface SelectedStrategyResponse {
-  strategy: StrategyResponse;
-  template: ContentTemplateResponse;
-}
-
-export interface ContentResponse {
-  id: string;
-  strategyId: string;
-  body: string;
-  characterCount: number;
-  createdAt: string;
-}
-
 export interface ThreadsConnectionResponse {
   connected: boolean;
   username: string | null;
@@ -133,4 +78,57 @@ export interface ThreadsAuthUrlResponse {
 export interface PublishThreadsResponse {
   threadsMediaId: string;
   permalink: string | null;
+}
+
+export interface StyleFingerprint {
+  tonality: string;
+  avgLength: number;
+  openingPatterns: string[];
+  signaturePhrases: string[];
+  emojiDensity: number;
+  hashtagUsage: number;
+}
+
+export interface ReferenceSample {
+  text: string;
+  date: string;
+}
+
+export interface VoiceProfileResponse {
+  id: string;
+  userId: string;
+  source: string;
+  sampleCount: number;
+  styleFingerprint: StyleFingerprint;
+  referenceSamples: ReferenceSample[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HookOptionResponse {
+  id: string;
+  text: string;
+  angleLabel: string;
+  selected: boolean;
+}
+
+export interface PostDraftResponse {
+  id: string;
+  productId: string;
+  todayInput: string | null;
+  body: string;
+  status: string;
+  selectedHookId: string | null;
+  publishedAt: string | null;
+  threadsMediaId: string | null;
+  permalink: string | null;
+  createdAt: string;
+  updatedAt: string;
+  hooks: HookOptionResponse[];
+}
+
+export interface PostDraftsListResponse {
+  items: PostDraftResponse[];
+  nextOffset: number | null;
+  total: number;
 }

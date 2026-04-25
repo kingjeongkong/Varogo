@@ -52,8 +52,10 @@ export function toProductResponse(product: {
 export interface ProductAnalysisResponse {
   id: string;
   productId: string;
+  category: string;
+  jobToBeDone: string;
+  whyNow: string;
   targetAudience: TargetAudience;
-  problem: string;
   valueProposition: string;
   alternatives: Alternative[];
   differentiators: string[];
@@ -65,8 +67,10 @@ export interface ProductAnalysisResponse {
 export function toProductAnalysisResponse(analysis: {
   id: string;
   productId: string;
+  category: string;
+  jobToBeDone: string;
+  whyNow: string;
   targetAudience: JsonValue;
-  problem: string;
   valueProposition: string;
   alternatives: JsonValue;
   differentiators: string[];
@@ -77,8 +81,10 @@ export function toProductAnalysisResponse(analysis: {
   return {
     id: analysis.id,
     productId: analysis.productId,
+    category: analysis.category,
+    jobToBeDone: analysis.jobToBeDone,
+    whyNow: analysis.whyNow,
     targetAudience: analysis.targetAudience as unknown as TargetAudience,
-    problem: analysis.problem,
     valueProposition: analysis.valueProposition,
     alternatives: analysis.alternatives as unknown as Alternative[],
     differentiators: analysis.differentiators,

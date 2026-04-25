@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import type { ProductWithAnalysis } from '@/lib/types';
 import { AnalysisHero } from './AnalysisHero';
-import { TargetAudienceSection } from './TargetAudienceSection';
 import { AlternativesSection } from './AlternativesSection';
 import { SectionLabel } from './SectionLabel';
+import { TargetAudienceSection } from './TargetAudienceSection';
 
 interface AnalysisResultProps {
   product: ProductWithAnalysis;
@@ -29,8 +29,10 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
   }
 
   const {
+    category,
+    jobToBeDone,
+    whyNow,
     targetAudience,
-    problem,
     valueProposition,
     alternatives,
     differentiators,
@@ -41,45 +43,26 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
   return (
     <div className="space-y-10">
       <AnalysisHero
+        productId={product.id}
         productName={product.name}
         productUrl={product.url}
+        category={category}
         positioningStatement={positioningStatement}
       />
 
-      <TargetAudienceSection targetAudience={targetAudience} />
-
-      {/* ── Core Problem ── */}
-      <section
-        className="animate-slide-up"
-        style={{ animationDelay: '0.1s', opacity: 0 }}
-      >
-        <SectionLabel number="02" title="Core Problem" />
-        <div className="relative rounded-xl border-l-4 border-accent bg-accent-dim/50 px-6 py-5">
-          <p className="text-text-secondary leading-relaxed">{problem}</p>
-        </div>
-      </section>
-
-      {/* ── Value Proposition ── */}
-      <section
-        className="animate-slide-up"
-        style={{ animationDelay: '0.12s', opacity: 0 }}
-      >
-        <SectionLabel number="03" title="Value Proposition" />
-        <div className="relative rounded-xl border-l-4 border-primary bg-primary-dim/50 px-6 py-5">
-          <p className="text-text-secondary leading-relaxed">
-            {valueProposition}
-          </p>
-        </div>
-      </section>
+      <TargetAudienceSection
+        targetAudience={targetAudience}
+        jobToBeDone={jobToBeDone}
+      />
 
       <AlternativesSection alternatives={alternatives} />
 
       {/* ── Differentiators ── */}
       <section
         className="animate-slide-up"
-        style={{ animationDelay: '0.25s', opacity: 0 }}
+        style={{ animationDelay: '0.2s', opacity: 0 }}
       >
-        <SectionLabel number="05" title="Differentiators" />
+        <SectionLabel number="03" title="Differentiators" />
         <div className="space-y-3">
           {differentiators.map((d, i) => (
             <div
@@ -95,10 +78,34 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
         </div>
       </section>
 
+      {/* ── Why Now ── */}
+      <section
+        className="animate-slide-up"
+        style={{ animationDelay: '0.24s', opacity: 0 }}
+      >
+        <SectionLabel number="04" title="Why Now" />
+        <p className="text-sm text-text-secondary leading-relaxed px-1">
+          {whyNow}
+        </p>
+      </section>
+
+      {/* ── Value Proposition ── */}
+      <section
+        className="animate-slide-up"
+        style={{ animationDelay: '0.28s', opacity: 0 }}
+      >
+        <SectionLabel number="05" title="Value Proposition" />
+        <div className="relative rounded-xl border-l-4 border-primary bg-primary-dim/50 px-6 py-5">
+          <p className="text-text-secondary leading-relaxed">
+            {valueProposition}
+          </p>
+        </div>
+      </section>
+
       {/* ── Keywords ── */}
       <section
         className="animate-slide-up"
-        style={{ animationDelay: '0.3s', opacity: 0 }}
+        style={{ animationDelay: '0.32s', opacity: 0 }}
       >
         <SectionLabel number="06" title="Marketing Keywords" />
         <div className="space-y-4">
@@ -135,23 +142,6 @@ export function AnalysisResult({ product }: AnalysisResultProps) {
         </div>
       </section>
 
-      {/* ── Next Step CTA ── */}
-      <div
-        className="animate-slide-up pt-4 pb-2"
-        style={{ animationDelay: '0.35s', opacity: 0 }}
-      >
-        <div className="rounded-xl border border-dashed border-border-hover bg-surface/50 p-6 text-center">
-          <p className="text-sm text-text-muted mb-3">
-            Choose a strategy to continue to the next step
-          </p>
-          <Link
-            href={`/product/${product.id}/strategies`}
-            className="inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
-          >
-            Choose Strategy
-          </Link>
-        </div>
-      </div>
     </div>
   );
 }

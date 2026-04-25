@@ -38,9 +38,11 @@ export class ProductService {
       const productAnalysis = await tx.productAnalysis.create({
         data: {
           productId: product.id,
+          category: analysis.category,
+          jobToBeDone: analysis.jobToBeDone,
+          whyNow: analysis.whyNow,
           targetAudience:
             analysis.targetAudience as unknown as Prisma.InputJsonValue,
-          problem: analysis.problem,
           valueProposition: analysis.valueProposition,
           alternatives:
             analysis.alternatives as unknown as Prisma.InputJsonValue,
@@ -64,19 +66,13 @@ export class ProductService {
   async findOneByUser(id: string, userId: string) {
     const product = await this.prisma.product.findFirst({
       where: { id, userId },
-      include: {
-        analyses: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
+      include: { analysis: true },
     });
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    const { analyses, ...rest } = product;
-    return { ...rest, analysis: analyses[0] ?? null };
+    return product;
   }
 }

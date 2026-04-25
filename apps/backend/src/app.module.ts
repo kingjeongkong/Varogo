@@ -7,9 +7,9 @@ import { PrismaModule } from './prisma/prisma.module';
 import { LlmModule } from './llm/llm.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
-import { StrategyModule } from './strategy/strategy.module';
-import { ContentModule } from './content/content.module';
 import { ThreadsModule } from './threads/threads.module';
+import { VoiceProfileModule } from './voice-profile/voice-profile.module';
+import { PostDraftModule } from './post-draft/post-draft.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -19,9 +19,9 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     LlmModule,
     AuthModule,
     ProductModule,
-    StrategyModule,
-    ContentModule,
     ThreadsModule,
+    VoiceProfileModule,
+    PostDraftModule,
   ],
   controllers: [AppController],
   providers: [

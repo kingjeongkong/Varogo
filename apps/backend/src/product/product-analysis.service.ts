@@ -85,7 +85,7 @@ Respond in English. Be thorough and factual.`;
     input: AnalyzeInput,
     productInfo: string,
   ): string {
-    return `You are a product analyst specializing in indie/startup products, with deep expertise in marketing strategy.
+    return `You are a product analyst specializing in indie/startup products, with deep expertise in marketing strategy (April Dunford's "Obviously Awesome" positioning framework).
 Based on the product information below, provide a comprehensive marketing analysis.
 
 Product name: ${input.name}
@@ -96,20 +96,44 @@ Current traction: Users=${input.currentTraction.users}, Revenue=${input.currentT
 === Product Information ===
 ${productInfo}
 
-Provide your analysis in the following structure:
+Before filling the schema, silently work through these in order:
+1. What category do customers put this product in? (the thing they compare it to, not the tech stack). Not "software tool" or "AI app" — it's the reference frame the user brings, e.g., "marketing copilot for indie devs", not "marketing tool".
+2. What are the 2-3 real alternatives? (include "do nothing" or "use a spreadsheet/ChatGPT manually" if that's what users actually fall back to)
+3. What attribute does this product have that alternatives don't? (the concrete mechanism, not adjectives)
+4. What VALUE does that attribute deliver? (attribute ≠ value — "AI-powered" is an attribute; "get a Threads strategy in 5 minutes without marketing background" is the value)
+5. Who cares MOST about that value? That's the best-fit target — narrower than "everyone who could use it".
+6. What SPECIFIC shift in the last 2-3 years opened the space for this category?
+   NOT an evergreen truth ("X has always been growing"). A pointed change.
+   Examples: "remote work normalized solo international relocation post-2022",
+   "TikTok travel content pushed FOMO for shared experiences",
+   "post-COVID hostel culture declined, removing the default meeting place".
+   If you can't name the year/event, you're being too vague.
+
+Then fill the schema:
+- category: Output of step 1. The reference frame, not the tech stack.
+- jobToBeDone: The "job" users hire this product for. Format: "When [situation], I want to [motivation], so I can [outcome]."
+- whyNow: Output of step 6. One sentence. Must cite a shift that happened in the last 2-3 years, not a long-running trend.
 - targetAudience:
-  - definition: Who is this product for? Be specific about roles and situations.
+  - definition: Output of step 5. Specific about role AND situation.
   - painPoints: What pain points does the target audience experience? (3-5 items)
-  - buyingTriggers: What specific moments or situations trigger them to seek this product? Use "When [situation]" format. (3-5 items)
-  - activeCommunities: Where does this audience hang out online? Provide specific channel/community names.
-- problem: What core problem does this product solve? (one concise paragraph)
-- valueProposition: What concrete result does the user get? Format: "By [action], get [result] within [timeframe]"
-- alternatives: What are the main alternatives/competitors? (2-4 items). For each:
-  - name: Competitor name
+  - buyingTriggers: What specific moments trigger them to seek this product? Use "When [situation]" format. (3-5 items)
+  - activeCommunities: Where does this audience hang out online? Specific channel/community names.
+- valueProposition: Output of step 4. Format: "By [action], get [result] within [timeframe]"
+- alternatives: Output of step 2. (2-4 items). At least ONE item MUST be "Manual / do nothing" or "Use [generic tool] manually" — the non-product fallback users actually default to. Skipping this is a failure.
+  For each:
+  - name: Competitor name (or "Manual / do nothing")
   - description: What they do (1-2 sentences)
-  - weaknessWeExploit: The ONE weakness we can exploit in marketing (not a list of limitations, but the gap we can attack)
-- differentiators: Top 3 differentiators with highest marketing impact. Maximum 3 items — focus beats volume.
-- positioningStatement: Format: "A [category] for [target], with [key differentiator]"
+  - weaknessWeExploit: The ONE weakness we can exploit in marketing (the gap we attack, not a list of limitations)
+- differentiators: Top 3 differentiators with highest marketing impact. Maximum 3 — focus beats volume.
+- positioningStatement: Use EXACTLY this format: "For [target], [product] is the [category] that [value], because [attribute]."
+  CRITICAL: [value] must be a user outcome (what the user experiences or achieves).
+  [attribute] must be a product mechanism (how the product works).
+  They must be at DIFFERENT levels — if both describe "how it works", you've failed.
+  GOOD example: "... that helps you find a travel companion within hours instead of scrolling forums for days, because it matches users by live GPS proximity."
+    → value = "find companion within hours instead of forums for days" (outcome)
+    → attribute = "matches by live GPS proximity" (mechanism)
+  BAD example: "... that instantly connects you nearby, because it offers real-time location-based matching."
+    → both describe mechanism. No outcome.
 - keywords:
   - primary: Core keywords for SEO and hashtags (3-5 items)
   - secondary: Long-tail and niche community keywords (5-10 items)
@@ -120,6 +144,9 @@ Respond in English. Be specific and actionable.`;
   private readonly responseSchema = {
     type: Type.OBJECT,
     properties: {
+      category: { type: Type.STRING },
+      jobToBeDone: { type: Type.STRING },
+      whyNow: { type: Type.STRING },
       targetAudience: {
         type: Type.OBJECT,
         properties: {
@@ -144,7 +171,6 @@ Respond in English. Be specific and actionable.`;
           'activeCommunities',
         ],
       },
-      problem: { type: Type.STRING },
       valueProposition: { type: Type.STRING },
       alternatives: {
         type: Type.ARRAY,
@@ -179,8 +205,10 @@ Respond in English. Be specific and actionable.`;
       },
     },
     required: [
+      'category',
+      'jobToBeDone',
+      'whyNow',
       'targetAudience',
-      'problem',
       'valueProposition',
       'alternatives',
       'differentiators',
