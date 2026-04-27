@@ -11,10 +11,12 @@ import type {
   HookGenerationInput,
   HookGenerationResult,
 } from './types/hook-generation.type';
+import type { VoiceEvaluationResult } from './types/voice-evaluation.type';
+import { VoiceEvaluatorService } from './voice-evaluator.service';
 
 const REFERENCE_SAMPLE_LIMIT = 5;
 const DEFAULT_MODEL = 'gpt-4o-mini';
-const MAX_RETRIES = 2;
+const HOOK_COUNT = 3;
 
 interface FormattingStats {
   exclamationPerPost: number;
@@ -24,6 +26,12 @@ interface FormattingStats {
   avgParagraphWords: number;
 }
 
+interface HookAssessment {
+  hookIndex: number;
+  matched: boolean;
+  issues: string[];
+}
+
 @Injectable()
 export class HookGenerationService {
   private readonly logger = new Logger(HookGenerationService.name);
@@ -31,36 +39,154 @@ export class HookGenerationService {
   constructor(
     private readonly openAi: OpenAiService,
     private readonly configService: ConfigService,
+    private readonly voiceEvaluator: VoiceEvaluatorService,
   ) {}
 
   async generate(input: HookGenerationInput): Promise<HookGenerationResult> {
-    const prompt = this.buildPrompt(input);
     const model =
       this.configService.get<string>('OPENAI_MODEL') ?? DEFAULT_MODEL;
 
-    let lastHooks: GeneratedHook[] | undefined;
-    let lastViolations: string[] = [];
+    const firstHooks = await this.callOnce(this.buildPrompt(input), model);
+    const firstAssessments = await this.assessHooks(firstHooks, input);
 
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      const hooks = await this.callOnce(prompt, model);
-      const violations = this.findVoiceViolations(hooks, input);
-      if (violations.length === 0) {
-        if (attempt > 0) {
-          this.logger.log(`Hook gen recovered on attempt ${attempt + 1}`);
-        }
-        return { hooks };
-      }
-      lastHooks = hooks;
-      lastViolations = violations;
-      this.logger.warn(
-        `Hook violations on attempt ${attempt + 1}: ${violations.join(', ')}`,
-      );
+    if (firstAssessments === null) {
+      // Inconclusive (evaluator unreachable, no cliches caught) — graceful pass.
+      return { hooks: firstHooks };
+    }
+
+    const firstFailures = firstAssessments.filter((a) => !a.matched);
+    if (firstFailures.length === 0) {
+      return { hooks: firstHooks };
     }
 
     this.logger.warn(
-      `Returning hooks with unresolved violations after ${MAX_RETRIES + 1} attempts: ${lastViolations.join(', ')}`,
+      `Voice mismatch: ${firstFailures.length}/${HOOK_COUNT} hook(s) need fix — ${this.flattenAssessments(firstAssessments).join('; ')}`,
     );
-    return { hooks: lastHooks ?? [] };
+
+    const fixedTexts = await this.callRetryOnce(
+      this.buildRetryPrompt(input, firstHooks, firstAssessments),
+      model,
+      firstFailures.length,
+    );
+    const mergedHooks = this.spliceFixed(firstHooks, fixedTexts, firstFailures);
+
+    const mergedAssessments = await this.assessHooks(mergedHooks, input);
+
+    if (mergedAssessments === null) {
+      return { hooks: mergedHooks };
+    }
+
+    const mergedFailures = mergedAssessments.filter((a) => !a.matched);
+    if (mergedFailures.length === 0) {
+      this.logger.log(
+        `Voice match achieved on retry (${firstFailures.length} regenerated, ${HOOK_COUNT - firstFailures.length} preserved)`,
+      );
+      return { hooks: mergedHooks };
+    }
+
+    const persistedFeedback = this.flattenAssessments(mergedAssessments);
+    this.logger.warn(
+      `Voice mismatch persisted after retry: ${persistedFeedback.join('; ')}`,
+    );
+    return { hooks: mergedHooks, evaluationFeedback: persistedFeedback };
+  }
+
+  /**
+   * Per-hook assessment combining a cheap deterministic cliche pre-filter
+   * with the qualitative LLM evaluator. Returns one entry per input hook,
+   * or `null` when both layers can't speak (evaluator down + zero cliches).
+   */
+  private async assessHooks(
+    hooks: GeneratedHook[],
+    input: HookGenerationInput,
+  ): Promise<HookAssessment[] | null> {
+    const cliches = this.prefilterCliches(hooks);
+
+    let evaluatorResult: VoiceEvaluationResult | null = null;
+    try {
+      evaluatorResult = await this.voiceEvaluator.evaluate({
+        hooks,
+        styleFingerprint: input.styleFingerprint,
+        referenceSamples: input.referenceSamples,
+        todayInput: input.todayInput,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Voice evaluator unavailable — falling back to cliche-only check: ${message}`,
+      );
+    }
+
+    const anyCliches = cliches.some((c) => c.length > 0);
+    if (evaluatorResult === null && !anyCliches) {
+      return null;
+    }
+
+    return hooks.map((_, i) => {
+      const hookCliches = cliches[i] ?? [];
+      const evalEntry = evaluatorResult?.perHookFeedback.find(
+        (e) => e.hookIndex === i,
+      );
+      const evalIssues =
+        evalEntry && !evalEntry.matched ? evalEntry.mismatches : [];
+      const issues = [...hookCliches, ...evalIssues];
+      return { hookIndex: i, matched: issues.length === 0, issues };
+    });
+  }
+
+  /**
+   * Per-hook deterministic check for unambiguous LLM artifacts. Returns one
+   * array per input hook; empty array means clean. Voice-dependent checks
+   * (exclamation / emoji / yeoreobun) intentionally live in the evaluator,
+   * not here, since their correctness depends on the user's own samples.
+   */
+  private prefilterCliches(hooks: GeneratedHook[]): string[][] {
+    return hooks.map((h) => {
+      const issues: string[] = [];
+      const text = h.text;
+
+      const clicheOpener =
+        /^\s*(Six months ago|A few years ago|Last summer|Last year|Three days ago|A year ago|Two weeks ago)\b/i.exec(
+          text,
+        );
+      if (clicheOpener) {
+        issues.push(
+          `AI-cliche opener "${clicheOpener[1]}" — rewrite the opening using the user's voice patterns instead`,
+        );
+      }
+      if (/\bgame[-\s]changer\b/i.test(text)) {
+        issues.push(
+          'contains marketing cliche "game changer" — drop or rephrase',
+        );
+      }
+      return issues;
+    });
+  }
+
+  private flattenAssessments(assessments: HookAssessment[]): string[] {
+    return assessments
+      .filter((a) => !a.matched && a.issues.length > 0)
+      .flatMap((a) => a.issues.map((i) => `hook${a.hookIndex + 1}: ${i}`));
+  }
+
+  /**
+   * Splice fixed hook texts back into the original positions while preserving
+   * each hook's original angleLabel — the retry call only returns text, so the
+   * angle cannot drift even if the model misbehaves.
+   */
+  private spliceFixed(
+    original: GeneratedHook[],
+    fixedTexts: string[],
+    failures: HookAssessment[],
+  ): GeneratedHook[] {
+    const result = [...original];
+    failures.forEach((failure, i) => {
+      result[failure.hookIndex] = {
+        text: fixedTexts[i],
+        angleLabel: original[failure.hookIndex].angleLabel,
+      };
+    });
+    return result;
   }
 
   private async callOnce(
@@ -84,9 +210,9 @@ export class HookGenerationService {
       const content = completion.choices[0]?.message?.content ?? '{}';
       const parsed = JSON.parse(content) as { hooks: GeneratedHook[] };
 
-      if (!Array.isArray(parsed.hooks) || parsed.hooks.length !== 3) {
+      if (!Array.isArray(parsed.hooks) || parsed.hooks.length !== HOOK_COUNT) {
         throw new InternalServerErrorException(
-          `Expected exactly 3 hooks, got ${parsed.hooks?.length ?? 0}`,
+          `Expected exactly ${HOOK_COUNT} hooks, got ${parsed.hooks?.length ?? 0}`,
         );
       }
       return parsed.hooks;
@@ -97,37 +223,47 @@ export class HookGenerationService {
     }
   }
 
-  private findVoiceViolations(
-    hooks: GeneratedHook[],
-    input: HookGenerationInput,
-  ): string[] {
-    const violations: string[] = [];
-    const sampleText = input.referenceSamples.map((s) => s.text).join('\n');
-    const samplesHasExclamation = /!/.test(sampleText);
-    const samplesHasEmoji = /\p{Extended_Pictographic}/u.test(sampleText);
-    const samplesHasYeoreobun = /여러분/.test(sampleText);
+  /**
+   * Retry call: schema returns only `text` (angleLabel is preserved by splice
+   * from the original hook so the model can't drift the angle). Expected
+   * count is dynamic so we only ask for as many hooks as need fixing.
+   */
+  private async callRetryOnce(
+    prompt: string,
+    model: string,
+    expectedCount: number,
+  ): Promise<string[]> {
+    try {
+      const completion = await this.openAi.getClient().chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'hook_retry',
+            strict: true,
+            schema: this.retryResponseSchema,
+          },
+        },
+      });
 
-    hooks.forEach((h, i) => {
-      const tag = `hook${i + 1}`;
-      const text = h.text;
+      const content = completion.choices[0]?.message?.content ?? '{}';
+      const parsed = JSON.parse(content) as { hooks: { text: string }[] };
 
-      if (!samplesHasExclamation && /!/.test(text))
-        violations.push(`${tag}:exclamation_mark`);
       if (
-        /^\s*(Six months ago|A few years ago|Last summer|Last year|Three days ago|A year ago|Two weeks ago)\b/i.test(
-          text,
-        )
-      )
-        violations.push(`${tag}:ai_cliche_opening`);
-      if (/\bgame[-\s]changer\b/i.test(text))
-        violations.push(`${tag}:game_changer`);
-      if (!samplesHasEmoji && /\p{Extended_Pictographic}/u.test(text))
-        violations.push(`${tag}:emoji_in_non_emoji_voice`);
-      if (!samplesHasYeoreobun && /여러분/.test(text))
-        violations.push(`${tag}:yeoreobun`);
-    });
-
-    return violations;
+        !Array.isArray(parsed.hooks) ||
+        parsed.hooks.length !== expectedCount
+      ) {
+        throw new InternalServerErrorException(
+          `Retry expected ${expectedCount} hook(s), got ${parsed.hooks?.length ?? 0}`,
+        );
+      }
+      return parsed.hooks.map((h) => h.text);
+    } catch (error) {
+      if (error instanceof InternalServerErrorException) throw error;
+      this.logger.error('OpenAI hook retry generation failed', error);
+      throw new InternalServerErrorException('Hook retry generation failed');
+    }
   }
 
   private computeFormattingStats(samples: ReferenceSample[]): FormattingStats {
@@ -292,10 +428,8 @@ Priority order when rules conflict (strict):
 5. Today's input as embedded evidence (never as opener or narrative spine)
 
 Hard rules — NEVER break:
-- No AI-cliche openings: "Last summer, I was...", "Six months ago,", "A few years ago,", "Three days ago,", "Last year,", "A year ago,", "Two weeks ago,"
+- No AI-cliche openers: "Last summer, ...", "Six months ago, ...", "A few years ago, ...", "Three days ago, ...", "Last year, ...", "A year ago, ...", "Two weeks ago, ..."
 - No marketing cliches: "game changer", "game-changer"
-${noExclamation ? '- No exclamation marks (!) anywhere' : ''}
-${noEmoji ? '- No emojis anywhere' : ''}
 - Emotion shows through word choice, never named directly
 - ${hasToday ? "Numbers: use ONLY numbers from today's context above. NEVER invent statistics." : 'No numbers. Do not invent statistics.'}
 
@@ -305,6 +439,98 @@ Return JSON:
     { "text": "...", "angleLabel": "..." },
     { "text": "...", "angleLabel": "..." },
     { "text": "...", "angleLabel": "..." }
+  ]
+}`;
+  }
+
+  /**
+   * Edit-task framing for retry: separate prompt that frames the task as
+   * "fix these specific hooks" rather than "generate from scratch with these
+   * constraints", grounded in the original failed hooks and per-hook issues.
+   * Approved hooks are shown for context only (do-not-regenerate). Returns
+   * only text — angleLabel is preserved by splice on the caller side.
+   */
+  private buildRetryPrompt(
+    input: HookGenerationInput,
+    originalHooks: GeneratedHook[],
+    assessments: HookAssessment[],
+  ): string {
+    const { styleFingerprint, referenceSamples, todayInput } = input;
+    const matched = assessments.filter((a) => a.matched);
+    const failed = assessments.filter((a) => !a.matched);
+
+    const samples = referenceSamples
+      .slice(0, REFERENCE_SAMPLE_LIMIT)
+      .map((s, i) => `${i + 1}. "${s.text.replace(/"/g, '\\"')}"`)
+      .join('\n\n');
+
+    const matchedBlock =
+      matched.length === 0
+        ? '(none — every hook needs fixing)'
+        : matched
+            .map((a) => {
+              const h = originalHooks[a.hookIndex];
+              return `Hook ${a.hookIndex + 1} (${h.angleLabel}): "${h.text.replace(/"/g, '\\"')}"`;
+            })
+            .join('\n');
+
+    const failedBlock = failed
+      .map((a) => {
+        const h = originalHooks[a.hookIndex];
+        const issuesList = a.issues.map((iss) => `   - ${iss}`).join('\n');
+        return `Hook ${a.hookIndex + 1} (${h.angleLabel} — keep this angle):
+   Current text: "${h.text.replace(/"/g, '\\"')}"
+   Problems to fix:
+${issuesList}`;
+      })
+      .join('\n\n');
+
+    const todayBlock =
+      todayInput && todayInput.trim().length > 0
+        ? `\n=== Today's context (was given to the original generation; if a fixed hook needs a concrete number, use one from here — never invent) ===\n${todayInput}\n`
+        : '';
+
+    const expectedAngles = failed
+      .map((a) => originalHooks[a.hookIndex].angleLabel)
+      .join(', ');
+
+    const plural = failed.length === 1 ? '' : 's';
+
+    return `You are rewriting Threads post hooks that failed voice review. Each hook listed below has SPECIFIC problems. Fix only those problems, while keeping the hook's angle and matching the user's voice.
+
+This is an EDIT task, not a fresh generation — your job is to repair what is broken in each hook, not to rewrite from scratch with no reference to the original.
+
+=== User's voice (your target — match this exactly) ===
+Tonality: ${styleFingerprint.tonality}
+Opening patterns: ${styleFingerprint.openingPatterns.join(' | ') || '(none detected)'}
+Signature phrases: ${styleFingerprint.signaturePhrases.join(', ') || '(none detected)'}
+Avg post length: ${styleFingerprint.avgLength} chars
+Emoji density: ${styleFingerprint.emojiDensity}% of chars
+Hashtag usage: ${styleFingerprint.hashtagUsage} per post
+
+=== Reference posts from the user (your writing target — match this rhythm) ===
+${samples}
+
+=== Approved hooks (these ALREADY match the voice — DO NOT regenerate them, shown so your fixed hooks don't duplicate angle/topic) ===
+${matchedBlock}
+${todayBlock}
+=== Hooks to fix (rewrite ONLY these) ===
+${failedBlock}
+
+=== Task ===
+Output exactly ${failed.length} corrected hook${plural}, in the SAME order as "Hooks to fix" above (angles: ${expectedAngles}).
+
+For each fixed hook:
+- Address EVERY listed problem
+- Keep the original angle (do not change topic direction)
+- Match the user's voice — opening patterns, sentence rhythm, punctuation habits from the reference posts
+- Stay under 500 characters
+- If the original had a number from today's context, keep that number; never invent new ones
+
+Return ONLY the rewritten hook text${plural} as JSON:
+{
+  "hooks": [
+    { "text": "..." }${failed.length > 1 ? ',\n    ...' : ''}
   ]
 }`;
   }
@@ -321,6 +547,25 @@ Return JSON:
             angleLabel: { type: 'string' },
           },
           required: ['text', 'angleLabel'],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ['hooks'],
+    additionalProperties: false,
+  };
+
+  private readonly retryResponseSchema = {
+    type: 'object',
+    properties: {
+      hooks: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            text: { type: 'string' },
+          },
+          required: ['text'],
           additionalProperties: false,
         },
       },
