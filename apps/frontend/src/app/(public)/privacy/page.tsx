@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Header from '@/components/layout/Header';
+import LandingHeader from '@/components/layout/LandingHeader';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Varogo',
@@ -13,7 +13,7 @@ const CONTACT_EMAIL = 'wjdqls9223@gmail.com';
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen">
-      <Header />
+      <LandingHeader />
 
       <main className="max-w-3xl mx-auto px-6 py-12">
         <div className="space-y-2 mb-10">

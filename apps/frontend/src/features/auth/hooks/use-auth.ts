@@ -13,7 +13,7 @@ export function useAuth() {
     mutationFn: (data: LoginInput) => login(data),
     onSuccess: (user) => {
       setUser(user);
-      router.push('/dashboard');
+      router.push('/products');
     },
   });
 
@@ -21,7 +21,7 @@ export function useAuth() {
     mutationFn: (data: SignupInput) => signup(data),
     onSuccess: (user) => {
       setUser(user);
-      router.push('/dashboard');
+      router.push('/products');
     },
   });
 

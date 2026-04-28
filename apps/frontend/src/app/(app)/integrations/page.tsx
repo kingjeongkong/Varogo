@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Header from '@/components/layout/Header';
 import { ThreadsTile } from './ThreadsTile';
 
 function ThreadsCallbackBanner() {
@@ -41,27 +40,23 @@ function ThreadsCallbackBanner() {
 
 export default function IntegrationsPage() {
   return (
-    <div className="min-h-screen">
-      <Header />
+    <main className="max-w-4xl mx-auto px-6 py-12">
+      <div className="space-y-2 mb-10">
+        <h1 className="text-2xl font-heading font-bold text-text-primary">
+          Integrations
+        </h1>
+        <p className="text-sm text-text-muted">
+          Connect external platform accounts to publish content.
+        </p>
+      </div>
 
-      <main className="max-w-4xl mx-auto px-6 py-12">
-        <div className="space-y-2 mb-10">
-          <h1 className="text-2xl font-heading font-bold text-text-primary">
-            Integrations
-          </h1>
-          <p className="text-sm text-text-muted">
-            Connect external platform accounts to publish content.
-          </p>
-        </div>
+      <Suspense fallback={null}>
+        <ThreadsCallbackBanner />
+      </Suspense>
 
-        <Suspense fallback={null}>
-          <ThreadsCallbackBanner />
-        </Suspense>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <ThreadsTile />
-        </div>
-      </main>
-    </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ThreadsTile />
+      </div>
+    </main>
   );
 }
