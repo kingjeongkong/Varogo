@@ -11,7 +11,7 @@ export function proxy(request: NextRequest) {
 
   if (pathname === '/') {
     if (hasAccess) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/products', request.url));
     }
     return NextResponse.next();
   }
