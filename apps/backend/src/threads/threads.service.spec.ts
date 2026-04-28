@@ -46,6 +46,7 @@ function mockFetchSequence(
       ok: res.ok,
       status: res.status ?? (res.ok ? 200 : 400),
       json: jest.fn().mockResolvedValue(res.body),
+      text: jest.fn().mockResolvedValue(JSON.stringify(res.body)),
     });
   }
   global.fetch = fn;

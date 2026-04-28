@@ -150,8 +150,9 @@ export class ThreadsService {
     );
 
     if (!containerRes.ok) {
+      const body = await containerRes.text().catch(() => '<unreadable>');
       this.logger.error(
-        `Threads container creation failed: ${containerRes.status}`,
+        `Threads container creation failed: ${containerRes.status} ${body}`,
       );
       throw new InternalServerErrorException(
         "We couldn't start a Threads post. Please try again.",
@@ -186,7 +187,8 @@ export class ThreadsService {
     );
 
     if (!publishRes.ok) {
-      this.logger.error(`Threads publish failed: ${publishRes.status}`);
+      const body = await publishRes.text().catch(() => '<unreadable>');
+      this.logger.error(`Threads publish failed: ${publishRes.status} ${body}`);
       throw new InternalServerErrorException(
         'Threads accepted the post but publishing failed. Please try again.',
       );
@@ -328,8 +330,9 @@ export class ThreadsService {
     );
 
     if (!res.ok) {
+      const body = await res.text().catch(() => '<unreadable>');
       this.logger.error(
-        `Container status fetch failed for ${containerId}: ${res.status}`,
+        `Container status fetch failed for ${containerId}: ${res.status} ${body}`,
       );
       throw new InternalServerErrorException(
         'Failed to fetch Threads container status',
