@@ -31,6 +31,8 @@ const POLL_INITIAL_DELAY_MS = 1000;
 const POLL_MAX_DELAY_MS = 3000;
 const POLL_TIMEOUT_MS = 10_000;
 
+const FETCH_TIMEOUT_MS = 8000;
+
 @Injectable()
 export class ThreadsService {
   private readonly logger = new Logger(ThreadsService.name);
@@ -134,7 +136,7 @@ export class ThreadsService {
     const accessToken = await this.resolveAccessToken(userId, connection);
 
     // Step 1: Create media container
-    const containerRes = await fetch(
+    const containerRes = await this.fetchWithTimeout(
       `${THREADS_API_BASE}/${connection.threadsUserId}/threads`,
       {
         method: 'POST',
@@ -172,7 +174,7 @@ export class ThreadsService {
     await this.waitForContainerReady(containerData.id, accessToken);
 
     // Step 2: Publish the container
-    const publishRes = await fetch(
+    const publishRes = await this.fetchWithTimeout(
       `${THREADS_API_BASE}/${connection.threadsUserId}/threads_publish`,
       {
         method: 'POST',
@@ -206,7 +208,7 @@ export class ThreadsService {
     let permalink: string | null = null;
     try {
       const params = new URLSearchParams({ fields: 'id,permalink' });
-      const mediaRes = await fetch(
+      const mediaRes = await this.fetchWithTimeout(
         `${THREADS_API_BASE}/${publishData.id}?${params.toString()}`,
         { headers: { Authorization: `Bearer ${accessToken}` } },
       );
@@ -324,7 +326,7 @@ export class ThreadsService {
       fields: 'status,error_message',
     });
 
-    const res = await fetch(
+    const res = await this.fetchWithTimeout(
       `${THREADS_API_BASE}/${containerId}?${params.toString()}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
@@ -351,7 +353,7 @@ export class ThreadsService {
       limit: String(VOICE_UNIT_MAIN_LIMIT),
     });
 
-    const res = await fetch(
+    const res = await this.fetchWithTimeout(
       `${THREADS_API_BASE}/${threadsUserId}/threads?${params.toString()}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
@@ -381,10 +383,16 @@ export class ThreadsService {
     });
 
     try {
-      const res = await fetch(
+      const res = await this.fetchWithTimeout(
         `${THREADS_API_BASE}/${parentPostId}/conversation?${params.toString()}`,
         { headers: { Authorization: `Bearer ${accessToken}` } },
       );
+
+      if (res.status === 401) {
+        throw new UnauthorizedException(
+          'Threads token expired. Please reconnect your account.',
+        );
+      }
 
       if (!res.ok) {
         this.logger.warn(
@@ -399,6 +407,7 @@ export class ThreadsService {
         .filter((e) => e.from?.id === threadsUserId && e.id !== parentPostId)
         .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
       this.logger.warn(
         `Conversation fetch threw for ${parentPostId}: ${String(error)}. Falling back to main only.`,
       );
@@ -447,7 +456,7 @@ export class ThreadsService {
       code,
     });
 
-    const res = await fetch(THREADS_TOKEN_URL, {
+    const res = await this.fetchWithTimeout(THREADS_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
@@ -480,7 +489,9 @@ export class ThreadsService {
       access_token: shortLivedToken,
     });
 
-    const res = await fetch(`${THREADS_EXCHANGE_URL}?${params.toString()}`);
+    const res = await this.fetchWithTimeout(
+      `${THREADS_EXCHANGE_URL}?${params.toString()}`,
+    );
 
     if (!res.ok) {
       this.logger.error(`Long-lived token exchange failed: ${res.status}`);
@@ -508,9 +519,12 @@ export class ThreadsService {
   ): Promise<{ id: string; username?: string }> {
     const params = new URLSearchParams({ fields: 'id,username' });
 
-    const res = await fetch(`${THREADS_ME_URL}?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const res = await this.fetchWithTimeout(
+      `${THREADS_ME_URL}?${params.toString()}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
 
     if (!res.ok) {
       this.logger.error(`Profile fetch failed: ${res.status}`);
@@ -529,7 +543,9 @@ export class ThreadsService {
       access_token: currentToken,
     });
 
-    const res = await fetch(`${THREADS_REFRESH_URL}?${params.toString()}`);
+    const res = await this.fetchWithTimeout(
+      `${THREADS_REFRESH_URL}?${params.toString()}`,
+    );
 
     if (!res.ok) {
       this.logger.error(`Token refresh failed: ${res.status}`);
@@ -567,5 +583,12 @@ export class ThreadsService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+    return fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
   }
 }

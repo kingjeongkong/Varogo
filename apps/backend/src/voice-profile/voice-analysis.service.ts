@@ -51,6 +51,11 @@ export class VoiceAnalysisService {
   }
 
   computeStats(units: ThreadsVoiceUnit[]): QuantitativeStats {
+    if (units.length === 0) {
+      throw new InternalServerErrorException(
+        'Cannot compute stats from empty voice units',
+      );
+    }
     const totalChars = units.reduce((sum, u) => sum + u.text.length, 0);
     const totalEmojis = units.reduce(
       (sum, u) => sum + (u.text.match(EMOJI_REGEX)?.length ?? 0),
@@ -86,12 +91,29 @@ export class VoiceAnalysisService {
         },
       });
 
-      return JSON.parse(result.text ?? '{}') as QualitativeFingerprint;
+      return this.parseQualitative(result.text);
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
       this.logger.error('Gemini voice extraction call failed', error);
       throw new InternalServerErrorException('Voice extraction failed');
     }
+  }
+
+  private parseQualitative(raw: string | undefined): QualitativeFingerprint {
+    if (!raw) {
+      throw new InternalServerErrorException('Voice extraction failed');
+    }
+    const parsed = JSON.parse(raw) as Partial<QualitativeFingerprint>;
+    if (
+      typeof parsed.tonality !== 'string' ||
+      !Array.isArray(parsed.openingPatterns) ||
+      !Array.isArray(parsed.signaturePhrases)
+    ) {
+      throw new InternalServerErrorException(
+        'Voice extraction returned incomplete data',
+      );
+    }
+    return parsed as QualitativeFingerprint;
   }
 
   private buildPrompt(units: ThreadsVoiceUnit[]): string {

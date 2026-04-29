@@ -594,6 +594,29 @@ describe('ThreadsService', () => {
       });
     });
 
+    it('throws UnauthorizedException when conversation fetch returns 401', async () => {
+      mockFetchSequence([
+        {
+          ok: true,
+          body: {
+            data: [
+              {
+                id: 'p1',
+                text: 'Main post 1',
+                timestamp: '2026-04-19T12:00:00Z',
+                permalink: 'https://t.co/p1',
+              },
+            ],
+          },
+        },
+        { ok: false, body: { error: 'token_expired' }, status: 401 },
+      ]);
+
+      await expect(service.getUserVoiceUnits(userId)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
     it('falls back to main only when conversation fetch fails', async () => {
       mockFetchSequence([
         {

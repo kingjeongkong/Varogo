@@ -74,6 +74,12 @@ describe('VoiceAnalysisService', () => {
       ]);
       expect(stats.hashtagUsage).toBe(2);
     });
+
+    it('throws InternalServerErrorException on empty units array', () => {
+      expect(() => service.computeStats([])).toThrow(
+        InternalServerErrorException,
+      );
+    });
   });
 
   describe('analyze', () => {
@@ -148,6 +154,24 @@ describe('VoiceAnalysisService', () => {
     it('throws InternalServerErrorException on invalid JSON from Gemini', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: 'not valid json {{{',
+      });
+
+      await expect(service.analyze(sampleUnits)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+
+    it('throws InternalServerErrorException when Gemini returns empty text', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: '' });
+
+      await expect(service.analyze(sampleUnits)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+
+    it('throws InternalServerErrorException when Gemini returns JSON missing required fields', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({ tonality: 'only this field' }),
       });
 
       await expect(service.analyze(sampleUnits)).rejects.toThrow(
