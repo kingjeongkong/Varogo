@@ -13,8 +13,8 @@ See root `CLAUDE.md` for shared conventions, commands, and environment variable 
 ## Frontend Rules
 
 - **Thin pages**: `app/` pages handle routing and composition only — no business logic, no inline state
-- **Feature ownership**: New features go under `features/` with their own `api-client.ts`, `components/`, and `hooks/`
-- **No cross-feature imports**: Features must not import from other features — shared types go to `lib/types.ts`, shared logic to `lib/utils.ts`
+- **Feature ownership**: New features go under `features/` with their own `api-client.ts`, `components/`, `hooks/`, and `index.ts` (public barrel)
+- **Cross-feature imports must go through the public API**: Other features may only be imported via `@/features/<name>` (which resolves to that feature's `index.ts` barrel). Deep imports into a feature's internals (`@/features/<name>/hooks/...`) are forbidden and enforced by ESLint. Each feature's `index.ts` should export only what external consumers need — internal hooks/components stay private. Shared types still go to `lib/types.ts`, shared utilities to `lib/utils.ts`.
 - **Server state vs client state**: API data → TanStack Query. Auth / UI state → Zustand
 - **Zustand stores**: Global stores (auth, UI modals) go in `src/stores/` — NOT inside `features/`. Feature hooks may import from `src/stores/` without violating feature isolation rules
 - **Server Components**: Use `serverFetch` from `lib/server-http-client` for data fetching — never use `apiFetch` in Server Components

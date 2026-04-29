@@ -12,8 +12,9 @@ When implementing a new domain in the frontend (e.g., `subscription`, `post-draf
 ## Rules
 
 ### Directory Structure
-- Create `features/<name>/` with: `api-client.ts`, `types.ts` (optional), `components/`, `hooks/`
+- Create `features/<name>/` with: `api-client.ts`, `types.ts` (optional), `components/`, `hooks/`, `index.ts` (public barrel)
 - Do not create `types.ts` if no feature-local types exist
+- `index.ts` re-exports only what external consumers (pages or other features) actually use. Anything not re-exported stays private. Add to the barrel as needed; do not blanket `export *`.
 
 ### api-client.ts
 - Import `apiFetch` from `@/lib/http-client`
@@ -49,8 +50,11 @@ When implementing a new domain in the frontend (e.g., `subscription`, `post-draf
 - Feature hooks may import from `src/stores/` without violating feature isolation
 
 ### Cross-Feature Rules
-- No cross-feature imports — if a type/utility is needed by multiple features, it belongs in `@/lib/`
-- If two features share a component, extract it to `@/components/`
+- Cross-feature imports must go through the feature's public API barrel: `import { X } from '@/features/<other-feature>'`
+- Deep imports (`@/features/<other-feature>/hooks/...`, `@/features/<other-feature>/components/...`) are forbidden and enforced by ESLint
+- Inside a feature, files use relative imports (`./hooks/X`, `../api-client`) — never `@/features/<own-name>`, which would create a cycle through the barrel
+- If a type or utility is genuinely cross-cutting (used by 2+ features and not specific to one feature), put it in `@/lib/`
+- If a UI component is generic across features (Button, Alert, etc.), extract it to `@/components/ui/`
 
 ### API Contract
 - Frontend `lib/types.ts` must mirror backend Response DTO interface field names exactly
