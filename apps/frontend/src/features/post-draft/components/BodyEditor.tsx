@@ -68,6 +68,12 @@ export function BodyEditor({ draft }: BodyEditorProps) {
         {body.length} / {THREADS_LIMIT}
       </div>
 
+      {overLimit && (
+        <p role="alert" className="text-xs text-red-400">
+          {body.length - THREADS_LIMIT} characters over the {THREADS_LIMIT}-character limit.
+        </p>
+      )}
+
       {mutation.isError && <Alert>{mutation.error.message}</Alert>}
 
       <div className="flex items-center justify-between gap-3">

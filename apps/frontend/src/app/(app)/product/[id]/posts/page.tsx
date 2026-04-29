@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { PostsListClient } from '@/features/post-draft/components/PostsListClient';
 
 export default async function PostsPage({
@@ -9,7 +10,9 @@ export default async function PostsPage({
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-12">
-      <PostsListClient productId={id} />
+      <Suspense fallback={null}>
+        <PostsListClient productId={id} />
+      </Suspense>
     </main>
   );
 }

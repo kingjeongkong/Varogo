@@ -26,6 +26,9 @@ export function useCreatePostDraft() {
     mutationFn: (data: CreatePostDraftInput) => createPostDraft(data),
     onSuccess: (draft) => {
       queryClient.setQueryData(['post-draft', draft.id], draft);
+      queryClient.invalidateQueries({
+        queryKey: ['post-drafts-list', draft.productId],
+      });
     },
   });
 }

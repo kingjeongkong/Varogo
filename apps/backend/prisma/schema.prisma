@@ -134,7 +134,6 @@ model HookOption {
   postDraftId String   @map("post_draft_id")
   text        String
   angleLabel  String   @map("angle_label")
-  selected    Boolean  @default(false)
   createdAt   DateTime @default(now()) @map("created_at")
 
   postDraft  PostDraft   @relation("DraftHooks", fields: [postDraftId], references: [id], onDelete: Cascade)

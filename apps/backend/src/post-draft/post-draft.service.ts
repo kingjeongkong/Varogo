@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -23,6 +24,8 @@ import { HookGenerationService } from './hook-generation.service';
 
 @Injectable()
 export class PostDraftService {
+  private readonly logger = new Logger(PostDraftService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly hookGenerationService: HookGenerationService,
@@ -166,6 +169,10 @@ export class PostDraftService {
   async update(id: string, userId: string, dto: UpdatePostDraftDto) {
     const draft = await this.findOneByUser(id, userId);
 
+    if (draft.status !== 'draft') {
+      throw new ConflictException('Cannot modify a published draft');
+    }
+
     if (
       dto.selectedHookId !== undefined &&
       !draft.hookOptions.some((h) => h.id === dto.selectedHookId)
@@ -228,30 +235,51 @@ export class PostDraftService {
       );
     }
 
+    // Phase 1: Threads call. Roll status back ONLY here — if this fails the
+    // post never went live, so the user should retry. Wrap the rollback in
+    // try/catch so its failure can't shadow the original Threads error.
+    let threadsResult: { threadsMediaId: string; permalink: string | null };
     try {
-      const { threadsMediaId, permalink } =
-        await this.threadsService.publishToThreads(userId, dto.body);
+      threadsResult = await this.threadsService.publishToThreads(
+        userId,
+        dto.body,
+      );
+    } catch (err) {
+      try {
+        await this.prisma.postDraft.update({
+          where: { id },
+          data: { status: 'draft' },
+        });
+      } catch (rollbackErr) {
+        this.logger.error(
+          `Failed to roll back status for draft ${id} after Threads error`,
+          rollbackErr,
+        );
+      }
+      throw err;
+    }
 
-      const updated = await this.prisma.postDraft.update({
+    // Phase 2: post is live on Threads. Persist metadata. If this write
+    // fails, do NOT roll status back — that would let a retry double-publish.
+    // Log the inconsistency so it can be reconciled out-of-band.
+    try {
+      return await this.prisma.postDraft.update({
         where: { id },
         data: {
           body: dto.body,
           publishedAt: new Date(),
-          threadsMediaId,
-          permalink,
+          threadsMediaId: threadsResult.threadsMediaId,
+          permalink: threadsResult.permalink,
         },
         include: { hookOptions: true },
       });
-
-      return updated;
-    } catch (err) {
-      // Threads call failed — roll the status back to `draft` so the user
-      // can retry. Body was not yet written, so nothing else to undo.
-      await this.prisma.postDraft.update({
-        where: { id },
-        data: { status: 'draft' },
-      });
-      throw err;
+    } catch (metadataErr) {
+      this.logger.error(
+        `Threads publish succeeded but metadata write failed for draft ${id}. ` +
+          `threadsMediaId=${threadsResult.threadsMediaId} permalink=${threadsResult.permalink ?? 'null'}`,
+        metadataErr,
+      );
+      throw metadataErr;
     }
   }
 }

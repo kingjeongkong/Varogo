@@ -451,6 +451,21 @@ describe('PostDraftService', () => {
       expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
     });
 
+    it('throws ConflictException when the draft is already published — published drafts must be immutable', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue({
+        ...mockDraftWithHooks,
+        status: 'published',
+      });
+
+      await expect(
+        service.update(draftId, userId, { selectedHookId: hookTwoId }),
+      ).rejects.toThrow(
+        new ConflictException('Cannot modify a published draft'),
+      );
+
+      expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
+    });
+
     it('throws BadRequestException when selectedHookId is not among draft hookOptions', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
 
@@ -705,6 +720,41 @@ describe('PostDraftService', () => {
         where: { id: bodyDraftId },
         data: { status: 'draft' },
       });
+    });
+
+    it('does NOT roll status back when Threads succeeds but the metadata write fails — would otherwise allow a retry to double-publish', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
+      mockPrisma.postDraft.updateMany.mockResolvedValue({ count: 1 });
+      mockThreadsService.publishToThreads.mockResolvedValue({
+        threadsMediaId: 'tm-99',
+        permalink: 'https://threads.net/t/abc',
+      });
+      const metadataError = new Error('DB write failure');
+      mockPrisma.postDraft.update.mockRejectedValueOnce(metadataError);
+
+      await expect(
+        service.publish(bodyDraftId, userId, publishDto),
+      ).rejects.toThrow(metadataError);
+
+      // Only the metadata-write update was attempted — no status='draft' rollback
+      expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.postDraft.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({ data: { status: 'draft' } }),
+      );
+    });
+
+    it('rethrows the original Threads error (not the rollback error) when Threads fails AND the rollback also fails', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
+      mockPrisma.postDraft.updateMany.mockResolvedValue({ count: 1 });
+      const threadsError = new Error('Threads API failure');
+      mockThreadsService.publishToThreads.mockRejectedValue(threadsError);
+      mockPrisma.postDraft.update.mockRejectedValueOnce(
+        new Error('Rollback failed'),
+      );
+
+      await expect(
+        service.publish(bodyDraftId, userId, publishDto),
+      ).rejects.toThrow(threadsError);
     });
   });
 
