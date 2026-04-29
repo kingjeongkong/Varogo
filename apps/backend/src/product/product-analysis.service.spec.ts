@@ -104,6 +104,22 @@ describe('ProductAnalysisService', () => {
       await expect(service.analyze(ANALYZE_INPUT)).rejects.toThrow(
         InternalServerErrorException,
       );
+    });
+
+    it('throws "Product analysis failed" message on invalid JSON', async () => {
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: 'Product info summary' })
+        .mockResolvedValueOnce({ text: 'not valid json {{{' });
+
+      await expect(service.analyze(ANALYZE_INPUT)).rejects.toThrow(
+        'Product analysis failed',
+      );
+    });
+
+    it('throws InternalServerErrorException when analysis returns empty text', async () => {
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: 'Product info summary' })
+        .mockResolvedValueOnce({ text: '' });
 
       await expect(service.analyze(ANALYZE_INPUT)).rejects.toThrow(
         'Product analysis failed',

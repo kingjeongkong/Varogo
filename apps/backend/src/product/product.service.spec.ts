@@ -97,6 +97,7 @@ describe('ProductService', () => {
       productId: 'product-1',
       ...mockAnalysisResult,
       createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     it('creates product, calls analyze, saves analysis, and returns combined result', async () => {

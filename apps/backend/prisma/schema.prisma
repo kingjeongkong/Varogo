@@ -120,8 +120,9 @@ model PostDraft {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  hookOptions HookOption[]
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  hookOptions  HookOption[] @relation("DraftHooks")
+  selectedHook HookOption?  @relation("SelectedHook", fields: [selectedHookId], references: [id], onDelete: SetNull)
 
   @@index([productId])
   @@index([status])
@@ -136,7 +137,8 @@ model HookOption {
   selected    Boolean  @default(false)
   createdAt   DateTime @default(now()) @map("created_at")
 
-  postDraft PostDraft @relation(fields: [postDraftId], references: [id], onDelete: Cascade)
+  postDraft  PostDraft   @relation("DraftHooks", fields: [postDraftId], references: [id], onDelete: Cascade)
+  selectedBy PostDraft[] @relation("SelectedHook")
 
   @@index([postDraftId])
   @@map("hook_options")

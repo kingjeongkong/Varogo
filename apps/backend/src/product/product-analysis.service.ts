@@ -58,7 +58,11 @@ export class ProductAnalysisService {
         responseSchema: this.responseSchema,
       },
     });
-    return JSON.parse(result.text ?? '{}') as ProductAnalysisResult;
+    const raw = result.text;
+    if (!raw) {
+      throw new InternalServerErrorException('Product analysis failed');
+    }
+    return JSON.parse(raw) as ProductAnalysisResult;
   }
 
   private buildFetchPrompt(input: AnalyzeInput): string {
