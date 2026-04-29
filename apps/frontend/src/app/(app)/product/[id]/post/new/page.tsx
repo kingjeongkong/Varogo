@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, use } from 'react';
-import { PostFlowClient } from '@/features/post-draft/components/PostFlowClient';
+import { PostFlowClient } from '@/features/post-draft';
 
 export default function NewPostPage({
   params,

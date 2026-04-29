@@ -14,12 +14,12 @@ vi.mock('@/stores/auth-store', () => ({
   useAuthStore: vi.fn(),
 }));
 
-vi.mock('@/features/auth/hooks/use-auth', () => ({
+vi.mock('@/features/auth', () => ({
   useAuth: vi.fn(),
 }));
 
 import { useAuthStore } from '@/stores/auth-store';
-import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useAuth } from '@/features/auth';
 
 const mockLogoutMutate = vi.fn();
 

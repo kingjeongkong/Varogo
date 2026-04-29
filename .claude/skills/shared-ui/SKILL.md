@@ -30,7 +30,7 @@ When creating a new shared UI component, or when unsure if a shared component al
 - Use `forwardRef` when the component wraps an interactive element that may receive a ref (inputs, buttons)
 - Keep custom props minimal — only add what's needed to handle the variation points
 - Maintain all accessibility attributes from the original inline pattern
-- No barrel exports (index.ts) — import directly from component path
+- No barrel exports for `components/ui/` — import each shared primitive directly from its file path (`@/components/ui/Button`). (Feature directories DO have a public `index.ts` barrel — see `new-feature` skill — but `components/ui/` is a flat catalog of primitives, not a domain module.)
 
 ### What NOT to extract
 

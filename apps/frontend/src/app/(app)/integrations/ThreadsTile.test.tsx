@@ -12,29 +12,23 @@ const mockConnectMutate = vi.fn();
 const mockDisconnectMutate = vi.fn();
 const mockImportMutate = vi.fn();
 
-vi.mock('@/hooks/use-threads-connection', () => ({
+vi.mock('@/features/threads', () => ({
   useThreadsConnectionStatus: vi.fn(),
-}));
-
-vi.mock('@/features/threads/hooks/use-threads-connection', () => ({
   useThreadsConnect: vi.fn(),
   useThreadsDisconnect: vi.fn(),
 }));
 
-vi.mock('@/features/voice-profile/hooks/use-voice-profile', () => ({
+vi.mock('@/features/voice-profile', () => ({
   useVoiceProfile: vi.fn(),
   useImportVoice: vi.fn(),
 }));
 
-import { useThreadsConnectionStatus } from '@/hooks/use-threads-connection';
 import {
   useThreadsConnect,
+  useThreadsConnectionStatus,
   useThreadsDisconnect,
-} from '@/features/threads/hooks/use-threads-connection';
-import {
-  useImportVoice,
-  useVoiceProfile,
-} from '@/features/voice-profile/hooks/use-voice-profile';
+} from '@/features/threads';
+import { useImportVoice, useVoiceProfile } from '@/features/voice-profile';
 
 function mockUseThreadsConnectionStatus(
   overrides: Record<string, unknown> = {},

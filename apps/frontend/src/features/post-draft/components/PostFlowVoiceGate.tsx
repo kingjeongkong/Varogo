@@ -4,11 +4,8 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import {
-  useImportVoice,
-  useVoiceProfile,
-} from '@/features/voice-profile/hooks/use-voice-profile';
-import { useThreadsConnectionStatus } from '@/hooks/use-threads-connection';
+import { useThreadsConnectionStatus } from '@/features/threads';
+import { useImportVoice, useVoiceProfile } from '@/features/voice-profile';
 
 interface PostFlowVoiceGateProps {
   children: ReactNode;
