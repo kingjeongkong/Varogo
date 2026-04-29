@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { PostsListClient } from '@/features/post-draft/components/PostsListClient';
+import { PostsListClient } from '@/features/post-draft';
 
 export default async function PostsPage({
   params,

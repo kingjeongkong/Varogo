@@ -1,10 +1,7 @@
 import type { Metadata } from 'next';
 import LandingHeader from '@/components/layout/LandingHeader';
 import Footer from '@/components/layout/Footer';
-import Hero from '@/features/landing/components/Hero';
-import HowItWorks from '@/features/landing/components/HowItWorks';
-import Features from '@/features/landing/components/Features';
-import FinalCta from '@/features/landing/components/FinalCta';
+import { Features, FinalCta, Hero, HowItWorks } from '@/features/landing';
 
 export const metadata: Metadata = {
   title: 'Varogo — Marketing strategy for indie developers on Threads',

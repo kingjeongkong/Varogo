@@ -10,11 +10,11 @@ import type {
 
 const mockImportMutate = vi.fn();
 
-vi.mock('@/hooks/use-threads-connection', () => ({
+vi.mock('@/features/threads', () => ({
   useThreadsConnectionStatus: vi.fn(),
 }));
 
-vi.mock('@/features/voice-profile/hooks/use-voice-profile', () => ({
+vi.mock('@/features/voice-profile', () => ({
   useVoiceProfile: vi.fn(),
   useImportVoice: vi.fn(),
 }));
@@ -31,11 +31,8 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-import { useThreadsConnectionStatus } from '@/hooks/use-threads-connection';
-import {
-  useImportVoice,
-  useVoiceProfile,
-} from '@/features/voice-profile/hooks/use-voice-profile';
+import { useThreadsConnectionStatus } from '@/features/threads';
+import { useImportVoice, useVoiceProfile } from '@/features/voice-profile';
 
 function mockUseThreadsConnectionStatus(
   overrides: Record<string, unknown> = {},

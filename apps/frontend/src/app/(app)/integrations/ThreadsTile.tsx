@@ -5,13 +5,10 @@ import { Button } from '@/components/ui/Button';
 import { Tooltip } from '@/components/ui/Tooltip';
 import {
   useThreadsConnect,
+  useThreadsConnectionStatus,
   useThreadsDisconnect,
-} from '@/features/threads/hooks/use-threads-connection';
-import {
-  useImportVoice,
-  useVoiceProfile,
-} from '@/features/voice-profile/hooks/use-voice-profile';
-import { useThreadsConnectionStatus } from '@/hooks/use-threads-connection';
+} from '@/features/threads';
+import { useImportVoice, useVoiceProfile } from '@/features/voice-profile';
 import { Info } from 'lucide-react';
 
 const headingId = 'threads-tile-heading';

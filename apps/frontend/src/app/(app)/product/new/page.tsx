@@ -1,4 +1,4 @@
-import { ProductForm } from '@/features/product/components/ProductForm';
+import { ProductForm } from '@/features/product';
 
 export default function NewProductPage() {
   return (

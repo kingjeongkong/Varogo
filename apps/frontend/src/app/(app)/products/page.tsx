@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ProductList } from '@/features/product/components/ProductList';
+import { ProductList } from '@/features/product';
 
 export default function ProductsPage() {
   return (

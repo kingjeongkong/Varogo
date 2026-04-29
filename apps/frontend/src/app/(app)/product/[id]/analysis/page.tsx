@@ -1,8 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import { AnalysisResult } from '@/features/product/components/analysis/AnalysisResult';
-import { useProduct } from '@/features/product/hooks/use-product';
+import { AnalysisResult, useProduct } from '@/features/product';
 
 export default function AnalysisPage({
   params,
