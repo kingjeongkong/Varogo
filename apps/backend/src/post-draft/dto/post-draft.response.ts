@@ -18,26 +18,30 @@ export interface PostDraftResponse {
   createdAt: string;
   updatedAt: string;
   hooks: HookOptionResponse[];
+  evaluationFeedback?: string[];
 }
 
-export function toPostDraftResponse(draft: {
-  id: string;
-  productId: string;
-  todayInput: string | null;
-  body: string;
-  status: string;
-  selectedHookId: string | null;
-  publishedAt: Date | null;
-  threadsMediaId: string | null;
-  permalink: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  hookOptions: Array<{
+export function toPostDraftResponse(
+  draft: {
     id: string;
-    text: string;
-    angleLabel: string;
-  }>;
-}): PostDraftResponse {
+    productId: string;
+    todayInput: string | null;
+    body: string;
+    status: string;
+    selectedHookId: string | null;
+    publishedAt: Date | null;
+    threadsMediaId: string | null;
+    permalink: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    hookOptions: Array<{
+      id: string;
+      text: string;
+      angleLabel: string;
+    }>;
+  },
+  extras?: { evaluationFeedback?: string[] },
+): PostDraftResponse {
   return {
     id: draft.id,
     productId: draft.productId,
@@ -56,5 +60,8 @@ export function toPostDraftResponse(draft: {
       angleLabel: h.angleLabel,
       selected: h.id === draft.selectedHookId,
     })),
+    ...(extras?.evaluationFeedback && extras.evaluationFeedback.length > 0
+      ? { evaluationFeedback: extras.evaluationFeedback }
+      : {}),
   };
 }

@@ -36,8 +36,11 @@ export class PostDraftController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreatePostDraftDto,
   ) {
-    const draft = await this.postDraftService.create(user.sub, dto);
-    return toPostDraftResponse(draft);
+    const { draft, evaluationFeedback } = await this.postDraftService.create(
+      user.sub,
+      dto,
+    );
+    return toPostDraftResponse(draft, { evaluationFeedback });
   }
 
   @Get(':id')

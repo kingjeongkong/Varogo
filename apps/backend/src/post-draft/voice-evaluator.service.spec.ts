@@ -207,7 +207,7 @@ describe('VoiceEvaluatorService', () => {
       );
     });
 
-    it('throws InternalServerErrorException when feedback length does not match input hook count', async () => {
+    it('throws with a wrong-count message when feedback length does not match input hook count', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({
           perHookFeedback: [
@@ -218,8 +218,18 @@ describe('VoiceEvaluatorService', () => {
         }),
       });
 
-      await expect(service.evaluate(makeInput())).rejects.toBeInstanceOf(
-        InternalServerErrorException,
+      await expect(service.evaluate(makeInput())).rejects.toThrow(
+        /returned 2 hook entries, expected 3/,
+      );
+    });
+
+    it('throws with a missing-array message when perHookFeedback field is absent', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({ somethingElse: true }),
+      });
+
+      await expect(service.evaluate(makeInput())).rejects.toThrow(
+        /missing perHookFeedback array/,
       );
     });
 

@@ -308,7 +308,38 @@ describe('PostDraftService', () => {
         include: { hookOptions: true },
       });
 
-      expect(result).toEqual(draftWithHooks);
+      expect(result).toEqual({
+        draft: draftWithHooks,
+        evaluationFeedback: undefined,
+      });
+    });
+
+    it('forwards evaluationFeedback from the hook generator to the caller', async () => {
+      mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
+      mockPrisma.voiceProfile.findUnique.mockResolvedValue(mockVoiceProfile);
+      mockHookGenerationService.generate.mockResolvedValue({
+        hooks: generatedHooks,
+        evaluationFeedback: ['hook2: cliche opener'],
+      });
+
+      const createdDraft = {
+        id: 'draft-2',
+        productId,
+        todayInput: dto.todayInput,
+        body: '',
+        status: 'draft',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockTx.postDraft.create.mockResolvedValue(createdDraft);
+      mockTx.hookOption.createMany.mockResolvedValue({ count: 3 });
+      const draftWithHooks = { ...createdDraft, hookOptions: [] };
+      mockTx.postDraft.findUnique.mockResolvedValue(draftWithHooks);
+
+      const result = await service.create(userId, dto);
+
+      expect(result.evaluationFeedback).toEqual(['hook2: cliche opener']);
+      expect(result.draft).toEqual(draftWithHooks);
     });
 
     it('filters product by id AND userId for ownership check', async () => {
@@ -675,6 +706,9 @@ describe('PostDraftService', () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftForPublish);
       mockPrisma.postDraft.updateMany.mockResolvedValue({ count: 0 });
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const warnSpy = jest.spyOn((service as any).logger, 'warn');
+
       await expect(
         service.publish(bodyDraftId, userId, publishDto),
       ).rejects.toThrow(
@@ -686,6 +720,13 @@ describe('PostDraftService', () => {
       expect(mockPrisma.postDraft.updateMany).toHaveBeenCalledTimes(1);
       expect(mockThreadsService.publishToThreads).not.toHaveBeenCalled();
       expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
+
+      const warnMessages = (warnSpy.mock.calls as string[][]).map((c) => c[0]);
+      expect(
+        warnMessages.some(
+          (m) => m.includes(bodyDraftId) && m.includes('claim refused'),
+        ),
+      ).toBe(true);
     });
 
     it('throws BadRequestException when selectedHookId is null and does not lock or call Threads', async () => {

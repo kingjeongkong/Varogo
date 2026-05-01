@@ -5,13 +5,12 @@ import {
   Logger,
 } from '@nestjs/common';
 import { GeminiService } from '../llm/gemini.service';
+import { REFERENCE_SAMPLE_LIMIT } from './constants';
 import type {
   HookEvaluation,
   VoiceEvaluationInput,
   VoiceEvaluationResult,
 } from './types/voice-evaluation.type';
-
-const REFERENCE_SAMPLE_LIMIT = 5;
 
 @Injectable()
 export class VoiceEvaluatorService {
@@ -39,13 +38,22 @@ export class VoiceEvaluatorService {
       throw new InternalServerErrorException('Voice evaluation failed');
     }
 
-    const perHookFeedback = this.normalizeFeedback(
-      parsedRaw,
-      input.hooks.length,
-    );
-    const allMatched = perHookFeedback.every((e) => e.matched);
-
-    return { allMatched, perHookFeedback };
+    try {
+      const perHookFeedback = this.normalizeFeedback(
+        parsedRaw,
+        input.hooks.length,
+      );
+      const allMatched = perHookFeedback.every((e) => e.matched);
+      return { allMatched, perHookFeedback };
+    } catch (error) {
+      this.logger.error(
+        `Voice evaluator payload malformed (expected ${input.hooks.length} hook entries)`,
+        error,
+      );
+      throw error instanceof InternalServerErrorException
+        ? error
+        : new InternalServerErrorException('Voice evaluation payload invalid');
+    }
   }
 
   private normalizeFeedback(
@@ -53,9 +61,14 @@ export class VoiceEvaluatorService {
     expectedCount: number,
   ): HookEvaluation[] {
     const candidate = (parsed as { perHookFeedback?: unknown }).perHookFeedback;
-    if (!Array.isArray(candidate) || candidate.length !== expectedCount) {
+    if (!Array.isArray(candidate)) {
       throw new InternalServerErrorException(
-        'Voice evaluator returned an unexpected number of hook evaluations',
+        'Voice evaluator response missing perHookFeedback array',
+      );
+    }
+    if (candidate.length !== expectedCount) {
+      throw new InternalServerErrorException(
+        `Voice evaluator returned ${candidate.length} hook entries, expected ${expectedCount}`,
       );
     }
 

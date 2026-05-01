@@ -115,15 +115,16 @@ export class PostDraftService {
     const referenceSamples =
       voiceProfile.referenceSamples as unknown as ReferenceSample[];
 
-    const { hooks } = await this.hookGenerationService.generate({
-      analysis: analysisResult,
-      styleFingerprint,
-      referenceSamples,
-      todayInput: dto.todayInput ?? null,
-    });
+    const { hooks, evaluationFeedback } =
+      await this.hookGenerationService.generate({
+        analysis: analysisResult,
+        styleFingerprint,
+        referenceSamples,
+        todayInput: dto.todayInput ?? null,
+      });
 
-    return this.prisma.$transaction(async (tx) => {
-      const draft = await tx.postDraft.create({
+    const draft = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.postDraft.create({
         data: {
           productId: product.id,
           todayInput: dto.todayInput ?? null,
@@ -134,14 +135,14 @@ export class PostDraftService {
 
       await tx.hookOption.createMany({
         data: hooks.map((h) => ({
-          postDraftId: draft.id,
+          postDraftId: created.id,
           text: h.text,
           angleLabel: h.angleLabel,
         })),
       });
 
       const draftWithHooks = await tx.postDraft.findUnique({
-        where: { id: draft.id },
+        where: { id: created.id },
         include: { hookOptions: true },
       });
 
@@ -151,6 +152,8 @@ export class PostDraftService {
 
       return draftWithHooks;
     });
+
+    return { draft, evaluationFeedback };
   }
 
   async findOneByUser(id: string, userId: string) {
@@ -230,6 +233,9 @@ export class PostDraftService {
     });
 
     if (claim.count === 0) {
+      this.logger.warn(
+        `Publish claim refused for draft ${id} (already published or claimed by concurrent request)`,
+      );
       throw new ConflictException(
         'This post is already being published or has been published. Please refresh.',
       );

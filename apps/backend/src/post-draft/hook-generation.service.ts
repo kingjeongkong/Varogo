@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { OpenAiService } from '../llm/openai.service';
 import type { ReferenceSample } from '../voice-profile/types/style-fingerprint.type';
+import { REFERENCE_SAMPLE_LIMIT } from './constants';
 import type {
   GeneratedHook,
   HookGenerationInput,
@@ -14,7 +15,6 @@ import type {
 import type { VoiceEvaluationResult } from './types/voice-evaluation.type';
 import { VoiceEvaluatorService } from './voice-evaluator.service';
 
-const REFERENCE_SAMPLE_LIMIT = 5;
 const DEFAULT_MODEL = 'gpt-4o-mini';
 const HOOK_COUNT = 3;
 
@@ -63,12 +63,24 @@ export class HookGenerationService {
       `Voice mismatch: ${firstFailures.length}/${HOOK_COUNT} hook(s) need fix — ${this.flattenAssessments(firstAssessments).join('; ')}`,
     );
 
-    const fixedTexts = await this.callRetryOnce(
-      this.buildRetryPrompt(input, firstHooks, firstAssessments),
-      model,
-      firstFailures.length,
-    );
-    const mergedHooks = this.spliceFixed(firstHooks, fixedTexts, firstFailures);
+    let mergedHooks: GeneratedHook[];
+    try {
+      const fixedTexts = await this.callRetryOnce(
+        this.buildRetryPrompt(input, firstHooks, firstAssessments),
+        model,
+        firstFailures.length,
+      );
+      mergedHooks = this.spliceFixed(firstHooks, fixedTexts, firstFailures);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Hook retry call failed — preserving first-pass hooks with mismatch feedback: ${message}`,
+      );
+      return {
+        hooks: firstHooks,
+        evaluationFeedback: this.flattenAssessments(firstAssessments),
+      };
+    }
 
     const mergedAssessments = await this.assessHooks(mergedHooks, input);
 

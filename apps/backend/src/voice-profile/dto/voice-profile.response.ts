@@ -11,8 +11,8 @@ export interface VoiceProfileResponse {
   sampleCount: number;
   styleFingerprint: StyleFingerprint;
   referenceSamples: ReferenceSample[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export function toVoiceProfileResponse(profile: {
@@ -32,7 +32,7 @@ export function toVoiceProfileResponse(profile: {
     sampleCount: profile.sampleCount,
     styleFingerprint: profile.styleFingerprint as unknown as StyleFingerprint,
     referenceSamples: profile.referenceSamples as unknown as ReferenceSample[],
-    createdAt: profile.createdAt,
-    updatedAt: profile.updatedAt,
+    createdAt: profile.createdAt.toISOString(),
+    updatedAt: profile.updatedAt.toISOString(),
   };
 }

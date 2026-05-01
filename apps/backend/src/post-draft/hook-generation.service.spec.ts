@@ -374,7 +374,7 @@ describe('HookGenerationService', () => {
       });
     });
 
-    it('throws when retry response returns wrong number of hooks', async () => {
+    it('falls back to first-pass hooks with feedback when retry response shape is invalid', async () => {
       mockCreate
         .mockResolvedValueOnce(makeCompletion(validHooks))
         .mockResolvedValueOnce(makeRetryCompletion(['only one', 'extra one'])); // expected 1, got 2
@@ -382,9 +382,26 @@ describe('HookGenerationService', () => {
         mismatchResult([{ hookIndex: 0, reasons: ['x'] }]),
       );
 
-      await expect(service.generate(buildInput())).rejects.toThrow(
-        InternalServerErrorException,
+      const result = await service.generate(buildInput());
+
+      expect(result.hooks).toEqual(validHooks);
+      expect(result.evaluationFeedback).toEqual(['hook1: x']);
+    });
+
+    it('falls back to first-pass hooks with feedback when the retry OpenAI call rejects', async () => {
+      mockCreate
+        .mockResolvedValueOnce(makeCompletion(validHooks))
+        .mockRejectedValueOnce(new Error('retry API timeout'));
+      mockEvaluate.mockResolvedValueOnce(
+        mismatchResult([{ hookIndex: 1, reasons: ['cliche opener'] }]),
       );
+
+      const result = await service.generate(buildInput());
+
+      expect(result.hooks).toEqual(validHooks);
+      expect(result.evaluationFeedback).toEqual(['hook2: cliche opener']);
+      // Evaluator only consulted on first pass — retry never reached the second assess call
+      expect(mockEvaluate).toHaveBeenCalledTimes(1);
     });
   });
 
