@@ -2,6 +2,7 @@ import {
   NotFoundException,
   UnauthorizedException,
   InternalServerErrorException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
@@ -853,6 +854,63 @@ describe('ThreadsService', () => {
       );
       expect(warnCalls).toHaveLength(2);
     });
+
+    // HttpException rethrow — permanent failures must surface immediately
+
+    it('rethrows UnauthorizedException without retry (token expired)', async () => {
+      fetchContainerStatusSpy
+        .mockRejectedValueOnce(
+          new UnauthorizedException('Threads token expired'),
+        )
+        // Would resolve if retried — proves we did NOT retry
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      await expect(callMethod(service)).rejects.toThrow(UnauthorizedException);
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(1);
+      expect(sleepSpy).toHaveBeenCalledTimes(0);
+    });
+
+    it('rethrows ServiceUnavailableException without retry (rate limited)', async () => {
+      fetchContainerStatusSpy
+        .mockRejectedValueOnce(
+          new ServiceUnavailableException('Threads is rate limiting'),
+        )
+        .mockResolvedValueOnce({ status: 'FINISHED' });
+
+      await expect(callMethod(service)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+      expect(fetchContainerStatusSpy).toHaveBeenCalledTimes(1);
+    });
+
+    // Timeout observability
+
+    it('logs warn before throwing on deadline exceeded', async () => {
+      const start = 1_000_000;
+      const dateNowSpy = jest
+        .spyOn(Date, 'now')
+        .mockReturnValueOnce(start)
+        .mockReturnValueOnce(start + 9_500);
+
+      fetchContainerStatusSpy.mockResolvedValue({ status: 'IN_PROGRESS' });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const warnSpy = jest.spyOn((service as any).logger, 'warn');
+
+      await expect(callMethod(service)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+
+      const warnMessages = (warnSpy.mock.calls as string[][]).map((c) => c[0]);
+      expect(
+        warnMessages.some(
+          (m) =>
+            m.includes(containerId) && m.includes('did not reach FINISHED'),
+        ),
+      ).toBe(true);
+
+      dateNowSpy.mockRestore();
+    });
   });
 
   describe('fetchContainerStatus', () => {
@@ -891,7 +949,7 @@ describe('ThreadsService', () => {
       });
     });
 
-    it('Test C: throws InternalServerErrorException when response is non-2xx', async () => {
+    it('Test C: throws InternalServerErrorException when response is non-2xx 5xx', async () => {
       mockFetchSequence([
         { ok: false, body: { error: 'server_error' }, status: 500 },
       ]);
@@ -899,6 +957,54 @@ describe('ThreadsService', () => {
       await expect(callMethod(service)).rejects.toThrow(
         InternalServerErrorException,
       );
+    });
+
+    it('Test C2: throws UnauthorizedException when response is 401', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'token_expired' }, status: 401 },
+      ]);
+
+      await expect(callMethod(service)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('Test C3: throws UnauthorizedException when response is 403', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'forbidden' }, status: 403 },
+      ]);
+
+      await expect(callMethod(service)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('Test C4: throws ServiceUnavailableException when response is 429', async () => {
+      mockFetchSequence([
+        { ok: false, body: { error: 'rate_limited' }, status: 429 },
+      ]);
+
+      await expect(callMethod(service)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+    });
+
+    it('Test F: truncates very long error body in log to avoid token leakage', async () => {
+      const longBody = 'x'.repeat(2000);
+      mockFetchSequence([{ ok: false, body: longBody, status: 500 }]);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const errorSpy = jest.spyOn((service as any).logger, 'error');
+
+      await expect(callMethod(service)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+
+      const errorMessages = (errorSpy.mock.calls as string[][]).map(
+        (c) => c[0],
+      );
+      const containerLog = errorMessages.find((m) =>
+        m.includes('Container status fetch failed'),
+      );
+      expect(containerLog).toBeDefined();
+      expect(containerLog!.length).toBeLessThan(longBody.length);
+      expect(containerLog).toMatch(/more chars/);
     });
 
     it('Test D: fetch URL contains container id and fields=status,error_message', async () => {

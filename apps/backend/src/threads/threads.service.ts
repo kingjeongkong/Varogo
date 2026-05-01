@@ -1,8 +1,10 @@
 import {
+  HttpException,
   Injectable,
   Logger,
   NotFoundException,
   InternalServerErrorException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -154,7 +156,7 @@ export class ThreadsService {
     if (!containerRes.ok) {
       const body = await containerRes.text().catch(() => '<unreadable>');
       this.logger.error(
-        `Threads container creation failed: ${containerRes.status} ${body}`,
+        `Threads container creation failed: ${containerRes.status} ${this.truncateForLog(body)}`,
       );
       throw new InternalServerErrorException(
         "We couldn't start a Threads post. Please try again.",
@@ -190,7 +192,9 @@ export class ThreadsService {
 
     if (!publishRes.ok) {
       const body = await publishRes.text().catch(() => '<unreadable>');
-      this.logger.error(`Threads publish failed: ${publishRes.status} ${body}`);
+      this.logger.error(
+        `Threads publish failed: ${publishRes.status} ${this.truncateForLog(body)}`,
+      );
       throw new InternalServerErrorException(
         'Threads accepted the post but publishing failed. Please try again.',
       );
@@ -280,6 +284,10 @@ export class ThreadsService {
       try {
         result = await this.fetchContainerStatus(containerId, accessToken);
       } catch (err) {
+        // Permanent failures (401 token expired, 429 rate limited) shouldn't
+        // be silently retried until the polling deadline. Rethrow so the
+        // caller surfaces a meaningful error immediately.
+        if (err instanceof HttpException) throw err;
         this.logger.warn(
           `Container status poll failed for ${containerId}: ${err}`,
         );
@@ -308,6 +316,9 @@ export class ThreadsService {
       }
 
       if (Date.now() + delay >= deadline) {
+        this.logger.warn(
+          `Container ${containerId} did not reach FINISHED within ${POLL_TIMEOUT_MS}ms`,
+        );
         throw new InternalServerErrorException(
           'Threads is taking longer than usual to prepare your post. Please try again in a moment.',
         );
@@ -334,8 +345,18 @@ export class ThreadsService {
     if (!res.ok) {
       const body = await res.text().catch(() => '<unreadable>');
       this.logger.error(
-        `Container status fetch failed for ${containerId}: ${res.status} ${body}`,
+        `Container status fetch failed for ${containerId}: ${res.status} ${this.truncateForLog(body)}`,
       );
+      if (res.status === 401 || res.status === 403) {
+        throw new UnauthorizedException(
+          'Threads token expired. Please reconnect your account.',
+        );
+      }
+      if (res.status === 429) {
+        throw new ServiceUnavailableException(
+          'Threads is rate limiting requests. Please try again in a moment.',
+        );
+      }
       throw new InternalServerErrorException(
         'Failed to fetch Threads container status',
       );
@@ -583,6 +604,11 @@ export class ThreadsService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private truncateForLog(text: string, maxLength = 500): string {
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength)}... (${text.length - maxLength} more chars)`;
   }
 
   private fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
