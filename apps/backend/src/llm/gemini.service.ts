@@ -11,7 +11,10 @@ export class GeminiService {
     if (!apiKey) {
       throw new InternalServerErrorException('Gemini API key not configured');
     }
-    this.client = new GoogleGenAI({ apiKey });
+    this.client = new GoogleGenAI({
+      apiKey,
+      httpOptions: { timeout: 30_000 },
+    });
   }
 
   getClient(): GoogleGenAI {

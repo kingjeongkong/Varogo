@@ -11,7 +11,11 @@ export class OpenAiService {
     if (!apiKey) {
       throw new InternalServerErrorException('OpenAI API key not configured');
     }
-    this.client = new OpenAI({ apiKey });
+    this.client = new OpenAI({
+      apiKey,
+      timeout: 30_000,
+      maxRetries: 0,
+    });
   }
 
   getClient(): OpenAI {
