@@ -1,7 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  type RenderOptions,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import * as RadixTooltip from '@radix-ui/react-tooltip';
 import { ThreadsTile } from './ThreadsTile';
+
+function render(ui: React.ReactElement, options?: RenderOptions) {
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <RadixTooltip.Provider delayDuration={200}>
+        {children}
+      </RadixTooltip.Provider>
+    ),
+    ...options,
+  });
+}
 import type {
   StyleFingerprint,
   ThreadsConnectionResponse,

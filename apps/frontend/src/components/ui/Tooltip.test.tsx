@@ -1,7 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  type RenderOptions,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import * as RadixTooltip from '@radix-ui/react-tooltip';
 import { Tooltip } from '@/components/ui/Tooltip';
+
+function render(ui: React.ReactElement, options?: RenderOptions) {
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <RadixTooltip.Provider delayDuration={200}>
+        {children}
+      </RadixTooltip.Provider>
+    ),
+    ...options,
+  });
+}
 
 describe('Tooltip', () => {
   describe('trigger rendering', () => {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Sora, Outfit, JetBrains_Mono } from 'next/font/google';
+import * as RadixTooltip from '@radix-ui/react-tooltip';
 import QueryProvider from '@/providers/query-provider';
 import { AuthProvider } from '@/providers/auth-provider';
 import './globals.css';
@@ -39,7 +40,11 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <QueryProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <RadixTooltip.Provider delayDuration={200}>
+              {children}
+            </RadixTooltip.Provider>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

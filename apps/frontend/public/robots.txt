@@ -3,7 +3,7 @@ Allow: /
 Allow: /login
 Allow: /signup
 Allow: /privacy
-Disallow: /dashboard
+Disallow: /products
 Disallow: /product/
 Disallow: /integrations
 

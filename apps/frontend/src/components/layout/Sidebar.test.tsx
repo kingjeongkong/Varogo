@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Sidebar from './Sidebar';
 
@@ -43,12 +43,47 @@ function mockUseAuth(logoutOverrides: Record<string, unknown> = {}) {
   } as any);
 }
 
+// --- matchMedia mock (controllable per test) ---
+
+type MQListener = (e: { matches: boolean }) => void;
+let mqListeners: MQListener[] = [];
+
+function fireMatchMediaChange(matches: boolean) {
+  for (const l of mqListeners) l({ matches });
+}
+
+beforeEach(() => {
+  mqListeners = [];
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: (_evt: string, cb: MQListener) => {
+        mqListeners.push(cb);
+      },
+      removeEventListener: (_evt: string, cb: MQListener) => {
+        mqListeners = mqListeners.filter((l) => l !== cb);
+      },
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })),
+  });
+});
+
 describe('Sidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPathname = '/products';
     mockUseAuthStore();
     mockUseAuth();
+  });
+
+  afterEach(() => {
+    document.body.style.overflow = '';
   });
 
   describe('navigation rendering', () => {
@@ -60,11 +95,8 @@ describe('Sidebar', () => {
         name: /integrations/i,
       });
 
-      // Products link appears in both desktop + mobile sidebars
       expect(productsLinks.length).toBeGreaterThan(0);
       productsLinks.forEach((link) => {
-        // The Varogo logo also matches /products/i because its href is /products,
-        // but we want at least one nav link pointing to /products.
         expect(link).toHaveAttribute('href', '/products');
       });
 
@@ -161,6 +193,32 @@ describe('Sidebar', () => {
         expect(link).not.toHaveAttribute('aria-current');
       });
     });
+
+    it('does NOT activate Products on a sibling-prefix path like /products-archive', () => {
+      mockPathname = '/products-archive';
+      render(<Sidebar />);
+
+      const productsLinks = screen
+        .getAllByRole('link', { name: /products/i })
+        .filter((l) => l.getAttribute('href') === '/products');
+
+      productsLinks.forEach((link) => {
+        expect(link).not.toHaveAttribute('aria-current');
+      });
+    });
+
+    it('does NOT activate Integrations on a sibling-prefix path like /integrations-archive', () => {
+      mockPathname = '/integrations-archive';
+      render(<Sidebar />);
+
+      const integrationsLinks = screen.getAllByRole('link', {
+        name: /integrations/i,
+      });
+
+      integrationsLinks.forEach((link) => {
+        expect(link).not.toHaveAttribute('aria-current');
+      });
+    });
   });
 
   describe('user widget', () => {
@@ -235,6 +293,38 @@ describe('Sidebar', () => {
       });
     });
 
+    it('exposes a polite live region announcing logout while pending', () => {
+      mockUseAuthStore({
+        user: { id: 'u-1', email: 'a@b.com', createdAt: '' },
+        isLoading: false,
+      });
+      mockUseAuth({ isPending: true });
+      render(<Sidebar />);
+
+      const statuses = screen.getAllByRole('status');
+      expect(statuses.length).toBeGreaterThan(0);
+      const announcing = statuses.filter((s) =>
+        /logging out/i.test(s.textContent ?? ''),
+      );
+      expect(announcing.length).toBeGreaterThan(0);
+      announcing.forEach((s) => {
+        expect(s).toHaveAttribute('aria-live', 'polite');
+      });
+    });
+
+    it('keeps the live region empty while logout is idle', () => {
+      mockUseAuthStore({
+        user: { id: 'u-1', email: 'a@b.com', createdAt: '' },
+        isLoading: false,
+      });
+      render(<Sidebar />);
+
+      const statuses = screen.getAllByRole('status');
+      statuses.forEach((s) => {
+        expect(s.textContent ?? '').not.toMatch(/logging out/i);
+      });
+    });
+
     it('renders nothing inside the user widget when no user and not loading', () => {
       mockUseAuthStore({ user: null, isLoading: false });
       render(<Sidebar />);
@@ -266,9 +356,6 @@ describe('Sidebar', () => {
       await user.click(hamburger);
 
       expect(hamburger).toHaveAttribute('aria-expanded', 'true');
-
-      // Mobile slide-in sidebar exists; when open it should not be aria-hidden
-      // and the close button should be exposed.
       expect(
         screen.getByRole('button', { name: /close navigation menu/i }),
       ).toBeInTheDocument();
@@ -284,7 +371,6 @@ describe('Sidebar', () => {
       await user.click(hamburger);
       expect(hamburger).toHaveAttribute('aria-expanded', 'true');
 
-      // Backdrop is rendered conditionally and is aria-hidden; query the DOM.
       const backdrop = container.querySelector('div[aria-hidden="true"]');
       expect(backdrop).not.toBeNull();
       await user.click(backdrop as Element);
@@ -334,9 +420,97 @@ describe('Sidebar', () => {
       await user.click(hamburger);
       expect(hamburger).toHaveAttribute('aria-expanded', 'true');
 
-      // Mobile slide-in renders its own copy of the nav links; click one.
       const productsLinks = screen.getAllByRole('link', { name: /products/i });
       await user.click(productsLinks[productsLinks.length - 1]);
+
+      expect(hamburger).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+
+  describe('mobile drawer accessibility', () => {
+    it('exposes the mobile drawer as a labelled modal dialog', () => {
+      render(<Sidebar />);
+
+      const dialog = document.querySelector('aside[role="dialog"]');
+      expect(dialog).not.toBeNull();
+      expect(dialog).toHaveAttribute('aria-modal', 'true');
+      expect(dialog).toHaveAttribute('aria-labelledby');
+
+      const labelId = dialog!.getAttribute('aria-labelledby')!;
+      const label = document.getElementById(labelId);
+      expect(label).not.toBeNull();
+      expect(label).toHaveTextContent(/varogo/i);
+    });
+
+    it('marks the mobile drawer as inert while closed and active when open', async () => {
+      const user = userEvent.setup();
+      render(<Sidebar />);
+
+      const dialog = document.querySelector('aside[role="dialog"]')!;
+      // happy-dom reflects the boolean inert attribute on the element.
+      expect(dialog.hasAttribute('inert')).toBe(true);
+
+      const hamburger = screen.getByRole('button', {
+        name: /open navigation menu/i,
+      });
+      await user.click(hamburger);
+
+      expect(dialog.hasAttribute('inert')).toBe(false);
+    });
+
+    it('locks body scroll while the mobile drawer is open and restores it on close', async () => {
+      const user = userEvent.setup();
+      render(<Sidebar />);
+
+      expect(document.body.style.overflow).not.toBe('hidden');
+
+      const hamburger = screen.getByRole('button', {
+        name: /open navigation menu/i,
+      });
+      await user.click(hamburger);
+
+      expect(document.body.style.overflow).toBe('hidden');
+
+      await user.keyboard('{Escape}');
+
+      expect(document.body.style.overflow).not.toBe('hidden');
+    });
+
+    it('moves focus into the drawer when opened and restores focus to the hamburger on close', async () => {
+      const user = userEvent.setup();
+      render(<Sidebar />);
+
+      const hamburger = screen.getByRole('button', {
+        name: /open navigation menu/i,
+      });
+      await user.click(hamburger);
+
+      // Focus should land on a focusable element inside the dialog (not the hamburger).
+      const dialog = document.querySelector('aside[role="dialog"]')!;
+      expect(dialog.contains(document.activeElement)).toBe(true);
+
+      const closeButton = screen.getByRole('button', {
+        name: /close navigation menu/i,
+      });
+      await user.click(closeButton);
+
+      expect(document.activeElement).toBe(hamburger);
+    });
+
+    it('closes the drawer when the viewport widens past the md breakpoint', async () => {
+      const user = userEvent.setup();
+      render(<Sidebar />);
+
+      const hamburger = screen.getByRole('button', {
+        name: /open navigation menu/i,
+      });
+      await user.click(hamburger);
+      expect(hamburger).toHaveAttribute('aria-expanded', 'true');
+
+      // Simulate the user resizing into desktop width.
+      act(() => {
+        fireMatchMediaChange(true);
+      });
 
       expect(hamburger).toHaveAttribute('aria-expanded', 'false');
     });
