@@ -197,6 +197,20 @@ describe('BodyEditor', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Failed to publish');
   });
 
+  it('renders the user-friendly 409 conflict message in Alert when hook translated it', () => {
+    mockUsePublishPostDraft({
+      isError: true,
+      error: new Error(
+        'This post is already published. Please refresh to see the latest version.',
+      ),
+    });
+    render(<BodyEditor draft={DRAFT} />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent(/already published/i);
+    expect(alert).toHaveTextContent(/refresh/i);
+  });
+
   it('Back to product link points to /product/<productId>/analysis', () => {
     render(<BodyEditor draft={DRAFT} />);
 

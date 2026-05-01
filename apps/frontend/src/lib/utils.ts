@@ -42,7 +42,7 @@ export function formatRelativeTime(date: string): string {
   if (diffHr < 24) return `${diffHr}h ago`;
   const diffDay = Math.floor(diffHr / 24);
   if (diffDay < 30) return `${diffDay}d ago`;
-  return new Date(date).toLocaleDateString('en-US', {
+  return new Date(date).toLocaleDateString('ko-KR', {
     month: 'short',
     day: 'numeric',
   });

@@ -125,6 +125,7 @@ export interface PostDraftResponse {
   createdAt: string;
   updatedAt: string;
   hooks: HookOptionResponse[];
+  evaluationFeedback?: string[];
 }
 
 export interface PostDraftsListResponse {

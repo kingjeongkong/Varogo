@@ -64,7 +64,7 @@ describe('DraftCard', () => {
       expect(links).toHaveLength(1);
       expect(links[0]).toHaveAttribute(
         'href',
-        '/product/prod-99/post/new?draftId=draft-42&step=hook',
+        '/product/prod-99/post/new?draftId=draft-42',
       );
     });
   });
@@ -172,13 +172,13 @@ describe('DraftCard', () => {
       expect(screen.getByText(/5d ago/)).toBeInTheDocument();
     });
 
-    it('renders a short month + day (e.g. "Feb 20") for a date 60 days ago', () => {
+    it('renders a localized short month + day for a date 60 days ago', () => {
       const updatedAt = new Date(
         Date.now() - 60 * 24 * 60 * 60 * 1000,
       ).toISOString();
       render(<DraftCard draft={makeDraft({ updatedAt })} />);
 
-      expect(screen.getByText(/updated [A-Z][a-z]{2} \d+/)).toBeInTheDocument();
+      expect(screen.getByText(/updated \d+월 \d+일/)).toBeInTheDocument();
     });
   });
 

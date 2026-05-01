@@ -13,10 +13,12 @@ export interface UpdatePostDraftInput {
 
 export function createPostDraft(
   data: CreatePostDraftInput,
+  signal?: AbortSignal,
 ): Promise<PostDraftResponse> {
   return apiFetch<PostDraftResponse>('/post-drafts', {
     method: 'POST',
     body: JSON.stringify(data),
+    signal,
   });
 }
 

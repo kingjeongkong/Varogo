@@ -86,9 +86,16 @@ export function TodayInputForm({ productId, onCreated }: TodayInputFormProps) {
         {charCount} / {MAX_LENGTH}
       </div>
 
-      {mutation.isError && <Alert>{mutation.error.message}</Alert>}
+      {mutation.isError && mutation.error.status !== 0 && (
+        <Alert>{mutation.error.message}</Alert>
+      )}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {mutation.isPending && (
+          <Button type="button" variant="outline" onClick={mutation.cancel}>
+            Cancel
+          </Button>
+        )}
         <Button
           type="submit"
           loading={mutation.isPending}

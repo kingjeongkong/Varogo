@@ -5,6 +5,7 @@ import { TodayInputForm } from './TodayInputForm';
 import type { PostDraftResponse } from '@/lib/types';
 
 const mockCreateMutate = vi.fn();
+const mockCreateCancel = vi.fn();
 
 vi.mock('../hooks/use-post-draft', () => ({
   useCreatePostDraft: vi.fn(),
@@ -16,6 +17,7 @@ import { useCreatePostDraft } from '../hooks/use-post-draft';
 function mockUseCreatePostDraft(overrides: Record<string, any> = {}) {
   vi.mocked(useCreatePostDraft).mockReturnValue({
     mutate: mockCreateMutate,
+    cancel: mockCreateCancel,
     isPending: false,
     isError: false,
     error: null,
@@ -214,14 +216,32 @@ describe('TodayInputForm', () => {
       });
       expect(button).toBeDisabled();
     });
+
+    it('shows a Cancel button while pending and calls mutation.cancel when clicked', async () => {
+      mockUseCreatePostDraft({ isPending: true });
+      render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
+
+      const cancelBtn = screen.getByRole('button', { name: /cancel/i });
+      await userEvent.click(cancelBtn);
+
+      expect(mockCreateCancel).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render the Cancel button when not pending', () => {
+      render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
+
+      expect(
+        screen.queryByRole('button', { name: /cancel/i }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('api error', () => {
     it('renders an alert with the mutation error message', () => {
-      mockUseCreatePostDraft({
-        isError: true,
-        error: new Error('Hook generation failed'),
+      const apiError = Object.assign(new Error('Hook generation failed'), {
+        status: 500,
       });
+      mockUseCreatePostDraft({ isError: true, error: apiError });
       render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
 
       expect(screen.getByRole('alert')).toHaveTextContent(
@@ -230,6 +250,16 @@ describe('TodayInputForm', () => {
     });
 
     it('does not render an alert when there is no error', () => {
+      render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('suppresses the alert when the error is a user-initiated cancel (status 0)', () => {
+      const cancelError = Object.assign(new Error('Hook generation cancelled'), {
+        status: 0,
+      });
+      mockUseCreatePostDraft({ isError: true, error: cancelError });
       render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
 
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();

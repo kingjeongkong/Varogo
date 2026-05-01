@@ -12,7 +12,9 @@ interface HookSelectionProps {
 
 export function HookSelection({ draft }: HookSelectionProps) {
   const mutation = useUpdatePostDraft(draft.id);
-  const [localSelected, setLocalSelected] = useState<string | null>(null);
+  const [localSelected, setLocalSelected] = useState<string | null>(
+    draft.selectedHookId ?? null,
+  );
   const hookRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const handleSave = () => {

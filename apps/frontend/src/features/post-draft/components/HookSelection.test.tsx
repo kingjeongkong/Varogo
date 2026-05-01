@@ -175,6 +175,30 @@ describe('HookSelection', () => {
     });
   });
 
+  describe('resuming with selectedHookId already set', () => {
+    const RESUMED_DRAFT: PostDraftResponse = {
+      ...PENDING_DRAFT,
+      selectedHookId: 'hook-2',
+    };
+
+    it('marks the previously selected hook as aria-checked on mount', () => {
+      render(<HookSelection draft={RESUMED_DRAFT} />);
+
+      const [first, second, third] = screen.getAllByRole('radio');
+      expect(first).toHaveAttribute('aria-checked', 'false');
+      expect(second).toHaveAttribute('aria-checked', 'true');
+      expect(third).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('enables the Save hook button on mount when a hook is preselected', () => {
+      render(<HookSelection draft={RESUMED_DRAFT} />);
+
+      expect(
+        screen.getByRole('button', { name: /save hook/i }),
+      ).toBeEnabled();
+    });
+  });
+
   describe('mutation pending', () => {
     it('disables every card and shows a loading Save button', () => {
       mockUseUpdatePostDraft({ isPending: true });

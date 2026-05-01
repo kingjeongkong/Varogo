@@ -12,7 +12,7 @@ export function DraftCard({ draft }: DraftCardProps) {
 
   return (
     <Link
-      href={`/product/${draft.productId}/post/new?draftId=${draft.id}&step=hook`}
+      href={`/product/${draft.productId}/post/new?draftId=${draft.id}`}
       aria-label={angleLabel ? `Resume draft — ${angleLabel}` : 'Resume draft'}
       className="glass-card block p-5 space-y-3 hover:bg-surface transition-colors"
     >
