@@ -104,13 +104,13 @@ function makeDraft(
     todayInput: null,
     body: 'body text',
     status: 'draft',
-    selectedHookId: null,
+    selectedOptionId: null,
     publishedAt: null,
     threadsMediaId: null,
     permalink: null,
     createdAt: '2026-04-01T00:00:00.000Z',
     updatedAt: '2026-04-02T00:00:00.000Z',
-    hooks: [],
+    options: [],
     ...overrides,
   };
 }

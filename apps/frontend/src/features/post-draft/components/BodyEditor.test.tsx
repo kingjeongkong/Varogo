@@ -42,27 +42,27 @@ const DRAFT: PostDraftResponse = {
   todayInput: 'hit 1000 users',
   body: 'Initial draft body content.',
   status: 'draft',
-  selectedHookId: 'hook-2',
+  selectedOptionId: 'option-2',
   publishedAt: null,
   threadsMediaId: null,
   permalink: null,
   createdAt: '2026-04-20T00:00:00.000Z',
   updatedAt: '2026-04-20T00:00:00.000Z',
-  hooks: [
+  options: [
     {
-      id: 'hook-1',
+      id: 'option-1',
       text: 'Data angle body text',
       angleLabel: 'Data',
       selected: false,
     },
     {
-      id: 'hook-2',
+      id: 'option-2',
       text: 'Story angle body text',
       angleLabel: 'Story',
       selected: true,
     },
     {
-      id: 'hook-3',
+      id: 'option-3',
       text: 'Contrarian angle body text',
       angleLabel: 'Contrarian',
       selected: false,
@@ -84,7 +84,7 @@ describe('BodyEditor', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the angle label of the selected hook', () => {
+  it('renders the angle label of the selected option', () => {
     render(<BodyEditor draft={DRAFT} />);
 
     expect(screen.getByText('Story')).toBeInTheDocument();
@@ -197,7 +197,7 @@ describe('BodyEditor', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Failed to publish');
   });
 
-  it('renders the user-friendly 409 conflict message in Alert when hook translated it', () => {
+  it('renders the user-friendly 409 conflict message in Alert when client translated it', () => {
     mockUsePublishPostDraft({
       isError: true,
       error: new Error(

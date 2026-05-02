@@ -8,7 +8,7 @@ export interface CreatePostDraftInput {
 
 export interface UpdatePostDraftInput {
   todayInput?: string;
-  selectedHookId?: string;
+  selectedOptionId?: string;
 }
 
 export function createPostDraft(

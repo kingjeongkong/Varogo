@@ -8,7 +8,7 @@ interface DraftCardProps {
 
 export function DraftCard({ draft }: DraftCardProps) {
   const angleLabel =
-    draft.hooks.find((h) => h.id === draft.selectedHookId)?.angleLabel ?? '';
+    draft.options.find((o) => o.id === draft.selectedOptionId)?.angleLabel ?? '';
 
   return (
     <Link

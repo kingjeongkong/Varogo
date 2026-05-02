@@ -17,8 +17,8 @@ import {
 const PUBLISH_CONFLICT_MESSAGE =
   'This post is already published. Please refresh to see the latest version.';
 
-const HOOK_GENERATION_FAILED_MESSAGE =
-  "We couldn't generate hooks right now. Please try again in a moment.";
+const ANGLE_GENERATION_FAILED_MESSAGE =
+  "We couldn't generate angles right now. Please try again in a moment.";
 
 export function usePostDraft(id: string | null) {
   return useQuery({
@@ -44,13 +44,13 @@ export function useCreatePostDraft() {
         // User-initiated cancel — surface with status 0 so callers can
         // distinguish from real failures (and optionally suppress the toast).
         if (controller.signal.aborted) {
-          throw new ApiError('Hook generation cancelled', 0);
+          throw new ApiError('Angle generation cancelled', 0);
         }
         // Backend 5xx (Gemini/OpenAI failure, voice evaluator down, etc.)
-        // surfaces as raw "Hook generation failed" to the user. Translate
+        // surfaces as raw "Option generation failed" to the user. Translate
         // to an actionable message; preserve status so onError can react.
         if (err instanceof ApiError && err.status >= 500) {
-          throw new ApiError(HOOK_GENERATION_FAILED_MESSAGE, err.status);
+          throw new ApiError(ANGLE_GENERATION_FAILED_MESSAGE, err.status);
         }
         throw err;
       } finally {

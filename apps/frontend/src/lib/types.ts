@@ -105,7 +105,7 @@ export interface VoiceProfileResponse {
   updatedAt: string;
 }
 
-export interface HookOptionResponse {
+export interface PostDraftOptionResponse {
   id: string;
   text: string;
   angleLabel: string;
@@ -118,13 +118,13 @@ export interface PostDraftResponse {
   todayInput: string | null;
   body: string;
   status: string;
-  selectedHookId: string | null;
+  selectedOptionId: string | null;
   publishedAt: string | null;
   threadsMediaId: string | null;
   permalink: string | null;
   createdAt: string;
   updatedAt: string;
-  hooks: HookOptionResponse[];
+  options: PostDraftOptionResponse[];
   evaluationFeedback?: string[];
 }
 

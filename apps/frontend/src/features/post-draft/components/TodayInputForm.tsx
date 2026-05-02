@@ -46,7 +46,7 @@ export function TodayInputForm({ productId, onCreated }: TodayInputFormProps) {
     const trimmed = values.todayInput?.trim() ?? '';
     if (!trimmed) {
       const proceed = window.confirm(
-        "Without specifics (a number, a name, a moment from today), Data-angle hooks are weaker. Continue without today's context?",
+        "Without specifics (a number, a name, a moment from today), Data-angle options are weaker. Continue without today's context?",
       );
       if (!proceed) return;
     }
@@ -63,7 +63,7 @@ export function TodayInputForm({ productId, onCreated }: TodayInputFormProps) {
           What do you want to share today?
         </h2>
         <p className="text-sm text-text-muted">
-          Optional, but a concrete artifact (number / name / moment) makes hooks
+          Optional, but a concrete artifact (number / name / moment) makes angles
           much sharper.
         </p>
       </div>
@@ -99,9 +99,9 @@ export function TodayInputForm({ productId, onCreated }: TodayInputFormProps) {
         <Button
           type="submit"
           loading={mutation.isPending}
-          loadingText="Generating hooks..."
+          loadingText="Generating angles..."
         >
-          Generate hooks
+          Generate angles
         </Button>
       </div>
     </form>

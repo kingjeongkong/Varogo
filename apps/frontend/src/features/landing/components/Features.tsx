@@ -11,7 +11,7 @@ const features = [
     Icon: Compass,
     title: 'Strategy, not just prompts',
     description:
-      'A full plan — hook angle, campaign goal, content format, cadence. Drafts follow from it.',
+      'A full plan — post angle, campaign goal, content format, cadence. Drafts follow from it.',
   },
   {
     Icon: PenLine,

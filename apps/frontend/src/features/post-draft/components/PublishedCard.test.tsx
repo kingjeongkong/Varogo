@@ -12,27 +12,27 @@ function makeDraft(
     todayInput: 'hit 1000 users',
     body: 'Shipped a feature today that finally worked.',
     status: 'published',
-    selectedHookId: 'hook-2',
+    selectedOptionId: 'option-2',
     publishedAt: null,
     threadsMediaId: null,
     permalink: null,
     createdAt: '2026-04-20T00:00:00.000Z',
     updatedAt: '2026-04-20T00:00:00.000Z',
-    hooks: [
+    options: [
       {
-        id: 'hook-1',
+        id: 'option-1',
         text: 'Data angle body text',
         angleLabel: 'Data',
         selected: false,
       },
       {
-        id: 'hook-2',
+        id: 'option-2',
         text: 'Story angle body text',
         angleLabel: 'Story',
         selected: true,
       },
       {
-        id: 'hook-3',
+        id: 'option-3',
         text: 'Contrarian angle body text',
         angleLabel: 'Contrarian',
         selected: false,
@@ -111,15 +111,15 @@ describe('PublishedCard', () => {
   });
 
   describe('angle label', () => {
-    it('renders the angleLabel of the selected hook when selectedHookId matches', () => {
-      const draft = makeDraft({ selectedHookId: 'hook-2' });
+    it('renders the angleLabel of the selected option when selectedOptionId matches', () => {
+      const draft = makeDraft({ selectedOptionId: 'option-2' });
       render(<PublishedCard draft={draft} />);
 
       expect(screen.getByText('Story')).toBeInTheDocument();
     });
 
-    it('does not render any hook angleLabel as visible text when selectedHookId is null', () => {
-      const draft = makeDraft({ selectedHookId: null });
+    it('does not render any option angleLabel as visible text when selectedOptionId is null', () => {
+      const draft = makeDraft({ selectedOptionId: null });
       render(<PublishedCard draft={draft} />);
 
       expect(screen.queryByText('Story')).not.toBeInTheDocument();

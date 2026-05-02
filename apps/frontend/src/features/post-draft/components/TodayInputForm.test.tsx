@@ -32,18 +32,18 @@ const FIXTURE_DRAFT: PostDraftResponse = {
   todayInput: 'hit 1000 users',
   body: '',
   status: 'draft',
-  selectedHookId: null,
+  selectedOptionId: null,
   publishedAt: null,
   threadsMediaId: null,
   permalink: null,
   createdAt: '2026-04-20T00:00:00.000Z',
   updatedAt: '2026-04-20T00:00:00.000Z',
-  hooks: [
-    { id: 'hook-1', text: 'Story hook', angleLabel: 'Story', selected: false },
-    { id: 'hook-2', text: 'Data hook', angleLabel: 'Data', selected: false },
+  options: [
+    { id: 'option-1', text: 'Story option', angleLabel: 'Story', selected: false },
+    { id: 'option-2', text: 'Data option', angleLabel: 'Data', selected: false },
     {
-      id: 'hook-3',
-      text: 'Contrarian hook',
+      id: 'option-3',
+      text: 'Contrarian option',
       angleLabel: 'Contrarian',
       selected: false,
     },
@@ -72,7 +72,7 @@ describe('TodayInputForm', () => {
       ).toBeInTheDocument();
       expect(screen.getByLabelText(/today's context/i)).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /generate hooks/i }),
+        screen.getByRole('button', { name: /generate angles/i }),
       ).toBeInTheDocument();
     });
 
@@ -111,7 +111,7 @@ describe('TodayInputForm', () => {
         'hit 1000 users',
       );
       await userEvent.click(
-        screen.getByRole('button', { name: /generate hooks/i }),
+        screen.getByRole('button', { name: /generate angles/i }),
       );
 
       expect(confirmSpy).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('TodayInputForm', () => {
         '  hit 1000 users  ',
       );
       await userEvent.click(
-        screen.getByRole('button', { name: /generate hooks/i }),
+        screen.getByRole('button', { name: /generate angles/i }),
       );
 
       expect(mockCreateMutate).toHaveBeenCalledTimes(1);
@@ -143,7 +143,7 @@ describe('TodayInputForm', () => {
         'hit 1000 users',
       );
       await userEvent.click(
-        screen.getByRole('button', { name: /generate hooks/i }),
+        screen.getByRole('button', { name: /generate angles/i }),
       );
 
       const [, options] = mockCreateMutate.mock.calls[0];
@@ -159,7 +159,7 @@ describe('TodayInputForm', () => {
       render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
 
       await userEvent.click(
-        screen.getByRole('button', { name: /generate hooks/i }),
+        screen.getByRole('button', { name: /generate angles/i }),
       );
 
       expect(confirmSpy).toHaveBeenCalledTimes(1);
@@ -173,7 +173,7 @@ describe('TodayInputForm', () => {
         '   ',
       );
       await userEvent.click(
-        screen.getByRole('button', { name: /generate hooks/i }),
+        screen.getByRole('button', { name: /generate angles/i }),
       );
 
       expect(confirmSpy).toHaveBeenCalledTimes(1);
@@ -184,7 +184,7 @@ describe('TodayInputForm', () => {
       render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
 
       await userEvent.click(
-        screen.getByRole('button', { name: /generate hooks/i }),
+        screen.getByRole('button', { name: /generate angles/i }),
       );
 
       expect(mockCreateMutate).not.toHaveBeenCalled();
@@ -195,7 +195,7 @@ describe('TodayInputForm', () => {
       render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
 
       await userEvent.click(
-        screen.getByRole('button', { name: /generate hooks/i }),
+        screen.getByRole('button', { name: /generate angles/i }),
       );
 
       expect(mockCreateMutate).toHaveBeenCalledTimes(1);
@@ -212,7 +212,7 @@ describe('TodayInputForm', () => {
       render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
 
       const button = screen.getByRole('button', {
-        name: /generating hooks/i,
+        name: /generating angles/i,
       });
       expect(button).toBeDisabled();
     });
@@ -238,14 +238,14 @@ describe('TodayInputForm', () => {
 
   describe('api error', () => {
     it('renders an alert with the mutation error message', () => {
-      const apiError = Object.assign(new Error('Hook generation failed'), {
+      const apiError = Object.assign(new Error('Option generation failed'), {
         status: 500,
       });
       mockUseCreatePostDraft({ isError: true, error: apiError });
       render(<TodayInputForm productId="prod-1" onCreated={onCreated} />);
 
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'Hook generation failed',
+        'Option generation failed',
       );
     });
 
@@ -256,7 +256,7 @@ describe('TodayInputForm', () => {
     });
 
     it('suppresses the alert when the error is a user-initiated cancel (status 0)', () => {
-      const cancelError = Object.assign(new Error('Hook generation cancelled'), {
+      const cancelError = Object.assign(new Error('Option generation cancelled'), {
         status: 0,
       });
       mockUseCreatePostDraft({ isError: true, error: cancelError });
