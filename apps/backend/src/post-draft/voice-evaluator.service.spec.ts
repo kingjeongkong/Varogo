@@ -5,7 +5,7 @@ import type {
   ReferenceSample,
   StyleFingerprint,
 } from '../voice-profile/types/style-fingerprint.type';
-import type { GeneratedHook } from './types/hook-generation.type';
+import type { GeneratedPostDraftOption } from './types/post-draft-option-generation.type';
 import type { VoiceEvaluationInput } from './types/voice-evaluation.type';
 import { VoiceEvaluatorService } from './voice-evaluator.service';
 
@@ -46,7 +46,7 @@ const SAMPLES: ReferenceSample[] = [
   { text: 'Front-load your decision-making.', date: '2026-04-02' },
 ];
 
-const HOOKS: GeneratedHook[] = [
+const OPTIONS: GeneratedPostDraftOption[] = [
   {
     text: 'You need to ship daily. Even when nobody reads it.',
     angleLabel: 'Imperative',
@@ -63,7 +63,7 @@ const HOOKS: GeneratedHook[] = [
 
 function makeInput(): VoiceEvaluationInput {
   return {
-    hooks: HOOKS,
+    options: OPTIONS,
     styleFingerprint: FINGERPRINT,
     referenceSamples: SAMPLES,
     todayInput: null,
@@ -90,13 +90,13 @@ describe('VoiceEvaluatorService', () => {
   });
 
   describe('evaluate', () => {
-    it('returns allMatched=true when every hook is reported matched', async () => {
+    it('returns allMatched=true when every option is reported matched', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({
-          perHookFeedback: [
-            { hookIndex: 0, matched: true, mismatches: [] },
-            { hookIndex: 1, matched: true, mismatches: [] },
-            { hookIndex: 2, matched: true, mismatches: [] },
+          perOptionFeedback: [
+            { optionIndex: 0, matched: true, mismatches: [] },
+            { optionIndex: 1, matched: true, mismatches: [] },
+            { optionIndex: 2, matched: true, mismatches: [] },
           ],
         }),
       });
@@ -104,18 +104,18 @@ describe('VoiceEvaluatorService', () => {
       const result = await service.evaluate(makeInput());
 
       expect(result.allMatched).toBe(true);
-      expect(result.perHookFeedback).toHaveLength(3);
-      expect(result.perHookFeedback[0].mismatches).toEqual([]);
+      expect(result.perOptionFeedback).toHaveLength(3);
+      expect(result.perOptionFeedback[0].mismatches).toEqual([]);
     });
 
-    it('returns allMatched=false and surfaces mismatches when at least one hook fails', async () => {
+    it('returns allMatched=false and surfaces mismatches when at least one option fails', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({
-          perHookFeedback: [
-            { hookIndex: 0, matched: true, mismatches: [] },
-            { hookIndex: 1, matched: true, mismatches: [] },
+          perOptionFeedback: [
+            { optionIndex: 0, matched: true, mismatches: [] },
+            { optionIndex: 1, matched: true, mismatches: [] },
             {
-              hookIndex: 2,
+              optionIndex: 2,
               matched: false,
               mismatches: ['uses exclamation mark; reference posts have zero'],
             },
@@ -126,19 +126,23 @@ describe('VoiceEvaluatorService', () => {
       const result = await service.evaluate(makeInput());
 
       expect(result.allMatched).toBe(false);
-      expect(result.perHookFeedback[2].matched).toBe(false);
-      expect(result.perHookFeedback[2].mismatches).toEqual([
+      expect(result.perOptionFeedback[2].matched).toBe(false);
+      expect(result.perOptionFeedback[2].mismatches).toEqual([
         'uses exclamation mark; reference posts have zero',
       ]);
     });
 
-    it('returns allMatched=false when every hook is mismatched', async () => {
+    it('returns allMatched=false when every option is mismatched', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({
-          perHookFeedback: [
-            { hookIndex: 0, matched: false, mismatches: ['too long'] },
-            { hookIndex: 1, matched: false, mismatches: ['cliche opener'] },
-            { hookIndex: 2, matched: false, mismatches: ['exclamation mark'] },
+          perOptionFeedback: [
+            { optionIndex: 0, matched: false, mismatches: ['too long'] },
+            { optionIndex: 1, matched: false, mismatches: ['cliche opener'] },
+            {
+              optionIndex: 2,
+              matched: false,
+              mismatches: ['exclamation mark'],
+            },
           ],
         }),
       });
@@ -146,16 +150,16 @@ describe('VoiceEvaluatorService', () => {
       const result = await service.evaluate(makeInput());
 
       expect(result.allMatched).toBe(false);
-      expect(result.perHookFeedback.every((e) => !e.matched)).toBe(true);
+      expect(result.perOptionFeedback.every((e) => !e.matched)).toBe(true);
     });
 
     it('passes the response schema and prompt with reference samples to Gemini', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({
-          perHookFeedback: [
-            { hookIndex: 0, matched: true, mismatches: [] },
-            { hookIndex: 1, matched: true, mismatches: [] },
-            { hookIndex: 2, matched: true, mismatches: [] },
+          perOptionFeedback: [
+            { optionIndex: 0, matched: true, mismatches: [] },
+            { optionIndex: 1, matched: true, mismatches: [] },
+            { optionIndex: 2, matched: true, mismatches: [] },
           ],
         }),
       });
@@ -167,17 +171,17 @@ describe('VoiceEvaluatorService', () => {
       expect(call.config.responseMimeType).toBe('application/json');
       expect(call.config.responseSchema).toBeDefined();
       expect(call.contents).toContain('You need to read more');
-      expect(call.contents).toContain('Hook 1');
-      expect(call.contents).toContain('Hook 3');
+      expect(call.contents).toContain('Option 1');
+      expect(call.contents).toContain('Option 3');
     });
 
     it('includes todayInput context in the prompt when provided', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({
-          perHookFeedback: [
-            { hookIndex: 0, matched: true, mismatches: [] },
-            { hookIndex: 1, matched: true, mismatches: [] },
-            { hookIndex: 2, matched: true, mismatches: [] },
+          perOptionFeedback: [
+            { optionIndex: 0, matched: true, mismatches: [] },
+            { optionIndex: 1, matched: true, mismatches: [] },
+            { optionIndex: 2, matched: true, mismatches: [] },
           ],
         }),
       });
@@ -207,48 +211,52 @@ describe('VoiceEvaluatorService', () => {
       );
     });
 
-    it('throws with a wrong-count message when feedback length does not match input hook count', async () => {
+    it('throws with a wrong-count message when feedback length does not match input option count', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({
-          perHookFeedback: [
-            { hookIndex: 0, matched: true, mismatches: [] },
-            { hookIndex: 1, matched: true, mismatches: [] },
+          perOptionFeedback: [
+            { optionIndex: 0, matched: true, mismatches: [] },
+            { optionIndex: 1, matched: true, mismatches: [] },
             // missing 3rd entry
           ],
         }),
       });
 
       await expect(service.evaluate(makeInput())).rejects.toThrow(
-        /returned 2 hook entries, expected 3/,
+        /returned 2 option entries, expected 3/,
       );
     });
 
-    it('throws with a missing-array message when perHookFeedback field is absent', async () => {
+    it('throws with a missing-array message when perOptionFeedback field is absent', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({ somethingElse: true }),
       });
 
       await expect(service.evaluate(makeInput())).rejects.toThrow(
-        /missing perHookFeedback array/,
+        /missing perOptionFeedback array/,
       );
     });
 
     it('coerces missing/invalid optional fields safely while preserving explicit values', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({
-          perHookFeedback: [
-            { hookIndex: 0, matched: true }, // mismatches missing
-            { matched: false, mismatches: ['no index field'] }, // hookIndex missing
-            { hookIndex: 2, matched: false, mismatches: [42, 'valid reason'] }, // mixed types
+          perOptionFeedback: [
+            { optionIndex: 0, matched: true }, // mismatches missing
+            { matched: false, mismatches: ['no index field'] }, // optionIndex missing
+            {
+              optionIndex: 2,
+              matched: false,
+              mismatches: [42, 'valid reason'],
+            }, // mixed types
           ],
         }),
       });
 
       const result = await service.evaluate(makeInput());
 
-      expect(result.perHookFeedback[0].mismatches).toEqual([]);
-      expect(result.perHookFeedback[1].hookIndex).toBe(1);
-      expect(result.perHookFeedback[2].mismatches).toEqual(['valid reason']);
+      expect(result.perOptionFeedback[0].mismatches).toEqual([]);
+      expect(result.perOptionFeedback[1].optionIndex).toBe(1);
+      expect(result.perOptionFeedback[2].mismatches).toEqual(['valid reason']);
     });
   });
 });

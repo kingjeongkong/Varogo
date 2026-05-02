@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ThreadsService } from '../threads/threads.service';
 import { ListPostDraftsQueryDto } from './dto/list-post-drafts.query.dto';
 import { PublishPostDraftDto } from './dto/publish-post-draft.dto';
-import { HookGenerationService } from './hook-generation.service';
+import { PostDraftOptionGenerationService } from './post-draft-option-generation.service';
 import { PostDraftService } from './post-draft.service';
 
 const mockTx = {
@@ -16,7 +16,7 @@ const mockTx = {
     create: jest.fn(),
     findUnique: jest.fn(),
   },
-  hookOption: {
+  postDraftOption: {
     createMany: jest.fn(),
   },
 };
@@ -45,7 +45,7 @@ const mockPrisma = {
   ),
 };
 
-const mockHookGenerationService = {
+const mockPostDraftOptionGenerationService = {
   generate: jest.fn(),
 };
 
@@ -123,45 +123,45 @@ const mockVoiceProfile = {
   updatedAt: new Date('2026-04-18T09:00:00Z'),
 };
 
-const generatedHooks = [
-  { text: 'hook one text', angleLabel: 'Story' },
-  { text: 'hook two text', angleLabel: 'Data' },
-  { text: 'hook three text', angleLabel: 'Contrarian' },
+const generatedOptions = [
+  { text: 'option one text', angleLabel: 'Story' },
+  { text: 'option two text', angleLabel: 'Data' },
+  { text: 'option three text', angleLabel: 'Contrarian' },
 ];
 
 const draftId = '22222222-2222-2222-2222-222222222222';
-const hookOneId = '33333333-3333-3333-3333-333333333333';
-const hookTwoId = '44444444-4444-4444-4444-444444444444';
-const hookThreeId = '55555555-5555-5555-5555-555555555555';
+const optionOneId = '33333333-3333-3333-3333-333333333333';
+const optionTwoId = '44444444-4444-4444-4444-444444444444';
+const optionThreeId = '55555555-5555-5555-5555-555555555555';
 
-const mockDraftWithHooks = {
+const mockDraftWithOptions = {
   id: draftId,
   productId,
-  todayInput: 'Shipped the hook generator today.',
+  todayInput: 'Shipped the angle generator today.',
   body: '',
   status: 'draft',
-  selectedHookId: null,
+  selectedOptionId: null,
   createdAt: new Date('2026-04-19T11:00:00Z'),
   updatedAt: new Date('2026-04-19T11:00:00Z'),
-  hookOptions: [
+  options: [
     {
-      id: hookOneId,
+      id: optionOneId,
       postDraftId: draftId,
-      text: 'hook one text',
+      text: 'option one text',
       angleLabel: 'Story',
       createdAt: new Date('2026-04-19T11:00:00Z'),
     },
     {
-      id: hookTwoId,
+      id: optionTwoId,
       postDraftId: draftId,
-      text: 'hook two text',
+      text: 'option two text',
       angleLabel: 'Data',
       createdAt: new Date('2026-04-19T11:00:00Z'),
     },
     {
-      id: hookThreeId,
+      id: optionThreeId,
       postDraftId: draftId,
-      text: 'hook three text',
+      text: 'option three text',
       angleLabel: 'Contrarian',
       createdAt: new Date('2026-04-19T11:00:00Z'),
     },
@@ -169,14 +169,14 @@ const mockDraftWithHooks = {
 };
 
 const bodyDraftId = 'draft-1';
-const selectedHookId = 'hook-1';
+const selectedOptionId = 'option-1';
 
-// Fixture for publish tests — findOneByUser uses a simpler include (hookOptions only),
+// Fixture for publish tests — findOneByUser uses a simpler include (options only),
 // so no nested product.analysis is loaded.
-const publishHookShort = {
-  id: selectedHookId,
+const publishOptionShort = {
+  id: selectedOptionId,
   postDraftId: bodyDraftId,
-  text: 'Short hook',
+  text: 'Short option',
   angleLabel: 'X',
   createdAt: new Date('2026-04-19T11:00:00Z'),
 };
@@ -187,13 +187,13 @@ const mockDraftForPublish = {
   todayInput: 'Shipped today',
   body: '',
   status: 'draft',
-  selectedHookId,
+  selectedOptionId,
   createdAt: new Date('2026-04-19T11:00:00Z'),
   updatedAt: new Date('2026-04-19T11:00:00Z'),
   publishedAt: null,
   threadsMediaId: null,
   permalink: null,
-  hookOptions: [publishHookShort],
+  options: [publishOptionShort],
 };
 
 describe('PostDraftService', () => {
@@ -205,8 +205,8 @@ describe('PostDraftService', () => {
         PostDraftService,
         { provide: PrismaService, useValue: mockPrisma },
         {
-          provide: HookGenerationService,
-          useValue: mockHookGenerationService,
+          provide: PostDraftOptionGenerationService,
+          useValue: mockPostDraftOptionGenerationService,
         },
         { provide: ThreadsService, useValue: mockThreadsService },
       ],
@@ -228,14 +228,14 @@ describe('PostDraftService', () => {
   describe('create', () => {
     const dto = {
       productId,
-      todayInput: 'Shipped the hook generator today.',
+      todayInput: 'Shipped the angle generator today.',
     };
 
-    it('generates hooks and persists draft with hook options (happy path)', async () => {
+    it('generates options and persists draft with post-draft options (happy path)', async () => {
       mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
       mockPrisma.voiceProfile.findUnique.mockResolvedValue(mockVoiceProfile);
-      mockHookGenerationService.generate.mockResolvedValue({
-        hooks: generatedHooks,
+      mockPostDraftOptionGenerationService.generate.mockResolvedValue({
+        options: generatedOptions,
       });
 
       const createdDraft = {
@@ -248,24 +248,28 @@ describe('PostDraftService', () => {
         updatedAt: new Date(),
       };
       mockTx.postDraft.create.mockResolvedValue(createdDraft);
-      mockTx.hookOption.createMany.mockResolvedValue({ count: 3 });
+      mockTx.postDraftOption.createMany.mockResolvedValue({ count: 3 });
 
-      const draftWithHooks = {
+      const draftWithOptions = {
         ...createdDraft,
-        hookOptions: generatedHooks.map((h, i) => ({
-          id: `hook-${i}`,
+        options: generatedOptions.map((h, i) => ({
+          id: `option-${i}`,
           postDraftId: createdDraft.id,
           text: h.text,
           angleLabel: h.angleLabel,
           createdAt: new Date(),
         })),
       };
-      mockTx.postDraft.findUnique.mockResolvedValue(draftWithHooks);
+      mockTx.postDraft.findUnique.mockResolvedValue(draftWithOptions);
 
       const result = await service.create(userId, dto);
 
-      expect(mockHookGenerationService.generate).toHaveBeenCalledTimes(1);
-      expect(mockHookGenerationService.generate).toHaveBeenCalledWith({
+      expect(
+        mockPostDraftOptionGenerationService.generate,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        mockPostDraftOptionGenerationService.generate,
+      ).toHaveBeenCalledWith({
         analysis: {
           category: analysisFixture.category,
           jobToBeDone: analysisFixture.jobToBeDone,
@@ -293,9 +297,9 @@ describe('PostDraftService', () => {
         },
       });
 
-      expect(mockTx.hookOption.createMany).toHaveBeenCalledTimes(1);
-      expect(mockTx.hookOption.createMany).toHaveBeenCalledWith({
-        data: generatedHooks.map((h) => ({
+      expect(mockTx.postDraftOption.createMany).toHaveBeenCalledTimes(1);
+      expect(mockTx.postDraftOption.createMany).toHaveBeenCalledWith({
+        data: generatedOptions.map((h) => ({
           postDraftId: createdDraft.id,
           text: h.text,
           angleLabel: h.angleLabel,
@@ -305,21 +309,21 @@ describe('PostDraftService', () => {
       expect(mockTx.postDraft.findUnique).toHaveBeenCalledTimes(1);
       expect(mockTx.postDraft.findUnique).toHaveBeenCalledWith({
         where: { id: createdDraft.id },
-        include: { hookOptions: true },
+        include: { options: true },
       });
 
       expect(result).toEqual({
-        draft: draftWithHooks,
+        draft: draftWithOptions,
         evaluationFeedback: undefined,
       });
     });
 
-    it('forwards evaluationFeedback from the hook generator to the caller', async () => {
+    it('forwards evaluationFeedback from the option generator to the caller', async () => {
       mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
       mockPrisma.voiceProfile.findUnique.mockResolvedValue(mockVoiceProfile);
-      mockHookGenerationService.generate.mockResolvedValue({
-        hooks: generatedHooks,
-        evaluationFeedback: ['hook2: cliche opener'],
+      mockPostDraftOptionGenerationService.generate.mockResolvedValue({
+        options: generatedOptions,
+        evaluationFeedback: ['option2: cliche opener'],
       });
 
       const createdDraft = {
@@ -332,27 +336,27 @@ describe('PostDraftService', () => {
         updatedAt: new Date(),
       };
       mockTx.postDraft.create.mockResolvedValue(createdDraft);
-      mockTx.hookOption.createMany.mockResolvedValue({ count: 3 });
-      const draftWithHooks = { ...createdDraft, hookOptions: [] };
-      mockTx.postDraft.findUnique.mockResolvedValue(draftWithHooks);
+      mockTx.postDraftOption.createMany.mockResolvedValue({ count: 3 });
+      const draftWithOptions = { ...createdDraft, options: [] };
+      mockTx.postDraft.findUnique.mockResolvedValue(draftWithOptions);
 
       const result = await service.create(userId, dto);
 
-      expect(result.evaluationFeedback).toEqual(['hook2: cliche opener']);
-      expect(result.draft).toEqual(draftWithHooks);
+      expect(result.evaluationFeedback).toEqual(['option2: cliche opener']);
+      expect(result.draft).toEqual(draftWithOptions);
     });
 
     it('filters product by id AND userId for ownership check', async () => {
       mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
       mockPrisma.voiceProfile.findUnique.mockResolvedValue(mockVoiceProfile);
-      mockHookGenerationService.generate.mockResolvedValue({
-        hooks: generatedHooks,
+      mockPostDraftOptionGenerationService.generate.mockResolvedValue({
+        options: generatedOptions,
       });
       mockTx.postDraft.create.mockResolvedValue({ id: 'draft-1' });
-      mockTx.hookOption.createMany.mockResolvedValue({ count: 3 });
+      mockTx.postDraftOption.createMany.mockResolvedValue({ count: 3 });
       mockTx.postDraft.findUnique.mockResolvedValue({
         id: 'draft-1',
-        hookOptions: [],
+        options: [],
       });
 
       await service.create(userId, dto);
@@ -371,7 +375,9 @@ describe('PostDraftService', () => {
       );
 
       expect(mockPrisma.voiceProfile.findUnique).not.toHaveBeenCalled();
-      expect(mockHookGenerationService.generate).not.toHaveBeenCalled();
+      expect(
+        mockPostDraftOptionGenerationService.generate,
+      ).not.toHaveBeenCalled();
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
@@ -386,10 +392,12 @@ describe('PostDraftService', () => {
       );
 
       expect(mockPrisma.voiceProfile.findUnique).not.toHaveBeenCalled();
-      expect(mockHookGenerationService.generate).not.toHaveBeenCalled();
+      expect(
+        mockPostDraftOptionGenerationService.generate,
+      ).not.toHaveBeenCalled();
     });
 
-    it('throws BadRequestException when voiceProfile is missing and does not call hook generator', async () => {
+    it('throws BadRequestException when voiceProfile is missing and does not call option generator', async () => {
       mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
       mockPrisma.voiceProfile.findUnique.mockResolvedValue(null);
 
@@ -397,28 +405,30 @@ describe('PostDraftService', () => {
         new BadRequestException('Import your Threads voice first'),
       );
 
-      expect(mockHookGenerationService.generate).not.toHaveBeenCalled();
+      expect(
+        mockPostDraftOptionGenerationService.generate,
+      ).not.toHaveBeenCalled();
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
-    it('passes null todayInput to hook generator when dto.todayInput is omitted', async () => {
+    it('passes null todayInput to option generator when dto.todayInput is omitted', async () => {
       mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
       mockPrisma.voiceProfile.findUnique.mockResolvedValue(mockVoiceProfile);
-      mockHookGenerationService.generate.mockResolvedValue({
-        hooks: generatedHooks,
+      mockPostDraftOptionGenerationService.generate.mockResolvedValue({
+        options: generatedOptions,
       });
       mockTx.postDraft.create.mockResolvedValue({ id: 'draft-1' });
-      mockTx.hookOption.createMany.mockResolvedValue({ count: 3 });
+      mockTx.postDraftOption.createMany.mockResolvedValue({ count: 3 });
       mockTx.postDraft.findUnique.mockResolvedValue({
         id: 'draft-1',
-        hookOptions: [],
+        options: [],
       });
 
       await service.create(userId, { productId });
 
-      expect(mockHookGenerationService.generate).toHaveBeenCalledWith(
-        expect.objectContaining({ todayInput: null }),
-      );
+      expect(
+        mockPostDraftOptionGenerationService.generate,
+      ).toHaveBeenCalledWith(expect.objectContaining({ todayInput: null }));
       expect(mockTx.postDraft.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ todayInput: null }) as unknown,
       });
@@ -427,11 +437,11 @@ describe('PostDraftService', () => {
     it('throws NotFoundException when draft cannot be re-fetched after creation', async () => {
       mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
       mockPrisma.voiceProfile.findUnique.mockResolvedValue(mockVoiceProfile);
-      mockHookGenerationService.generate.mockResolvedValue({
-        hooks: generatedHooks,
+      mockPostDraftOptionGenerationService.generate.mockResolvedValue({
+        options: generatedOptions,
       });
       mockTx.postDraft.create.mockResolvedValue({ id: 'draft-1' });
-      mockTx.hookOption.createMany.mockResolvedValue({ count: 3 });
+      mockTx.postDraftOption.createMany.mockResolvedValue({ count: 3 });
       mockTx.postDraft.findUnique.mockResolvedValue(null);
 
       await expect(service.create(userId, dto)).rejects.toThrow(
@@ -441,18 +451,18 @@ describe('PostDraftService', () => {
   });
 
   describe('findOneByUser', () => {
-    it('returns draft with hookOptions when found for the user', async () => {
-      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+    it('returns draft with options when found for the user', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithOptions);
 
       const result = await service.findOneByUser(draftId, userId);
 
       expect(mockPrisma.postDraft.findFirst).toHaveBeenCalledTimes(1);
       expect(mockPrisma.postDraft.findFirst).toHaveBeenCalledWith({
         where: { id: draftId, product: { userId } },
-        include: { hookOptions: true },
+        include: { options: true },
       });
-      expect(result).toEqual(mockDraftWithHooks);
-      expect(result.hookOptions).toHaveLength(3);
+      expect(result).toEqual(mockDraftWithOptions);
+      expect(result.options).toHaveLength(3);
     });
 
     it('throws NotFoundException when draft does not exist or belongs to another user', async () => {
@@ -464,13 +474,13 @@ describe('PostDraftService', () => {
 
       expect(mockPrisma.postDraft.findFirst).toHaveBeenCalledWith({
         where: { id: draftId, product: { userId } },
-        include: { hookOptions: true },
+        include: { options: true },
       });
     });
   });
 
   describe('update', () => {
-    const otherUserHookId = '66666666-6666-6666-6666-666666666666';
+    const otherUserOptionId = '66666666-6666-6666-6666-666666666666';
 
     it('throws NotFoundException when draft does not exist or belongs to another user', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue(null);
@@ -484,12 +494,12 @@ describe('PostDraftService', () => {
 
     it('throws ConflictException when the draft is already published — published drafts must be immutable', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue({
-        ...mockDraftWithHooks,
+        ...mockDraftWithOptions,
         status: 'published',
       });
 
       await expect(
-        service.update(draftId, userId, { selectedHookId: hookTwoId }),
+        service.update(draftId, userId, { selectedOptionId: optionTwoId }),
       ).rejects.toThrow(
         new ConflictException('Cannot modify a published draft'),
       );
@@ -497,66 +507,68 @@ describe('PostDraftService', () => {
       expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
     });
 
-    it('throws BadRequestException when selectedHookId is not among draft hookOptions', async () => {
-      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+    it('throws BadRequestException when selectedOptionId is not among draft options', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithOptions);
 
       await expect(
-        service.update(draftId, userId, { selectedHookId: otherUserHookId }),
-      ).rejects.toThrow(new BadRequestException('Invalid hook id'));
+        service.update(draftId, userId, {
+          selectedOptionId: otherUserOptionId,
+        }),
+      ).rejects.toThrow(new BadRequestException('Invalid option id'));
 
       expect(mockPrisma.postDraft.update).not.toHaveBeenCalled();
     });
 
-    it('copies selected hook text into body when body is empty', async () => {
-      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+    it('copies selected option text into body when body is empty', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithOptions);
       const updatedDraft = {
-        ...mockDraftWithHooks,
-        selectedHookId: hookTwoId,
-        body: 'hook two text',
+        ...mockDraftWithOptions,
+        selectedOptionId: optionTwoId,
+        body: 'option two text',
       };
       mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
 
       const result = await service.update(draftId, userId, {
-        selectedHookId: hookTwoId,
+        selectedOptionId: optionTwoId,
       });
 
       expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
       expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
         where: { id: draftId },
-        data: { selectedHookId: hookTwoId, body: 'hook two text' },
-        include: { hookOptions: true },
+        data: { selectedOptionId: optionTwoId, body: 'option two text' },
+        include: { options: true },
       });
       expect(result).toEqual(updatedDraft);
-      expect(result.hookOptions).toHaveLength(3);
+      expect(result.options).toHaveLength(3);
     });
 
     it('does not overwrite body when body is already non-empty', async () => {
       const draftWithBody = {
-        ...mockDraftWithHooks,
+        ...mockDraftWithOptions,
         body: 'User-edited body text',
       };
       mockPrisma.postDraft.findFirst.mockResolvedValue(draftWithBody);
       const updatedDraft = {
         ...draftWithBody,
-        selectedHookId: hookTwoId,
+        selectedOptionId: optionTwoId,
       };
       mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
 
       await service.update(draftId, userId, {
-        selectedHookId: hookTwoId,
+        selectedOptionId: optionTwoId,
       });
 
       expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
         where: { id: draftId },
-        data: { selectedHookId: hookTwoId },
-        include: { hookOptions: true },
+        data: { selectedOptionId: optionTwoId },
+        include: { options: true },
       });
     });
 
     it('updates todayInput only when dto.todayInput is provided', async () => {
-      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithOptions);
       const updatedDraft = {
-        ...mockDraftWithHooks,
+        ...mockDraftWithOptions,
         todayInput: 'Updated today input',
       };
       mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
@@ -569,24 +581,24 @@ describe('PostDraftService', () => {
       expect(mockPrisma.postDraft.update).toHaveBeenCalledWith({
         where: { id: draftId },
         data: { todayInput: 'Updated today input' },
-        include: { hookOptions: true },
+        include: { options: true },
       });
       expect(result).toEqual(updatedDraft);
-      expect(result.hookOptions).toHaveLength(3);
+      expect(result.options).toHaveLength(3);
     });
 
-    it('updates both todayInput and selectedHookId together when both are provided', async () => {
-      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithHooks);
+    it('updates both todayInput and selectedOptionId together when both are provided', async () => {
+      mockPrisma.postDraft.findFirst.mockResolvedValue(mockDraftWithOptions);
       const updatedDraft = {
-        ...mockDraftWithHooks,
+        ...mockDraftWithOptions,
         todayInput: 'Both fields updated',
-        selectedHookId: hookThreeId,
+        selectedOptionId: optionThreeId,
       };
       mockPrisma.postDraft.update.mockResolvedValue(updatedDraft);
 
       const result = await service.update(draftId, userId, {
         todayInput: 'Both fields updated',
-        selectedHookId: hookThreeId,
+        selectedOptionId: optionThreeId,
       });
 
       expect(mockPrisma.postDraft.update).toHaveBeenCalledTimes(1);
@@ -594,13 +606,13 @@ describe('PostDraftService', () => {
         where: { id: draftId },
         data: {
           todayInput: 'Both fields updated',
-          selectedHookId: hookThreeId,
-          body: 'hook three text',
+          selectedOptionId: optionThreeId,
+          body: 'option three text',
         },
-        include: { hookOptions: true },
+        include: { options: true },
       });
       expect(result).toEqual(updatedDraft);
-      expect(result.hookOptions).toHaveLength(3);
+      expect(result.options).toHaveLength(3);
     });
   });
 
@@ -652,7 +664,7 @@ describe('PostDraftService', () => {
           threadsMediaId: 'tm-1',
           permalink: 'https://threads.net/p/1',
         },
-        include: { hookOptions: true },
+        include: { options: true },
       });
 
       expect(result).toEqual(updatedDraft);
@@ -686,7 +698,7 @@ describe('PostDraftService', () => {
           threadsMediaId: 'tm-1',
           permalink: null,
         },
-        include: { hookOptions: true },
+        include: { options: true },
       });
     });
 
@@ -729,15 +741,15 @@ describe('PostDraftService', () => {
       ).toBe(true);
     });
 
-    it('throws BadRequestException when selectedHookId is null and does not lock or call Threads', async () => {
+    it('throws BadRequestException when selectedOptionId is null and does not lock or call Threads', async () => {
       mockPrisma.postDraft.findFirst.mockResolvedValue({
         ...mockDraftForPublish,
-        selectedHookId: null,
+        selectedOptionId: null,
       });
 
       await expect(
         service.publish(bodyDraftId, userId, publishDto),
-      ).rejects.toThrow(new BadRequestException('Select a hook first'));
+      ).rejects.toThrow(new BadRequestException('Select an option first'));
 
       expect(mockPrisma.postDraft.updateMany).not.toHaveBeenCalled();
       expect(mockThreadsService.publishToThreads).not.toHaveBeenCalled();
@@ -817,14 +829,14 @@ describe('PostDraftService', () => {
       todayInput: null,
       body: '',
       status,
-      selectedHookId: null,
+      selectedOptionId: null,
       publishedAt:
         status === 'published' ? new Date('2026-04-20T10:00:00Z') : null,
       threadsMediaId: null,
       permalink: null,
       createdAt: new Date('2026-04-19T11:00:00Z'),
       updatedAt: new Date('2026-04-20T09:00:00Z'),
-      hookOptions: [],
+      options: [],
     });
 
     it('returns empty items when ownership does not match — asserts nested product.userId in where clause', async () => {
@@ -949,14 +961,14 @@ describe('PostDraftService', () => {
       expect(result.nextOffset).toBeNull();
     });
 
-    it('findMany is called with include: { hookOptions: true }', async () => {
+    it('findMany is called with include: { options: true }', async () => {
       mockPrisma.postDraft.findMany.mockResolvedValue([]);
       mockPrisma.postDraft.count.mockResolvedValue(0);
 
       await service.list(userId, makeQuery());
 
       expect(mockPrisma.postDraft.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ include: { hookOptions: true } }),
+        expect.objectContaining({ include: { options: true } }),
       );
     });
   });

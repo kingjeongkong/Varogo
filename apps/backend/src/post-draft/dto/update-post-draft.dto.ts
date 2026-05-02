@@ -8,5 +8,5 @@ export class UpdatePostDraftDto {
 
   @IsOptional()
   @IsUUID()
-  selectedHookId?: string;
+  selectedOptionId?: string;
 }
