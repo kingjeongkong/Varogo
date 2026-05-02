@@ -2,6 +2,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
@@ -14,6 +15,7 @@ import {
   TEST_USER,
 } from '../test/db-helpers';
 import { AuthModule } from './auth.module';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 describe('Auth (integration)', () => {
   let app: INestApplication;
@@ -25,6 +27,7 @@ describe('Auth (integration)', () => {
         PrismaModule,
         AuthModule,
       ],
+      providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
     }).compile();
 
     app = module.createNestApplication();
