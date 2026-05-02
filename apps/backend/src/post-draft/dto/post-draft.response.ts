@@ -1,4 +1,4 @@
-export interface HookOptionResponse {
+export interface PostDraftOptionResponse {
   id: string;
   text: string;
   angleLabel: string;
@@ -11,13 +11,13 @@ export interface PostDraftResponse {
   todayInput: string | null;
   body: string;
   status: string;
-  selectedHookId: string | null;
+  selectedOptionId: string | null;
   publishedAt: string | null;
   threadsMediaId: string | null;
   permalink: string | null;
   createdAt: string;
   updatedAt: string;
-  hooks: HookOptionResponse[];
+  options: PostDraftOptionResponse[];
   evaluationFeedback?: string[];
 }
 
@@ -28,13 +28,13 @@ export function toPostDraftResponse(
     todayInput: string | null;
     body: string;
     status: string;
-    selectedHookId: string | null;
+    selectedOptionId: string | null;
     publishedAt: Date | null;
     threadsMediaId: string | null;
     permalink: string | null;
     createdAt: Date;
     updatedAt: Date;
-    hookOptions: Array<{
+    options: Array<{
       id: string;
       text: string;
       angleLabel: string;
@@ -48,17 +48,17 @@ export function toPostDraftResponse(
     todayInput: draft.todayInput,
     body: draft.body,
     status: draft.status,
-    selectedHookId: draft.selectedHookId,
+    selectedOptionId: draft.selectedOptionId,
     publishedAt: draft.publishedAt ? draft.publishedAt.toISOString() : null,
     threadsMediaId: draft.threadsMediaId,
     permalink: draft.permalink,
     createdAt: draft.createdAt.toISOString(),
     updatedAt: draft.updatedAt.toISOString(),
-    hooks: draft.hookOptions.map((h) => ({
-      id: h.id,
-      text: h.text,
-      angleLabel: h.angleLabel,
-      selected: h.id === draft.selectedHookId,
+    options: draft.options.map((o) => ({
+      id: o.id,
+      text: o.text,
+      angleLabel: o.angleLabel,
+      selected: o.id === draft.selectedOptionId,
     })),
     ...(extras?.evaluationFeedback && extras.evaluationFeedback.length > 0
       ? { evaluationFeedback: extras.evaluationFeedback }

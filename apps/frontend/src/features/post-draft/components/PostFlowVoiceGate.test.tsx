@@ -246,7 +246,7 @@ describe('PostFlowVoiceGate', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          /one-time step\. we read your recent threads posts so the hooks we suggest sound like you\./i,
+          /one-time step\. we read your recent threads posts so the angles we suggest sound like you\./i,
         ),
       ).toBeInTheDocument();
     });

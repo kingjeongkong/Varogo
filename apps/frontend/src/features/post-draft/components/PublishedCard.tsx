@@ -7,7 +7,7 @@ interface PublishedCardProps {
 
 export function PublishedCard({ draft }: PublishedCardProps) {
   const angleLabel =
-    draft.hooks.find((h) => h.id === draft.selectedHookId)?.angleLabel ?? '';
+    draft.options.find((o) => o.id === draft.selectedOptionId)?.angleLabel ?? '';
 
   return (
     <article className="glass-card p-5 space-y-3">

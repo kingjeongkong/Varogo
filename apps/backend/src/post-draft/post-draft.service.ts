@@ -20,7 +20,7 @@ import {
   toPostDraftResponse,
   type PostDraftResponse,
 } from './dto/post-draft.response';
-import { HookGenerationService } from './hook-generation.service';
+import { PostDraftOptionGenerationService } from './post-draft-option-generation.service';
 
 @Injectable()
 export class PostDraftService {
@@ -28,7 +28,7 @@ export class PostDraftService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly hookGenerationService: HookGenerationService,
+    private readonly optionGenerationService: PostDraftOptionGenerationService,
     private readonly threadsService: ThreadsService,
   ) {}
 
@@ -60,7 +60,7 @@ export class PostDraftService {
         orderBy,
         take: limit,
         skip: offset,
-        include: { hookOptions: true },
+        include: { options: true },
       }),
       this.prisma.postDraft.count({ where }),
     ]);
@@ -115,8 +115,8 @@ export class PostDraftService {
     const referenceSamples =
       voiceProfile.referenceSamples as unknown as ReferenceSample[];
 
-    const { hooks, evaluationFeedback } =
-      await this.hookGenerationService.generate({
+    const { options, evaluationFeedback } =
+      await this.optionGenerationService.generate({
         analysis: analysisResult,
         styleFingerprint,
         referenceSamples,
@@ -133,24 +133,24 @@ export class PostDraftService {
         },
       });
 
-      await tx.hookOption.createMany({
-        data: hooks.map((h) => ({
+      await tx.postDraftOption.createMany({
+        data: options.map((o) => ({
           postDraftId: created.id,
-          text: h.text,
-          angleLabel: h.angleLabel,
+          text: o.text,
+          angleLabel: o.angleLabel,
         })),
       });
 
-      const draftWithHooks = await tx.postDraft.findUnique({
+      const draftWithOptions = await tx.postDraft.findUnique({
         where: { id: created.id },
-        include: { hookOptions: true },
+        include: { options: true },
       });
 
-      if (!draftWithHooks) {
+      if (!draftWithOptions) {
         throw new NotFoundException('Post draft not found after creation');
       }
 
-      return draftWithHooks;
+      return draftWithOptions;
     });
 
     return { draft, evaluationFeedback };
@@ -159,7 +159,7 @@ export class PostDraftService {
   async findOneByUser(id: string, userId: string) {
     const draft = await this.prisma.postDraft.findFirst({
       where: { id, product: { userId } },
-      include: { hookOptions: true },
+      include: { options: true },
     });
 
     if (!draft) {
@@ -177,32 +177,32 @@ export class PostDraftService {
     }
 
     if (
-      dto.selectedHookId !== undefined &&
-      !draft.hookOptions.some((h) => h.id === dto.selectedHookId)
+      dto.selectedOptionId !== undefined &&
+      !draft.options.some((o) => o.id === dto.selectedOptionId)
     ) {
-      throw new BadRequestException('Invalid hook id');
+      throw new BadRequestException('Invalid option id');
     }
 
     const data: {
       todayInput?: string | null;
-      selectedHookId?: string;
+      selectedOptionId?: string;
       body?: string;
     } = {};
     if (dto.todayInput !== undefined) data.todayInput = dto.todayInput;
-    if (dto.selectedHookId !== undefined) {
-      data.selectedHookId = dto.selectedHookId;
+    if (dto.selectedOptionId !== undefined) {
+      data.selectedOptionId = dto.selectedOptionId;
       if (draft.body === '') {
-        const selectedHook = draft.hookOptions.find(
-          (h) => h.id === dto.selectedHookId,
+        const selectedOption = draft.options.find(
+          (o) => o.id === dto.selectedOptionId,
         );
-        if (selectedHook) data.body = selectedHook.text;
+        if (selectedOption) data.body = selectedOption.text;
       }
     }
 
     const updated = await this.prisma.postDraft.update({
       where: { id },
       data,
-      include: { hookOptions: true },
+      include: { options: true },
     });
 
     return updated;
@@ -219,8 +219,8 @@ export class PostDraftService {
   async publish(id: string, userId: string, dto: PublishPostDraftDto) {
     const draft = await this.findOneByUser(id, userId);
 
-    if (!draft.selectedHookId) {
-      throw new BadRequestException('Select a hook first');
+    if (!draft.selectedOptionId) {
+      throw new BadRequestException('Select an option first');
     }
 
     // Atomic claim: only one request can transition `draft` → `published`.
@@ -277,7 +277,7 @@ export class PostDraftService {
           threadsMediaId: threadsResult.threadsMediaId,
           permalink: threadsResult.permalink,
         },
-        include: { hookOptions: true },
+        include: { options: true },
       });
     } catch (metadataErr) {
       this.logger.error(

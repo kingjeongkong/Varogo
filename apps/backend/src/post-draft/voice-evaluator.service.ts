@@ -7,7 +7,7 @@ import {
 import { GeminiService } from '../llm/gemini.service';
 import { REFERENCE_SAMPLE_LIMIT } from './constants';
 import type {
-  HookEvaluation,
+  PostDraftOptionEvaluation,
   VoiceEvaluationInput,
   VoiceEvaluationResult,
 } from './types/voice-evaluation.type';
@@ -39,15 +39,15 @@ export class VoiceEvaluatorService {
     }
 
     try {
-      const perHookFeedback = this.normalizeFeedback(
+      const perOptionFeedback = this.normalizeFeedback(
         parsedRaw,
-        input.hooks.length,
+        input.options.length,
       );
-      const allMatched = perHookFeedback.every((e) => e.matched);
-      return { allMatched, perHookFeedback };
+      const allMatched = perOptionFeedback.every((e) => e.matched);
+      return { allMatched, perOptionFeedback };
     } catch (error) {
       this.logger.error(
-        `Voice evaluator payload malformed (expected ${input.hooks.length} hook entries)`,
+        `Voice evaluator payload malformed (expected ${input.options.length} option entries)`,
         error,
       );
       throw error instanceof InternalServerErrorException
@@ -59,28 +59,29 @@ export class VoiceEvaluatorService {
   private normalizeFeedback(
     parsed: unknown,
     expectedCount: number,
-  ): HookEvaluation[] {
-    const candidate = (parsed as { perHookFeedback?: unknown }).perHookFeedback;
+  ): PostDraftOptionEvaluation[] {
+    const candidate = (parsed as { perOptionFeedback?: unknown })
+      .perOptionFeedback;
     if (!Array.isArray(candidate)) {
       throw new InternalServerErrorException(
-        'Voice evaluator response missing perHookFeedback array',
+        'Voice evaluator response missing perOptionFeedback array',
       );
     }
     if (candidate.length !== expectedCount) {
       throw new InternalServerErrorException(
-        `Voice evaluator returned ${candidate.length} hook entries, expected ${expectedCount}`,
+        `Voice evaluator returned ${candidate.length} option entries, expected ${expectedCount}`,
       );
     }
 
     return candidate.map((item, fallbackIndex) => {
-      const obj = item as Partial<HookEvaluation>;
-      const hookIndex =
-        typeof obj.hookIndex === 'number' ? obj.hookIndex : fallbackIndex;
+      const obj = item as Partial<PostDraftOptionEvaluation>;
+      const optionIndex =
+        typeof obj.optionIndex === 'number' ? obj.optionIndex : fallbackIndex;
       const matched = Boolean(obj.matched);
       const mismatches = Array.isArray(obj.mismatches)
         ? obj.mismatches.filter((m): m is string => typeof m === 'string')
         : [];
-      return { hookIndex, matched, mismatches };
+      return { optionIndex, matched, mismatches };
     });
   }
 
@@ -90,10 +91,10 @@ export class VoiceEvaluatorService {
       .map((s, i) => `${i + 1}. "${s.text.replace(/"/g, '\\"')}"`)
       .join('\n');
 
-    const hooks = input.hooks
+    const options = input.options
       .map(
-        (h, i) =>
-          `Hook ${i + 1} (${h.angleLabel}): "${h.text.replace(/"/g, '\\"')}"`,
+        (o, i) =>
+          `Option ${i + 1} (${o.angleLabel}): "${o.text.replace(/"/g, '\\"')}"`,
       )
       .join('\n\n');
 
@@ -101,7 +102,7 @@ export class VoiceEvaluatorService {
       ? `\n=== Today's input given to the generator ===\n${input.todayInput}\n`
       : '';
 
-    return `You are evaluating whether AI-generated Threads posts ("hooks") match the writer's actual voice.
+    return `You are evaluating whether AI-generated Threads post drafts ("options") match the writer's actual voice.
 
 Voice = HOW they write (form: punctuation, rhythm, sentence length, emoji habits, tone). NOT what they write about. Topic mismatch is fine. FORM mismatch is a voice violation.
 
@@ -116,17 +117,17 @@ ${samples}
 - Emoji density: ${input.styleFingerprint.emojiDensity}% of chars
 - Hashtag usage: ${input.styleFingerprint.hashtagUsage} per post
 ${todayContext}
-=== Generated hooks to evaluate ===
-${hooks}
+=== Generated options to evaluate ===
+${options}
 
 === Task ===
-For each of the ${input.hooks.length} hooks, decide if its FORM matches the writer's voice.
+For each of the ${input.options.length} options, decide if its FORM matches the writer's voice.
 
 Return JSON:
 {
-  "perHookFeedback": [
-    { "hookIndex": 0, "matched": true | false, "mismatches": ["short specific reason", ...] },
-    ...one entry per hook in order, hookIndex 0 to ${input.hooks.length - 1}...
+  "perOptionFeedback": [
+    { "optionIndex": 0, "matched": true | false, "mismatches": ["short specific reason", ...] },
+    ...one entry per option in order, optionIndex 0 to ${input.options.length - 1}...
   ]
 }
 
@@ -135,28 +136,28 @@ Rules:
 - "mismatches": empty [] when matched. When not matched, list 1-3 short reasons (each under 15 words). Each reason MUST cite a CONCRETE difference grounded in the reference posts (e.g. "uses exclamation mark; reference posts have zero", "emoji-heavy; reference posts have no emoji", "ends with hashtag; writer never uses hashtags", "imperative tone; reference posts are reflective/declarative").
 - Be strict: tone or rhythm mismatches count, even if surface formatting is OK.
 - Do not penalize topic differences — voice = form, not subject.
-- Do not invent issues that aren't visible in the hook itself.`;
+- Do not invent issues that aren't visible in the option itself.`;
   }
 
   private readonly responseSchema = {
     type: Type.OBJECT,
     properties: {
-      perHookFeedback: {
+      perOptionFeedback: {
         type: Type.ARRAY,
         items: {
           type: Type.OBJECT,
           properties: {
-            hookIndex: { type: Type.INTEGER },
+            optionIndex: { type: Type.INTEGER },
             matched: { type: Type.BOOLEAN },
             mismatches: {
               type: Type.ARRAY,
               items: { type: Type.STRING },
             },
           },
-          required: ['hookIndex', 'matched', 'mismatches'],
+          required: ['optionIndex', 'matched', 'mismatches'],
         },
       },
     },
-    required: ['perHookFeedback'],
+    required: ['perOptionFeedback'],
   };
 }

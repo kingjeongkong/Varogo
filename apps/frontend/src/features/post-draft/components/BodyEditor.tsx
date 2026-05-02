@@ -17,7 +17,7 @@ export function BodyEditor({ draft }: BodyEditorProps) {
   const mutation = usePublishPostDraft(draft.id);
   const [body, setBody] = useState(draft.body);
 
-  const selectedHook = draft.hooks.find((h) => h.id === draft.selectedHookId);
+  const selectedOption = draft.options.find((o) => o.id === draft.selectedOptionId);
   const overLimit = body.length > THREADS_LIMIT;
   const canPublish =
     body.length > 0 && !overLimit && !mutation.isPending;
@@ -40,9 +40,9 @@ export function BodyEditor({ draft }: BodyEditorProps) {
         </p>
       </div>
 
-      {selectedHook && (
+      {selectedOption && (
         <div className="inline-flex items-center gap-2 rounded-md bg-primary-dim px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary">
-          {selectedHook.angleLabel}
+          {selectedOption.angleLabel}
         </div>
       )}
 

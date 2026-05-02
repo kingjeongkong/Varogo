@@ -8,15 +8,15 @@ import { OpenAiService } from '../llm/openai.service';
 import type { ReferenceSample } from '../voice-profile/types/style-fingerprint.type';
 import { REFERENCE_SAMPLE_LIMIT } from './constants';
 import type {
-  GeneratedHook,
-  HookGenerationInput,
-  HookGenerationResult,
-} from './types/hook-generation.type';
+  GeneratedPostDraftOption,
+  PostDraftOptionGenerationInput,
+  PostDraftOptionGenerationResult,
+} from './types/post-draft-option-generation.type';
 import type { VoiceEvaluationResult } from './types/voice-evaluation.type';
 import { VoiceEvaluatorService } from './voice-evaluator.service';
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
-const HOOK_COUNT = 3;
+const OPTION_COUNT = 3;
 
 interface FormattingStats {
   exclamationPerPost: number;
@@ -26,15 +26,15 @@ interface FormattingStats {
   avgParagraphWords: number;
 }
 
-interface HookAssessment {
-  hookIndex: number;
+interface PostDraftOptionAssessment {
+  optionIndex: number;
   matched: boolean;
   issues: string[];
 }
 
 @Injectable()
-export class HookGenerationService {
-  private readonly logger = new Logger(HookGenerationService.name);
+export class PostDraftOptionGenerationService {
+  private readonly logger = new Logger(PostDraftOptionGenerationService.name);
 
   constructor(
     private readonly openAi: OpenAiService,
@@ -42,82 +42,84 @@ export class HookGenerationService {
     private readonly voiceEvaluator: VoiceEvaluatorService,
   ) {}
 
-  async generate(input: HookGenerationInput): Promise<HookGenerationResult> {
+  async generate(
+    input: PostDraftOptionGenerationInput,
+  ): Promise<PostDraftOptionGenerationResult> {
     const model =
       this.configService.get<string>('OPENAI_MODEL') ?? DEFAULT_MODEL;
 
-    const firstHooks = await this.callOnce(this.buildPrompt(input), model);
-    const firstAssessments = await this.assessHooks(firstHooks, input);
+    const firstOptions = await this.callOnce(this.buildPrompt(input), model);
+    const firstAssessments = await this.assessOptions(firstOptions, input);
 
     if (firstAssessments === null) {
       // Inconclusive (evaluator unreachable, no cliches caught) — graceful pass.
-      return { hooks: firstHooks };
+      return { options: firstOptions };
     }
 
     const firstFailures = firstAssessments.filter((a) => !a.matched);
     if (firstFailures.length === 0) {
-      return { hooks: firstHooks };
+      return { options: firstOptions };
     }
 
     this.logger.warn(
-      `Voice mismatch: ${firstFailures.length}/${HOOK_COUNT} hook(s) need fix — ${this.flattenAssessments(firstAssessments).join('; ')}`,
+      `Voice mismatch: ${firstFailures.length}/${OPTION_COUNT} option(s) need fix — ${this.flattenAssessments(firstAssessments).join('; ')}`,
     );
 
-    let mergedHooks: GeneratedHook[];
+    let mergedOptions: GeneratedPostDraftOption[];
     try {
       const fixedTexts = await this.callRetryOnce(
-        this.buildRetryPrompt(input, firstHooks, firstAssessments),
+        this.buildRetryPrompt(input, firstOptions, firstAssessments),
         model,
         firstFailures.length,
       );
-      mergedHooks = this.spliceFixed(firstHooks, fixedTexts, firstFailures);
+      mergedOptions = this.spliceFixed(firstOptions, fixedTexts, firstFailures);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(
-        `Hook retry call failed — preserving first-pass hooks with mismatch feedback: ${message}`,
+        `Option retry call failed — preserving first-pass options with mismatch feedback: ${message}`,
       );
       return {
-        hooks: firstHooks,
+        options: firstOptions,
         evaluationFeedback: this.flattenAssessments(firstAssessments),
       };
     }
 
-    const mergedAssessments = await this.assessHooks(mergedHooks, input);
+    const mergedAssessments = await this.assessOptions(mergedOptions, input);
 
     if (mergedAssessments === null) {
-      return { hooks: mergedHooks };
+      return { options: mergedOptions };
     }
 
     const mergedFailures = mergedAssessments.filter((a) => !a.matched);
     if (mergedFailures.length === 0) {
       this.logger.log(
-        `Voice match achieved on retry (${firstFailures.length} regenerated, ${HOOK_COUNT - firstFailures.length} preserved)`,
+        `Voice match achieved on retry (${firstFailures.length} regenerated, ${OPTION_COUNT - firstFailures.length} preserved)`,
       );
-      return { hooks: mergedHooks };
+      return { options: mergedOptions };
     }
 
     const persistedFeedback = this.flattenAssessments(mergedAssessments);
     this.logger.warn(
       `Voice mismatch persisted after retry: ${persistedFeedback.join('; ')}`,
     );
-    return { hooks: mergedHooks, evaluationFeedback: persistedFeedback };
+    return { options: mergedOptions, evaluationFeedback: persistedFeedback };
   }
 
   /**
-   * Per-hook assessment combining a cheap deterministic cliche pre-filter
-   * with the qualitative LLM evaluator. Returns one entry per input hook,
+   * Per-option assessment combining a cheap deterministic cliche pre-filter
+   * with the qualitative LLM evaluator. Returns one entry per input option,
    * or `null` when both layers can't speak (evaluator down + zero cliches).
    */
-  private async assessHooks(
-    hooks: GeneratedHook[],
-    input: HookGenerationInput,
-  ): Promise<HookAssessment[] | null> {
-    const cliches = this.prefilterCliches(hooks);
+  private async assessOptions(
+    options: GeneratedPostDraftOption[],
+    input: PostDraftOptionGenerationInput,
+  ): Promise<PostDraftOptionAssessment[] | null> {
+    const cliches = this.prefilterCliches(options);
 
     let evaluatorResult: VoiceEvaluationResult | null = null;
     try {
       evaluatorResult = await this.voiceEvaluator.evaluate({
-        hooks,
+        options,
         styleFingerprint: input.styleFingerprint,
         referenceSamples: input.referenceSamples,
         todayInput: input.todayInput,
@@ -134,28 +136,28 @@ export class HookGenerationService {
       return null;
     }
 
-    return hooks.map((_, i) => {
-      const hookCliches = cliches[i] ?? [];
-      const evalEntry = evaluatorResult?.perHookFeedback.find(
-        (e) => e.hookIndex === i,
+    return options.map((_, i) => {
+      const optionCliches = cliches[i] ?? [];
+      const evalEntry = evaluatorResult?.perOptionFeedback.find(
+        (e) => e.optionIndex === i,
       );
       const evalIssues =
         evalEntry && !evalEntry.matched ? evalEntry.mismatches : [];
-      const issues = [...hookCliches, ...evalIssues];
-      return { hookIndex: i, matched: issues.length === 0, issues };
+      const issues = [...optionCliches, ...evalIssues];
+      return { optionIndex: i, matched: issues.length === 0, issues };
     });
   }
 
   /**
-   * Per-hook deterministic check for unambiguous LLM artifacts. Returns one
-   * array per input hook; empty array means clean. Voice-dependent checks
+   * Per-option deterministic check for unambiguous LLM artifacts. Returns one
+   * array per input option; empty array means clean. Voice-dependent checks
    * (exclamation / emoji / yeoreobun) intentionally live in the evaluator,
    * not here, since their correctness depends on the user's own samples.
    */
-  private prefilterCliches(hooks: GeneratedHook[]): string[][] {
-    return hooks.map((h) => {
+  private prefilterCliches(options: GeneratedPostDraftOption[]): string[][] {
+    return options.map((o) => {
       const issues: string[] = [];
-      const text = h.text;
+      const text = o.text;
 
       const clicheOpener =
         /^\s*(Six months ago|A few years ago|Last summer|Last year|Three days ago|A year ago|Two weeks ago)\b/i.exec(
@@ -175,27 +177,29 @@ export class HookGenerationService {
     });
   }
 
-  private flattenAssessments(assessments: HookAssessment[]): string[] {
+  private flattenAssessments(
+    assessments: PostDraftOptionAssessment[],
+  ): string[] {
     return assessments
       .filter((a) => !a.matched && a.issues.length > 0)
-      .flatMap((a) => a.issues.map((i) => `hook${a.hookIndex + 1}: ${i}`));
+      .flatMap((a) => a.issues.map((i) => `option${a.optionIndex + 1}: ${i}`));
   }
 
   /**
-   * Splice fixed hook texts back into the original positions while preserving
-   * each hook's original angleLabel — the retry call only returns text, so the
-   * angle cannot drift even if the model misbehaves.
+   * Splice fixed option texts back into the original positions while
+   * preserving each option's original angleLabel — the retry call only
+   * returns text, so the angle cannot drift even if the model misbehaves.
    */
   private spliceFixed(
-    original: GeneratedHook[],
+    original: GeneratedPostDraftOption[],
     fixedTexts: string[],
-    failures: HookAssessment[],
-  ): GeneratedHook[] {
+    failures: PostDraftOptionAssessment[],
+  ): GeneratedPostDraftOption[] {
     const result = [...original];
     failures.forEach((failure, i) => {
-      result[failure.hookIndex] = {
+      result[failure.optionIndex] = {
         text: fixedTexts[i],
-        angleLabel: original[failure.hookIndex].angleLabel,
+        angleLabel: original[failure.optionIndex].angleLabel,
       };
     });
     return result;
@@ -204,7 +208,7 @@ export class HookGenerationService {
   private async callOnce(
     prompt: string,
     model: string,
-  ): Promise<GeneratedHook[]> {
+  ): Promise<GeneratedPostDraftOption[]> {
     try {
       const completion = await this.openAi.getClient().chat.completions.create({
         model,
@@ -212,7 +216,7 @@ export class HookGenerationService {
         response_format: {
           type: 'json_schema',
           json_schema: {
-            name: 'hooks',
+            name: 'options',
             strict: true,
             schema: this.responseSchema,
           },
@@ -220,25 +224,30 @@ export class HookGenerationService {
       });
 
       const content = completion.choices[0]?.message?.content ?? '{}';
-      const parsed = JSON.parse(content) as { hooks: GeneratedHook[] };
+      const parsed = JSON.parse(content) as {
+        options: GeneratedPostDraftOption[];
+      };
 
-      if (!Array.isArray(parsed.hooks) || parsed.hooks.length !== HOOK_COUNT) {
+      if (
+        !Array.isArray(parsed.options) ||
+        parsed.options.length !== OPTION_COUNT
+      ) {
         throw new InternalServerErrorException(
-          `Expected exactly ${HOOK_COUNT} hooks, got ${parsed.hooks?.length ?? 0}`,
+          `Expected exactly ${OPTION_COUNT} options, got ${parsed.options?.length ?? 0}`,
         );
       }
-      return parsed.hooks;
+      return parsed.options;
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
-      this.logger.error('OpenAI hook generation failed', error);
-      throw new InternalServerErrorException('Hook generation failed');
+      this.logger.error('OpenAI option generation failed', error);
+      throw new InternalServerErrorException('Option generation failed');
     }
   }
 
   /**
    * Retry call: schema returns only `text` (angleLabel is preserved by splice
-   * from the original hook so the model can't drift the angle). Expected
-   * count is dynamic so we only ask for as many hooks as need fixing.
+   * from the original option so the model can't drift the angle). Expected
+   * count is dynamic so we only ask for as many options as need fixing.
    */
   private async callRetryOnce(
     prompt: string,
@@ -252,7 +261,7 @@ export class HookGenerationService {
         response_format: {
           type: 'json_schema',
           json_schema: {
-            name: 'hook_retry',
+            name: 'option_retry',
             strict: true,
             schema: this.retryResponseSchema,
           },
@@ -260,21 +269,21 @@ export class HookGenerationService {
       });
 
       const content = completion.choices[0]?.message?.content ?? '{}';
-      const parsed = JSON.parse(content) as { hooks: { text: string }[] };
+      const parsed = JSON.parse(content) as { options: { text: string }[] };
 
       if (
-        !Array.isArray(parsed.hooks) ||
-        parsed.hooks.length !== expectedCount
+        !Array.isArray(parsed.options) ||
+        parsed.options.length !== expectedCount
       ) {
         throw new InternalServerErrorException(
-          `Retry expected ${expectedCount} hook(s), got ${parsed.hooks?.length ?? 0}`,
+          `Retry expected ${expectedCount} option(s), got ${parsed.options?.length ?? 0}`,
         );
       }
-      return parsed.hooks.map((h) => h.text);
+      return parsed.options.map((o) => o.text);
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
-      this.logger.error('OpenAI hook retry generation failed', error);
-      throw new InternalServerErrorException('Hook retry generation failed');
+      this.logger.error('OpenAI option retry generation failed', error);
+      throw new InternalServerErrorException('Option retry generation failed');
     }
   }
 
@@ -339,7 +348,7 @@ export class HookGenerationService {
     return lines.join('\n');
   }
 
-  private buildPrompt(input: HookGenerationInput): string {
+  private buildPrompt(input: PostDraftOptionGenerationInput): string {
     const { analysis, styleFingerprint, referenceSamples, todayInput } = input;
 
     const stats = this.computeFormattingStats(referenceSamples);
@@ -368,7 +377,7 @@ export class HookGenerationService {
     const noEmoji = styleFingerprint.emojiDensity < 0.01;
     const noExclamation = stats.exclamationPerPost === 0;
 
-    const angleOptions = hasToday
+    const angleChoices = hasToday
       ? 'Story, Contrarian, Data, Positioning, Technical'
       : 'Story, Contrarian, Positioning, Technical (DO NOT use Data — no numbers available)';
 
@@ -377,21 +386,21 @@ export class HookGenerationService {
 ${todayInput}
 
 How to use today's context:
-- Do NOT begin the hook with the headline fact (e.g., "42%.", "This week we shipped...", "Six months ago,")
+- Do NOT begin the option with the headline fact (e.g., "42%.", "This week we shipped...", "Six months ago,")
 - Do NOT narrate the fact chronologically (before → after arc)
 - The FIRST sentence must come from the voice's opening patterns below, not from the fact
-- Embed the fact mid-hook as evidence for the angle, not as the angle itself`
+- Embed the fact mid-option as evidence for the angle, not as the angle itself`
       : `=== Today's context ===
 No specific update today. Draw from the product's positioning and voice.
 DO NOT use Data angle. DO NOT invent statistics.`;
 
-    return `You are writing 3 Threads post hooks FOR the user, IN the user's voice. The voice is non-negotiable — it beats any "good marketing hook" instinct you have.
+    return `You are writing 3 Threads post draft options FOR the user, IN the user's voice. The voice is non-negotiable — it beats any "good marketing" instinct you have.
 
 === Your voice (preserve first, always) ===
 Style: ${styleFingerprint.tonality}
 Typical length: ${styleFingerprint.avgLength} chars
 
-Opening patterns (REQUIRED — AT LEAST 2 of 3 hooks must begin with one of these, or a close structural variation using the same syntactic shape):
+Opening patterns (REQUIRED — AT LEAST 2 of 3 options must begin with one of these, or a close structural variation using the same syntactic shape):
 ${styleFingerprint.openingPatterns.map((p) => `  • ${p}`).join('\n')}
 
 Signature phrases: ${signaturePhrasesLine}
@@ -418,11 +427,11 @@ Keywords: ${keywords}
 ${todayContextBlock}
 
 === Task ===
-Generate 3 hooks (max 500 chars each). Each hook has:
-- "text": the hook body
+Generate 3 options (max 500 chars each). Each option has:
+- "text": the post body
 - "angleLabel": 2-3 word label for its angle
 
-Angle choices: ${angleOptions}
+Angle choices: ${angleChoices}
 Pick 3 DIFFERENT angles. No redundancy.
 
 Per-angle CONTENT shape (opening still comes from voice, not from these patterns):
@@ -433,7 +442,7 @@ Per-angle CONTENT shape (opening still comes from voice, not from these patterns
 - Technical: references a specific mechanism (function, API, tool)
 
 Priority order when rules conflict (strict):
-1. User's opening pattern (≥ 2 of 3 hooks) — beats the angle's "typical" opener
+1. User's opening pattern (≥ 2 of 3 options) — beats the angle's "typical" opener
 2. Voice's forbidden habits (${noExclamation ? 'NO exclamation marks' : 'exclamation OK'}; ${noEmoji ? 'NO emojis' : 'emojis OK'})
 3. Signature phrase original meaning preserved (or omitted)
 4. Angle's content shape
@@ -447,7 +456,7 @@ Hard rules — NEVER break:
 
 Return JSON:
 {
-  "hooks": [
+  "options": [
     { "text": "...", "angleLabel": "..." },
     { "text": "...", "angleLabel": "..." },
     { "text": "...", "angleLabel": "..." }
@@ -457,15 +466,16 @@ Return JSON:
 
   /**
    * Edit-task framing for retry: separate prompt that frames the task as
-   * "fix these specific hooks" rather than "generate from scratch with these
-   * constraints", grounded in the original failed hooks and per-hook issues.
-   * Approved hooks are shown for context only (do-not-regenerate). Returns
-   * only text — angleLabel is preserved by splice on the caller side.
+   * "fix these specific options" rather than "generate from scratch with
+   * these constraints", grounded in the original failed options and per-
+   * option issues. Approved options are shown for context only (do-not-
+   * regenerate). Returns only text — angleLabel is preserved by splice on
+   * the caller side.
    */
   private buildRetryPrompt(
-    input: HookGenerationInput,
-    originalHooks: GeneratedHook[],
-    assessments: HookAssessment[],
+    input: PostDraftOptionGenerationInput,
+    originalOptions: GeneratedPostDraftOption[],
+    assessments: PostDraftOptionAssessment[],
   ): string {
     const { styleFingerprint, referenceSamples, todayInput } = input;
     const matched = assessments.filter((a) => a.matched);
@@ -478,20 +488,20 @@ Return JSON:
 
     const matchedBlock =
       matched.length === 0
-        ? '(none — every hook needs fixing)'
+        ? '(none — every option needs fixing)'
         : matched
             .map((a) => {
-              const h = originalHooks[a.hookIndex];
-              return `Hook ${a.hookIndex + 1} (${h.angleLabel}): "${h.text.replace(/"/g, '\\"')}"`;
+              const o = originalOptions[a.optionIndex];
+              return `Option ${a.optionIndex + 1} (${o.angleLabel}): "${o.text.replace(/"/g, '\\"')}"`;
             })
             .join('\n');
 
     const failedBlock = failed
       .map((a) => {
-        const h = originalHooks[a.hookIndex];
+        const o = originalOptions[a.optionIndex];
         const issuesList = a.issues.map((iss) => `   - ${iss}`).join('\n');
-        return `Hook ${a.hookIndex + 1} (${h.angleLabel} — keep this angle):
-   Current text: "${h.text.replace(/"/g, '\\"')}"
+        return `Option ${a.optionIndex + 1} (${o.angleLabel} — keep this angle):
+   Current text: "${o.text.replace(/"/g, '\\"')}"
    Problems to fix:
 ${issuesList}`;
       })
@@ -499,18 +509,18 @@ ${issuesList}`;
 
     const todayBlock =
       todayInput && todayInput.trim().length > 0
-        ? `\n=== Today's context (was given to the original generation; if a fixed hook needs a concrete number, use one from here — never invent) ===\n${todayInput}\n`
+        ? `\n=== Today's context (was given to the original generation; if a fixed option needs a concrete number, use one from here — never invent) ===\n${todayInput}\n`
         : '';
 
     const expectedAngles = failed
-      .map((a) => originalHooks[a.hookIndex].angleLabel)
+      .map((a) => originalOptions[a.optionIndex].angleLabel)
       .join(', ');
 
     const plural = failed.length === 1 ? '' : 's';
 
-    return `You are rewriting Threads post hooks that failed voice review. Each hook listed below has SPECIFIC problems. Fix only those problems, while keeping the hook's angle and matching the user's voice.
+    return `You are rewriting Threads post draft options that failed voice review. Each option listed below has SPECIFIC problems. Fix only those problems, while keeping the option's angle and matching the user's voice.
 
-This is an EDIT task, not a fresh generation — your job is to repair what is broken in each hook, not to rewrite from scratch with no reference to the original.
+This is an EDIT task, not a fresh generation — your job is to repair what is broken in each option, not to rewrite from scratch with no reference to the original.
 
 === User's voice (your target — match this exactly) ===
 Tonality: ${styleFingerprint.tonality}
@@ -523,25 +533,25 @@ Hashtag usage: ${styleFingerprint.hashtagUsage} per post
 === Reference posts from the user (your writing target — match this rhythm) ===
 ${samples}
 
-=== Approved hooks (these ALREADY match the voice — DO NOT regenerate them, shown so your fixed hooks don't duplicate angle/topic) ===
+=== Approved options (these ALREADY match the voice — DO NOT regenerate them, shown so your fixed options don't duplicate angle/topic) ===
 ${matchedBlock}
 ${todayBlock}
-=== Hooks to fix (rewrite ONLY these) ===
+=== Options to fix (rewrite ONLY these) ===
 ${failedBlock}
 
 === Task ===
-Output exactly ${failed.length} corrected hook${plural}, in the SAME order as "Hooks to fix" above (angles: ${expectedAngles}).
+Output exactly ${failed.length} corrected option${plural}, in the SAME order as "Options to fix" above (angles: ${expectedAngles}).
 
-For each fixed hook:
+For each fixed option:
 - Address EVERY listed problem
 - Keep the original angle (do not change topic direction)
 - Match the user's voice — opening patterns, sentence rhythm, punctuation habits from the reference posts
 - Stay under 500 characters
 - If the original had a number from today's context, keep that number; never invent new ones
 
-Return ONLY the rewritten hook text${plural} as JSON:
+Return ONLY the rewritten option text${plural} as JSON:
 {
-  "hooks": [
+  "options": [
     { "text": "..." }${failed.length > 1 ? ',\n    ...' : ''}
   ]
 }`;
@@ -550,7 +560,7 @@ Return ONLY the rewritten hook text${plural} as JSON:
   private readonly responseSchema = {
     type: 'object',
     properties: {
-      hooks: {
+      options: {
         type: 'array',
         items: {
           type: 'object',
@@ -563,14 +573,14 @@ Return ONLY the rewritten hook text${plural} as JSON:
         },
       },
     },
-    required: ['hooks'],
+    required: ['options'],
     additionalProperties: false,
   };
 
   private readonly retryResponseSchema = {
     type: 'object',
     properties: {
-      hooks: {
+      options: {
         type: 'array',
         items: {
           type: 'object',
@@ -582,7 +592,7 @@ Return ONLY the rewritten hook text${plural} as JSON:
         },
       },
     },
-    required: ['hooks'],
+    required: ['options'],
     additionalProperties: false,
   };
 }

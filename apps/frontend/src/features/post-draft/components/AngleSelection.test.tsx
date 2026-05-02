@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HookSelection } from './HookSelection';
+import { AngleSelection } from './AngleSelection';
 import type { PostDraftResponse } from '@/lib/types';
 
 const mockUpdateMutate = vi.fn();
@@ -43,27 +43,27 @@ const PENDING_DRAFT: PostDraftResponse = {
   todayInput: 'hit 1000 users',
   body: '',
   status: 'draft',
-  selectedHookId: null,
+  selectedOptionId: null,
   publishedAt: null,
   threadsMediaId: null,
   permalink: null,
   createdAt: '2026-04-20T00:00:00.000Z',
   updatedAt: '2026-04-20T00:00:00.000Z',
-  hooks: [
+  options: [
     {
-      id: 'hook-1',
+      id: 'option-1',
       text: 'Story angle body text',
       angleLabel: 'Story',
       selected: false,
     },
     {
-      id: 'hook-2',
+      id: 'option-2',
       text: 'Data angle body text',
       angleLabel: 'Data',
       selected: false,
     },
     {
-      id: 'hook-3',
+      id: 'option-3',
       text: 'Contrarian angle body text',
       angleLabel: 'Contrarian',
       selected: false,
@@ -71,24 +71,24 @@ const PENDING_DRAFT: PostDraftResponse = {
   ],
 };
 
-describe('HookSelection', () => {
+describe('AngleSelection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseUpdatePostDraft();
   });
 
-  describe('awaiting selection (selectedHookId === null)', () => {
-    it('renders the Choose a hook heading and three radio cards', () => {
-      render(<HookSelection draft={PENDING_DRAFT} />);
+  describe('awaiting selection (selectedOptionId === null)', () => {
+    it('renders the Choose an angle heading and three radio cards', () => {
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       expect(
-        screen.getByRole('heading', { name: /choose a hook/i }),
+        screen.getByRole('heading', { name: /choose an angle/i }),
       ).toBeInTheDocument();
       expect(screen.getAllByRole('radio')).toHaveLength(3);
     });
 
-    it('renders each hook text and angle label', () => {
-      render(<HookSelection draft={PENDING_DRAFT} />);
+    it('renders each angle option text and label', () => {
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       expect(screen.getByText('Story')).toBeInTheDocument();
       expect(screen.getByText('Data')).toBeInTheDocument();
@@ -101,19 +101,19 @@ describe('HookSelection', () => {
     });
 
     it('initially shows every card enabled with aria-checked=false and a disabled Save button', () => {
-      render(<HookSelection draft={PENDING_DRAFT} />);
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       screen.getAllByRole('radio').forEach((radio) => {
         expect(radio).toBeEnabled();
         expect(radio).toHaveAttribute('aria-checked', 'false');
       });
       expect(
-        screen.getByRole('button', { name: /save hook/i }),
+        screen.getByRole('button', { name: /save angle/i }),
       ).toBeDisabled();
     });
 
     it('clicking a card marks it as selected locally without calling mutate', async () => {
-      render(<HookSelection draft={PENDING_DRAFT} />);
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       const [, secondCard] = screen.getAllByRole('radio');
       await userEvent.click(secondCard);
@@ -123,17 +123,17 @@ describe('HookSelection', () => {
       expect(mockUpdateMutate).not.toHaveBeenCalled();
     });
 
-    it('enables the Save hook button once a card is selected', async () => {
-      render(<HookSelection draft={PENDING_DRAFT} />);
+    it('enables the Save angle button once a card is selected', async () => {
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       const [firstCard] = screen.getAllByRole('radio');
       await userEvent.click(firstCard);
 
-      expect(screen.getByRole('button', { name: /save hook/i })).toBeEnabled();
+      expect(screen.getByRole('button', { name: /save angle/i })).toBeEnabled();
     });
 
     it('clicking another card moves the local selection', async () => {
-      render(<HookSelection draft={PENDING_DRAFT} />);
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       const [firstCard, secondCard] = screen.getAllByRole('radio');
       await userEvent.click(firstCard);
@@ -144,21 +144,21 @@ describe('HookSelection', () => {
       expect(mockUpdateMutate).not.toHaveBeenCalled();
     });
 
-    it('clicking Save hook calls mutate with the selected hook id', async () => {
-      render(<HookSelection draft={PENDING_DRAFT} />);
+    it('clicking Save angle calls mutate with the selected option id', async () => {
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       const [, secondCard] = screen.getAllByRole('radio');
       await userEvent.click(secondCard);
-      await userEvent.click(screen.getByRole('button', { name: /save hook/i }));
+      await userEvent.click(screen.getByRole('button', { name: /save angle/i }));
 
       expect(mockUpdateMutate).toHaveBeenCalledTimes(1);
       expect(mockUpdateMutate).toHaveBeenCalledWith({
-        selectedHookId: 'hook-2',
+        selectedOptionId: 'option-2',
       });
     });
 
     it('does not render the Draft saved footer or Back to product link', () => {
-      render(<HookSelection draft={PENDING_DRAFT} />);
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       expect(
         screen.queryByText(/draft saved\. body editor is coming/i),
@@ -169,20 +169,20 @@ describe('HookSelection', () => {
     });
 
     it('does not render an alert when there is no error', () => {
-      render(<HookSelection draft={PENDING_DRAFT} />);
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
   });
 
-  describe('resuming with selectedHookId already set', () => {
+  describe('resuming with selectedOptionId already set', () => {
     const RESUMED_DRAFT: PostDraftResponse = {
       ...PENDING_DRAFT,
-      selectedHookId: 'hook-2',
+      selectedOptionId: 'option-2',
     };
 
-    it('marks the previously selected hook as aria-checked on mount', () => {
-      render(<HookSelection draft={RESUMED_DRAFT} />);
+    it('marks the previously selected option as aria-checked on mount', () => {
+      render(<AngleSelection draft={RESUMED_DRAFT} />);
 
       const [first, second, third] = screen.getAllByRole('radio');
       expect(first).toHaveAttribute('aria-checked', 'false');
@@ -190,11 +190,11 @@ describe('HookSelection', () => {
       expect(third).toHaveAttribute('aria-checked', 'false');
     });
 
-    it('enables the Save hook button on mount when a hook is preselected', () => {
-      render(<HookSelection draft={RESUMED_DRAFT} />);
+    it('enables the Save angle button on mount when an option is preselected', () => {
+      render(<AngleSelection draft={RESUMED_DRAFT} />);
 
       expect(
-        screen.getByRole('button', { name: /save hook/i }),
+        screen.getByRole('button', { name: /save angle/i }),
       ).toBeEnabled();
     });
   });
@@ -202,7 +202,7 @@ describe('HookSelection', () => {
   describe('mutation pending', () => {
     it('disables every card and shows a loading Save button', () => {
       mockUseUpdatePostDraft({ isPending: true });
-      render(<HookSelection draft={PENDING_DRAFT} />);
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       screen.getAllByRole('radio').forEach((radio) => {
         expect(radio).toBeDisabled();
@@ -219,7 +219,7 @@ describe('HookSelection', () => {
         isError: true,
         error: new Error('Failed to save selection'),
       });
-      render(<HookSelection draft={PENDING_DRAFT} />);
+      render(<AngleSelection draft={PENDING_DRAFT} />);
 
       expect(screen.getByRole('alert')).toHaveTextContent(
         'Failed to save selection',

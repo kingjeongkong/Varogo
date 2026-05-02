@@ -2,22 +2,22 @@ import type {
   ReferenceSample,
   StyleFingerprint,
 } from '../../voice-profile/types/style-fingerprint.type';
-import type { GeneratedHook } from './hook-generation.type';
+import type { GeneratedPostDraftOption } from './post-draft-option-generation.type';
 
 export interface VoiceEvaluationInput {
-  hooks: GeneratedHook[];
+  options: GeneratedPostDraftOption[];
   styleFingerprint: StyleFingerprint;
   referenceSamples: ReferenceSample[];
   todayInput: string | null;
 }
 
-export interface HookEvaluation {
-  hookIndex: number;
+export interface PostDraftOptionEvaluation {
+  optionIndex: number;
   matched: boolean;
   mismatches: string[];
 }
 
 export interface VoiceEvaluationResult {
   allMatched: boolean;
-  perHookFeedback: HookEvaluation[];
+  perOptionFeedback: PostDraftOptionEvaluation[];
 }

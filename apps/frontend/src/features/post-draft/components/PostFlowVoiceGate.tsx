@@ -74,7 +74,7 @@ export function PostFlowVoiceGate({ children }: PostFlowVoiceGateProps) {
             Import your voice
           </h2>
           <p className="text-sm text-text-muted">
-            One-time step. We read your recent Threads posts so the hooks we
+            One-time step. We read your recent Threads posts so the angles we
             suggest sound like you.
           </p>
         </div>

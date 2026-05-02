@@ -5,24 +5,24 @@ import { useEffect } from 'react';
 import { ApiError } from '@/lib/http-client';
 import type { PostDraftResponse } from '@/lib/types';
 import { usePostDraft } from '../hooks/use-post-draft';
+import { AngleSelection } from './AngleSelection';
 import { BodyEditor } from './BodyEditor';
-import { HookSelection } from './HookSelection';
 import { PostFlowVoiceGate } from './PostFlowVoiceGate';
 import { PublishedPanel } from './PublishedPanel';
 import { TodayInputForm } from './TodayInputForm';
 
-type Step = 'today' | 'hook' | 'body' | 'done';
+type Step = 'today' | 'angle' | 'body' | 'done';
 
 function resolveStep(draft: PostDraftResponse | undefined | null): Step {
   if (!draft) return 'today';
   if (draft.status === 'published') return 'done';
-  if (!draft.selectedHookId) return 'hook';
+  if (!draft.selectedOptionId) return 'angle';
   return 'body';
 }
 
 const STEP_LABELS: Record<Step, { label: string; index: string }> = {
   today: { label: 'Step 1 — Today', index: '1 of 3' },
-  hook: { label: 'Step 2 — Choose hook', index: '2 of 3' },
+  angle: { label: 'Step 2 — Choose angle', index: '2 of 3' },
   body: { label: 'Step 3 — Review & publish', index: '3 of 3' },
   done: { label: '✓ Published', index: 'Complete' },
 };
@@ -85,7 +85,7 @@ export function PostFlowClient({ productId }: PostFlowClientProps) {
             }}
           />
         )}
-        {step === 'hook' && draft && <HookSelection draft={draft} />}
+        {step === 'angle' && draft && <AngleSelection draft={draft} />}
         {step === 'body' && draft && <BodyEditor draft={draft} />}
         {step === 'done' && draft && <PublishedPanel draft={draft} />}
       </PostFlowVoiceGate>

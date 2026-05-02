@@ -4,19 +4,19 @@ import type {
   StyleFingerprint,
 } from '../../voice-profile/types/style-fingerprint.type';
 
-export interface HookGenerationInput {
+export interface PostDraftOptionGenerationInput {
   analysis: ProductAnalysisResult;
   styleFingerprint: StyleFingerprint;
   referenceSamples: ReferenceSample[];
   todayInput: string | null;
 }
 
-export interface GeneratedHook {
+export interface GeneratedPostDraftOption {
   text: string;
   angleLabel: string;
 }
 
-export interface HookGenerationResult {
-  hooks: GeneratedHook[];
+export interface PostDraftOptionGenerationResult {
+  options: GeneratedPostDraftOption[];
   evaluationFeedback?: string[];
 }
