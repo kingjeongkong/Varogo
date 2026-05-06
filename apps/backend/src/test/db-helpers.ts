@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import request from 'supertest';
 import * as bcrypt from 'bcrypt';
+import request from 'supertest';
 
 export const prisma = new PrismaClient();
 
@@ -47,6 +47,77 @@ export async function seedOtherUser(): Promise<void> {
     data: {
       email: OTHER_USER.email,
       passwordHash: await bcrypt.hash(OTHER_USER.password, 10),
+    },
+  });
+}
+
+export async function seedProduct(userId: string) {
+  return prisma.product.create({
+    data: {
+      userId,
+      name: 'Test Product',
+      url: 'https://example.com',
+      oneLiner: 'A test product',
+      stage: 'just-launched',
+      currentTraction: { users: 'under-100', revenue: 'none' },
+      analysis: {
+        create: {
+          category: 'SaaS',
+          jobToBeDone: 'Help manage tasks',
+          whyNow: 'Remote work is growing',
+          targetAudience: {
+            definition: 'Remote workers',
+            painPoints: [],
+            buyingTriggers: [],
+            activeCommunities: [],
+          },
+          valueProposition: 'Simplest task manager',
+          alternatives: [
+            {
+              name: 'Manual',
+              description: 'Spreadsheets',
+              weaknessWeExploit: 'Slow',
+            },
+          ],
+          differentiators: ['UI', 'Speed'],
+          positioningStatement: 'Easiest for remote teams',
+          keywords: { primary: ['productivity'], secondary: [] },
+        },
+      },
+    },
+    include: { analysis: true },
+  });
+}
+
+export async function seedVoiceProfile(userId: string) {
+  return prisma.voiceProfile.create({
+    data: {
+      userId,
+      source: 'threads_import',
+      sampleCount: 10,
+      styleFingerprint: {
+        tonality: 'conversational',
+        openingPatterns: ['Here is the thing'],
+        signaturePhrases: ['ngl'],
+        avgLength: 150,
+        emojiDensity: 0,
+        hashtagUsage: 0,
+      },
+      referenceSamples: [
+        { text: 'Sample post text', date: '2024-01-01T00:00:00Z' },
+      ],
+    },
+  });
+}
+
+export async function seedThreadsConnection(userId: string) {
+  return prisma.threadsConnection.create({
+    data: {
+      userId,
+      threadsUserId: 'test-threads-user-id',
+      username: 'testuser',
+      accessTokenEncrypted: 'placeholder-not-decrypted-in-tests',
+      tokenExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
     },
   });
 }
