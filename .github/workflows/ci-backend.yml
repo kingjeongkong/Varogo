@@ -65,6 +65,23 @@ jobs:
             -c "CREATE DATABASE varogo_test_db;"
           PGPASSWORD=varogo_password psql -h localhost -U varogo -d varogo_db \
             -c "GRANT ALL PRIVILEGES ON DATABASE varogo_test_db TO varogo;"
+      - name: Create .env.test
+        working-directory: apps/backend
+        run: |
+          cat > .env.test << 'EOF'
+          DATABASE_URL=postgresql://varogo:varogo_password@localhost:5432/varogo_test_db?schema=public
+          JWT_SECRET=test-secret-do-not-use-in-production
+          NODE_ENV=test
+          FRONTEND_URL=http://localhost:3001
+          JWT_EXPIRES_IN=15m
+          REFRESH_TOKEN_EXPIRES_IN=7
+          THREADS_APP_ID=test-app-id
+          THREADS_APP_SECRET=test-app-secret
+          THREADS_REDIRECT_URI=http://localhost:3001/api/threads/callback
+          THREADS_TOKEN_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          OPENAI_API_KEY=test-key
+          GEMINI_API_KEY=test-key
+          EOF
       - name: Run migrations on test DB
         working-directory: apps/backend
         env:
