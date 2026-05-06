@@ -30,3 +30,46 @@ jobs:
       - run: pnpm --filter backend exec tsc --noEmit
 
       - run: pnpm --filter backend test
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: test
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: varogo
+          POSTGRES_PASSWORD: varogo_password
+          POSTGRES_DB: varogo_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter backend exec prisma generate
+      - name: Create test database
+        run: |
+          PGPASSWORD=varogo_password psql -h localhost -U varogo -d varogo_db \
+            -c "CREATE DATABASE varogo_test_db;"
+          PGPASSWORD=varogo_password psql -h localhost -U varogo -d varogo_db \
+            -c "GRANT ALL PRIVILEGES ON DATABASE varogo_test_db TO varogo;"
+      - name: Run migrations on test DB
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://varogo:varogo_password@localhost:5432/varogo_test_db
+        run: npx prisma migrate deploy
+      - name: Run integration tests
+        working-directory: apps/backend
+        run: pnpm exec jest --config jest.integration.config.js --runInBand --forceExit
