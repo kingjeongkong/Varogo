@@ -19,7 +19,7 @@ export class VoiceEvaluatorService {
   constructor(private readonly gemini: GeminiService) {}
 
   async evaluate(input: VoiceEvaluationInput): Promise<VoiceEvaluationResult> {
-    const prompt = this.buildPrompt(input);
+    const prompt = this.buildEvaluationPrompt(input);
 
     let parsedRaw: unknown;
     try {
@@ -39,7 +39,7 @@ export class VoiceEvaluatorService {
     }
 
     try {
-      const perOptionFeedback = this.normalizeFeedback(
+      const perOptionFeedback = this.parseEvaluationResponse(
         parsedRaw,
         input.options.length,
       );
@@ -56,7 +56,7 @@ export class VoiceEvaluatorService {
     }
   }
 
-  private normalizeFeedback(
+  private parseEvaluationResponse(
     parsed: unknown,
     expectedCount: number,
   ): PostDraftOptionEvaluation[] {
@@ -85,7 +85,7 @@ export class VoiceEvaluatorService {
     });
   }
 
-  private buildPrompt(input: VoiceEvaluationInput): string {
+  private buildEvaluationPrompt(input: VoiceEvaluationInput): string {
     const samples = input.referenceSamples
       .slice(0, REFERENCE_SAMPLE_LIMIT)
       .map((s, i) => `${i + 1}. "${s.text.replace(/"/g, '\\"')}"`)
