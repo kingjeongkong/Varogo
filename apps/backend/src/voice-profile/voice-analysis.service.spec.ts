@@ -39,49 +39,6 @@ describe('VoiceAnalysisService', () => {
     });
   });
 
-  describe('computeStats', () => {
-    it('computes avgLength as rounded mean of unit text lengths', () => {
-      const stats = service.computeStats([
-        unit('1', 'a'.repeat(100)),
-        unit('2', 'b'.repeat(200)),
-      ]);
-      expect(stats.avgLength).toBe(150);
-    });
-
-    it('computes emojiDensity as percentage of emoji code points over string length (2 decimals)', () => {
-      const stats = service.computeStats([unit('1', 'hello 🚀 world 🎉')]);
-      // 2 emojis / 17 string-length chars * 100 = 11.7647... → 11.76
-      expect(stats.emojiDensity).toBe(11.76);
-    });
-
-    it('returns 0 emojiDensity when texts are all empty', () => {
-      const stats = service.computeStats([unit('1', ''), unit('2', '')]);
-      expect(stats.emojiDensity).toBe(0);
-    });
-
-    it('computes hashtagUsage as average hashtags per unit (2 decimals)', () => {
-      const stats = service.computeStats([
-        unit('1', 'one #tag here'),
-        unit('2', 'three #tags #here #now'),
-      ]);
-      // (1 + 3) / 2 = 2.0
-      expect(stats.hashtagUsage).toBe(2);
-    });
-
-    it('matches Korean hashtags', () => {
-      const stats = service.computeStats([
-        unit('1', '안녕 #한글태그 만나서 #반가워'),
-      ]);
-      expect(stats.hashtagUsage).toBe(2);
-    });
-
-    it('throws InternalServerErrorException on empty units array', () => {
-      expect(() => service.computeStats([])).toThrow(
-        InternalServerErrorException,
-      );
-    });
-  });
-
   describe('analyze', () => {
     const sampleUnits: ThreadsVoiceUnit[] = [
       unit('1', 'first post text', '2026-04-19T12:00:00Z'),
@@ -108,7 +65,6 @@ describe('VoiceAnalysisService', () => {
         'you can feel it',
         'which, fine.',
       ]);
-      expect(result.styleFingerprint.avgLength).toBeGreaterThan(0);
       expect(result.referenceSamples).toHaveLength(2);
       expect(result.referenceSamples[0].text).toBe('first post text');
       expect(result.referenceSamples[0].date).toBe('2026-04-19T12:00:00Z');

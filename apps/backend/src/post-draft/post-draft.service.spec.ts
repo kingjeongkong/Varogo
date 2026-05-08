@@ -100,11 +100,8 @@ const mockProduct = {
 
 const styleFingerprintValue = {
   tonality: 'opens with deadpan single-line observations',
-  avgLength: 180,
   openingPatterns: ['Starts with a noun phrase'],
   signaturePhrases: ['you can feel it'],
-  emojiDensity: 0.5,
-  hashtagUsage: 1.2,
 };
 
 const referenceSamplesValue = [

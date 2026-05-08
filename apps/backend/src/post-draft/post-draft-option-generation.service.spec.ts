@@ -100,11 +100,8 @@ const analysisFixture: ProductAnalysisResult = {
 
 const styleFingerprintFixture: StyleFingerprint = {
   tonality: 'opens with deadpan single-line observations',
-  avgLength: 180,
   openingPatterns: ['Starts with a noun phrase', 'Begins with a question'],
   signaturePhrases: ['you can feel it', 'which, fine.'],
-  emojiDensity: 0.5,
-  hashtagUsage: 1.2,
 };
 
 const referenceSamplesFixture: ReferenceSample[] = [

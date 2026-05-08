@@ -42,9 +42,6 @@ const MOCK_VOICE_ANALYSIS: VoiceAnalysisResult = {
     tonality: 'conversational',
     openingPatterns: ['Here is the thing'],
     signaturePhrases: ['ngl'],
-    avgLength: 150,
-    emojiDensity: 0,
-    hashtagUsage: 0,
   },
   referenceSamples: [
     { text: 'Sample post text 0', date: '2024-01-01T00:00:00Z' },

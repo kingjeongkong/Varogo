@@ -31,11 +31,8 @@ function nthGeminiCall(n: number): GenerateContentCall {
 
 const FINGERPRINT: StyleFingerprint = {
   tonality: 'Short declarative sentences punctuated with periods.',
-  avgLength: 240,
   openingPatterns: ['Imperative sentence. Posts: #1, #4'],
   signaturePhrases: ['you need to'],
-  emojiDensity: 0,
-  hashtagUsage: 0,
 };
 
 const SAMPLES: ReferenceSample[] = [

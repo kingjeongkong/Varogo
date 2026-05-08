@@ -37,11 +37,8 @@ const VALID_ANALYSIS: VoiceAnalysisResult = {
   sampleCount: 5,
   styleFingerprint: {
     tonality: 'deadpan single-liners',
-    avgLength: 80,
     openingPatterns: ['Starts with a question'],
     signaturePhrases: ['you can feel it'],
-    emojiDensity: 0.5,
-    hashtagUsage: 0.2,
   },
   referenceSamples: [{ text: 'sample 1', date: '2026-04-19T12:00:00Z' }],
 };
