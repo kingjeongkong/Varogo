@@ -23,7 +23,7 @@ A Threads marketing copilot built around two onboarding artifacts — a product 
 
 **Content loop:**
 
-- 🔍 **Product Analysis**: AI extracts category, JTBD, positioning, and differentiators from a URL
+- 🔍 **Product Analysis**: AI analyzes your product's target audience, value prop, and competitive edges from a URL
 - 🗣️ **Voice Import**: Pulls your recent Threads posts to learn tone, opening patterns, and signature phrases
 - ✍️ **3-Angle Generation**: Produces three differentiated post drafts per request (Story / Contrarian / Data / Positioning / Technical), each grounded in your voice
 - 🚀 **One-Click Publish**: Edit body, hit publish — straight to Threads via the Graph API
@@ -34,7 +34,7 @@ A Threads marketing copilot built around two onboarding artifacts — a product 
 
 | Feature                   | Description                                                               |
 | ------------------------- | ------------------------------------------------------------------------- |
-| 🔎 **Product Analysis**   | URL-driven Dunford positioning via Gemini                                 |
+| 🔎 **Product Analysis**   | AI-driven marketing strategy and positioning via Gemini                                 |
 | 🧬 **Voice Profile**      | Style fingerprint + reference samples extracted from your Threads history |
 | 🎯 **3 Angle Options**    | OpenAI generates three differentiated drafts, each angle-labeled          |
 | 📝 **Body Editor**        | 500-char counter, draft autosave, angle → body carry-over                 |
