@@ -48,72 +48,72 @@ export class PostDraftOptionGenerationService {
     const model =
       this.configService.get<string>('OPENAI_MODEL') ?? DEFAULT_MODEL;
 
-    const firstOptions = await this.callOnce(this.buildPrompt(input), model);
-    const firstAssessments = await this.assessOptions(firstOptions, input);
+    const initialOptions = await this.generateOptions(
+      this.buildGenerationPrompt(input),
+      model,
+    );
+    const initialAssessments = await this.evaluateVoiceMatch(
+      initialOptions,
+      input,
+    );
+    const initialFailures = this.extractFailures(initialAssessments);
 
-    if (firstAssessments === null) {
-      // Inconclusive (evaluator unreachable, no cliches caught) — graceful pass.
-      return { options: firstOptions };
-    }
-
-    const firstFailures = firstAssessments.filter((a) => !a.matched);
-    if (firstFailures.length === 0) {
-      return { options: firstOptions };
+    if (initialFailures.length === 0) {
+      return { options: initialOptions };
     }
 
     this.logger.warn(
-      `Voice mismatch: ${firstFailures.length}/${OPTION_COUNT} option(s) need fix — ${this.flattenAssessments(firstAssessments).join('; ')}`,
+      `Voice mismatch: ${initialFailures.length}/${OPTION_COUNT} option(s) need fix — ${this.extractFailedIssues(initialAssessments).join('; ')}`,
     );
 
-    let mergedOptions: GeneratedPostDraftOption[];
+    let patchedOptions: GeneratedPostDraftOption[];
     try {
-      const fixedTexts = await this.callRetryOnce(
-        this.buildRetryPrompt(input, firstOptions, firstAssessments),
+      patchedOptions = await this.attemptRetry(
+        input,
+        initialOptions,
+        initialAssessments,
         model,
-        firstFailures.length,
       );
-      mergedOptions = this.spliceFixed(firstOptions, fixedTexts, firstFailures);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(
         `Option retry call failed — preserving first-pass options with mismatch feedback: ${message}`,
       );
       return {
-        options: firstOptions,
-        evaluationFeedback: this.flattenAssessments(firstAssessments),
+        options: initialOptions,
+        evaluationFeedback: this.extractFailedIssues(initialAssessments),
       };
     }
 
-    const mergedAssessments = await this.assessOptions(mergedOptions, input);
+    const retryAssessments = await this.evaluateVoiceMatch(
+      patchedOptions,
+      input,
+    );
+    const persistentFailures = this.extractFailures(retryAssessments);
 
-    if (mergedAssessments === null) {
-      return { options: mergedOptions };
-    }
-
-    const mergedFailures = mergedAssessments.filter((a) => !a.matched);
-    if (mergedFailures.length === 0) {
+    if (persistentFailures.length === 0) {
       this.logger.log(
-        `Voice match achieved on retry (${firstFailures.length} regenerated, ${OPTION_COUNT - firstFailures.length} preserved)`,
+        `Voice match achieved on retry (${initialFailures.length} regenerated, ${OPTION_COUNT - initialFailures.length} preserved)`,
       );
-      return { options: mergedOptions };
+      return { options: patchedOptions };
     }
 
-    const persistedFeedback = this.flattenAssessments(mergedAssessments);
+    const persistedFeedback = this.extractFailedIssues(retryAssessments);
     this.logger.warn(
       `Voice mismatch persisted after retry: ${persistedFeedback.join('; ')}`,
     );
-    return { options: mergedOptions, evaluationFeedback: persistedFeedback };
+    return { options: patchedOptions, evaluationFeedback: persistedFeedback };
   }
 
   /**
    * Per-option assessment combining a cheap deterministic cliche pre-filter
-   * with the qualitative LLM evaluator. Returns one entry per input option,
-   * or `null` when both layers can't speak (evaluator down + zero cliches).
+   * with the qualitative LLM evaluator. Returns all options as matched when
+   * both layers can't speak (evaluator down + zero cliches found).
    */
-  private async assessOptions(
+  private async evaluateVoiceMatch(
     options: GeneratedPostDraftOption[],
     input: PostDraftOptionGenerationInput,
-  ): Promise<PostDraftOptionAssessment[] | null> {
+  ): Promise<PostDraftOptionAssessment[]> {
     const cliches = this.prefilterCliches(options);
 
     let evaluatorResult: VoiceEvaluationResult | null = null;
@@ -133,7 +133,11 @@ export class PostDraftOptionGenerationService {
 
     const anyCliches = cliches.some((c) => c.length > 0);
     if (evaluatorResult === null && !anyCliches) {
-      return null;
+      return options.map((_, i) => ({
+        optionIndex: i,
+        matched: true,
+        issues: [],
+      }));
     }
 
     return options.map((_, i) => {
@@ -146,6 +150,27 @@ export class PostDraftOptionGenerationService {
       const issues = [...optionCliches, ...evalIssues];
       return { optionIndex: i, matched: issues.length === 0, issues };
     });
+  }
+
+  private async attemptRetry(
+    input: PostDraftOptionGenerationInput,
+    initialOptions: GeneratedPostDraftOption[],
+    initialAssessments: PostDraftOptionAssessment[],
+    model: string,
+  ): Promise<GeneratedPostDraftOption[]> {
+    const failures = this.extractFailures(initialAssessments);
+    const rewrittenTexts = await this.regenerateFailedOptions(
+      this.buildRegenerationPrompt(input, initialOptions, initialAssessments),
+      model,
+      failures.length,
+    );
+    return this.patchFailedWithFixed(initialOptions, rewrittenTexts, failures);
+  }
+
+  private extractFailures(
+    assessments: PostDraftOptionAssessment[],
+  ): PostDraftOptionAssessment[] {
+    return assessments.filter((a) => !a.matched);
   }
 
   /**
@@ -177,7 +202,7 @@ export class PostDraftOptionGenerationService {
     });
   }
 
-  private flattenAssessments(
+  private extractFailedIssues(
     assessments: PostDraftOptionAssessment[],
   ): string[] {
     return assessments
@@ -186,26 +211,26 @@ export class PostDraftOptionGenerationService {
   }
 
   /**
-   * Splice fixed option texts back into the original positions while
-   * preserving each option's original angleLabel — the retry call only
-   * returns text, so the angle cannot drift even if the model misbehaves.
+   * Replaces failed option texts at their original positions while preserving
+   * each option's angleLabel — the retry call only returns text, so the angle
+   * cannot drift even if the model misbehaves.
    */
-  private spliceFixed(
+  private patchFailedWithFixed(
     original: GeneratedPostDraftOption[],
-    fixedTexts: string[],
+    rewrittenTexts: string[],
     failures: PostDraftOptionAssessment[],
   ): GeneratedPostDraftOption[] {
     const result = [...original];
     failures.forEach((failure, i) => {
       result[failure.optionIndex] = {
-        text: fixedTexts[i],
+        text: rewrittenTexts[i],
         angleLabel: original[failure.optionIndex].angleLabel,
       };
     });
     return result;
   }
 
-  private async callOnce(
+  private async generateOptions(
     prompt: string,
     model: string,
   ): Promise<GeneratedPostDraftOption[]> {
@@ -245,11 +270,11 @@ export class PostDraftOptionGenerationService {
   }
 
   /**
-   * Retry call: schema returns only `text` (angleLabel is preserved by splice
+   * Retry call: schema returns only `text` (angleLabel is preserved by patchFailedWithFixed
    * from the original option so the model can't drift the angle). Expected
    * count is dynamic so we only ask for as many options as need fixing.
    */
-  private async callRetryOnce(
+  private async regenerateFailedOptions(
     prompt: string,
     model: string,
     expectedCount: number,
@@ -348,7 +373,7 @@ export class PostDraftOptionGenerationService {
     return lines.join('\n');
   }
 
-  private buildPrompt(input: PostDraftOptionGenerationInput): string {
+  private buildGenerationPrompt(input: PostDraftOptionGenerationInput): string {
     const { analysis, styleFingerprint, referenceSamples, todayInput } = input;
 
     const stats = this.computeFormattingStats(referenceSamples);
@@ -465,14 +490,14 @@ Return JSON:
   }
 
   /**
-   * Edit-task framing for retry: separate prompt that frames the task as
+   * Edit-task framing for regeneration: separate prompt that frames the task as
    * "fix these specific options" rather than "generate from scratch with
    * these constraints", grounded in the original failed options and per-
    * option issues. Approved options are shown for context only (do-not-
-   * regenerate). Returns only text — angleLabel is preserved by splice on
-   * the caller side.
+   * regenerate). Returns only text — angleLabel is preserved by patchFailedWithFixed
+   * on the caller side.
    */
-  private buildRetryPrompt(
+  private buildRegenerationPrompt(
     input: PostDraftOptionGenerationInput,
     originalOptions: GeneratedPostDraftOption[],
     assessments: PostDraftOptionAssessment[],
