@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OpenAiService } from '../llm/openai.service';
-import type { ReferenceSample } from '../voice-profile/types/style-fingerprint.type';
 import { REFERENCE_SAMPLE_LIMIT } from './constants';
 import type {
   GeneratedPostDraftOption,
@@ -17,14 +16,6 @@ import { VoiceEvaluatorService } from './voice-evaluator.service';
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
 const OPTION_COUNT = 3;
-
-interface FormattingStats {
-  exclamationPerPost: number;
-  emDashPerPost: number;
-  bulletListRate: number;
-  allCapsWordCount: number;
-  avgParagraphWords: number;
-}
 
 interface PostDraftOptionAssessment {
   optionIndex: number;
@@ -106,16 +97,13 @@ export class PostDraftOptionGenerationService {
   }
 
   /**
-   * Per-option assessment combining a cheap deterministic cliche pre-filter
-   * with the qualitative LLM evaluator. Returns all options as matched when
-   * both layers can't speak (evaluator down + zero cliches found).
+   * Per-option LLM-based voice assessment. Returns all options as matched
+   * when the evaluator is unavailable (graceful pass).
    */
   private async evaluateVoiceMatch(
     options: GeneratedPostDraftOption[],
     input: PostDraftOptionGenerationInput,
   ): Promise<PostDraftOptionAssessment[]> {
-    const cliches = this.prefilterCliches(options);
-
     let evaluatorResult: VoiceEvaluationResult | null = null;
     try {
       evaluatorResult = await this.voiceEvaluator.evaluate({
@@ -127,12 +115,11 @@ export class PostDraftOptionGenerationService {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(
-        `Voice evaluator unavailable — falling back to cliche-only check: ${message}`,
+        `Voice evaluator unavailable — graceful pass: ${message}`,
       );
     }
 
-    const anyCliches = cliches.some((c) => c.length > 0);
-    if (evaluatorResult === null && !anyCliches) {
+    if (evaluatorResult === null) {
       return options.map((_, i) => ({
         optionIndex: i,
         matched: true,
@@ -141,13 +128,11 @@ export class PostDraftOptionGenerationService {
     }
 
     return options.map((_, i) => {
-      const optionCliches = cliches[i] ?? [];
       const evalEntry = evaluatorResult?.perOptionFeedback.find(
         (e) => e.optionIndex === i,
       );
-      const evalIssues =
+      const issues =
         evalEntry && !evalEntry.matched ? evalEntry.mismatches : [];
-      const issues = [...optionCliches, ...evalIssues];
       return { optionIndex: i, matched: issues.length === 0, issues };
     });
   }
@@ -171,35 +156,6 @@ export class PostDraftOptionGenerationService {
     assessments: PostDraftOptionAssessment[],
   ): PostDraftOptionAssessment[] {
     return assessments.filter((a) => !a.matched);
-  }
-
-  /**
-   * Per-option deterministic check for unambiguous LLM artifacts. Returns one
-   * array per input option; empty array means clean. Voice-dependent checks
-   * (exclamation / emoji / yeoreobun) intentionally live in the evaluator,
-   * not here, since their correctness depends on the user's own samples.
-   */
-  private prefilterCliches(options: GeneratedPostDraftOption[]): string[][] {
-    return options.map((o) => {
-      const issues: string[] = [];
-      const text = o.text;
-
-      const clicheOpener =
-        /^\s*(Six months ago|A few years ago|Last summer|Last year|Three days ago|A year ago|Two weeks ago)\b/i.exec(
-          text,
-        );
-      if (clicheOpener) {
-        issues.push(
-          `AI-cliche opener "${clicheOpener[1]}" — rewrite the opening using the user's voice patterns instead`,
-        );
-      }
-      if (/\bgame[-\s]changer\b/i.test(text)) {
-        issues.push(
-          'contains marketing cliche "game changer" — drop or rephrase',
-        );
-      }
-      return issues;
-    });
   }
 
   private extractFailedIssues(
@@ -312,72 +268,9 @@ export class PostDraftOptionGenerationService {
     }
   }
 
-  private computeFormattingStats(samples: ReferenceSample[]): FormattingStats {
-    if (samples.length === 0) {
-      return {
-        exclamationPerPost: 0,
-        emDashPerPost: 0,
-        bulletListRate: 0,
-        allCapsWordCount: 0,
-        avgParagraphWords: 0,
-      };
-    }
-
-    let exclamations = 0;
-    let emDashes = 0;
-    let bulletPosts = 0;
-    let allCapsWords = 0;
-    let paragraphWordsTotal = 0;
-    let paragraphCount = 0;
-
-    for (const s of samples) {
-      exclamations += (s.text.match(/!/g) ?? []).length;
-      emDashes += (s.text.match(/—/g) ?? []).length;
-      if (/^\s*[-•*]\s/m.test(s.text)) bulletPosts++;
-      allCapsWords += (s.text.match(/\b[A-Z]{2,}\b/g) ?? []).length;
-      const paragraphs = s.text.split(/\n\s*\n/).filter((p) => p.trim());
-      for (const p of paragraphs) {
-        const words = p.trim().split(/\s+/).filter(Boolean);
-        paragraphWordsTotal += words.length;
-        paragraphCount++;
-      }
-    }
-
-    return {
-      exclamationPerPost: +(exclamations / samples.length).toFixed(2),
-      emDashPerPost: +(emDashes / samples.length).toFixed(2),
-      bulletListRate: +(bulletPosts / samples.length).toFixed(2),
-      allCapsWordCount: allCapsWords,
-      avgParagraphWords:
-        paragraphCount === 0
-          ? 0
-          : Math.round(paragraphWordsTotal / paragraphCount),
-    };
-  }
-
-  private describeFormattingStats(stats: FormattingStats): string {
-    const lines: string[] = [];
-    lines.push(
-      `Exclamation marks: ${stats.exclamationPerPost === 0 ? 'NEVER uses (strict)' : `~${stats.exclamationPerPost} per post`}`,
-    );
-    lines.push(
-      `Em-dashes (—): ${stats.emDashPerPost >= 1 ? `uses frequently (~${stats.emDashPerPost} per post)` : 'rarely uses'}`,
-    );
-    lines.push(
-      `Bulleted lists: ${stats.bulletListRate >= 0.5 ? `uses frequently (${Math.round(stats.bulletListRate * 100)}% of posts)` : 'rarely uses'}`,
-    );
-    lines.push(
-      `ALL-CAPS emphasis: ${stats.allCapsWordCount > 0 ? 'uses occasionally' : 'NEVER uses'}`,
-    );
-    lines.push(`Avg paragraph length: ~${stats.avgParagraphWords} words`);
-    return lines.join('\n');
-  }
-
   private buildGenerationPrompt(input: PostDraftOptionGenerationInput): string {
     const { analysis, styleFingerprint, referenceSamples, todayInput } = input;
 
-    const stats = this.computeFormattingStats(referenceSamples);
-    const formattingBlock = this.describeFormattingStats(stats);
     const hasToday = !!(todayInput && todayInput.trim().length > 0);
 
     const samples = referenceSamples
@@ -400,7 +293,6 @@ export class PostDraftOptionGenerationService {
         : '(none detected)';
 
     const noEmoji = styleFingerprint.emojiDensity < 0.01;
-    const noExclamation = stats.exclamationPerPost === 0;
 
     const angleChoices = hasToday
       ? 'Story, Contrarian, Data, Positioning, Technical'
@@ -430,9 +322,6 @@ ${styleFingerprint.openingPatterns.map((p) => `  • ${p}`).join('\n')}
 
 Signature phrases: ${signaturePhrasesLine}
   Use ONLY when the phrase's meaning in the reference posts still applies. Preserve grammar exactly — do NOT re-assemble ("the constraint is the feature" must stay as-is, not become "the constraint was the X"). Better to omit than to misuse.
-
-Formatting habits (respect exactly):
-${formattingBlock}
 
 Emoji: ${noEmoji ? 'NEVER use (strict)' : `density ~${styleFingerprint.emojiDensity}`}
 Hashtag: ${styleFingerprint.hashtagUsage === 0 ? 'NEVER use' : `density ~${styleFingerprint.hashtagUsage}`}
@@ -468,7 +357,7 @@ Per-angle CONTENT shape (opening still comes from voice, not from these patterns
 
 Priority order when rules conflict (strict):
 1. User's opening pattern (≥ 2 of 3 options) — beats the angle's "typical" opener
-2. Voice's forbidden habits (${noExclamation ? 'NO exclamation marks' : 'exclamation OK'}; ${noEmoji ? 'NO emojis' : 'emojis OK'})
+2. Voice's forbidden habits (${noEmoji ? 'NO emojis' : 'emojis OK'})
 3. Signature phrase original meaning preserved (or omitted)
 4. Angle's content shape
 5. Today's input as embedded evidence (never as opener or narrative spine)
