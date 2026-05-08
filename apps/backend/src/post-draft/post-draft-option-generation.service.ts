@@ -292,8 +292,6 @@ export class PostDraftOptionGenerationService {
         ? styleFingerprint.signaturePhrases.join(', ')
         : '(none detected)';
 
-    const noEmoji = styleFingerprint.emojiDensity < 0.01;
-
     const angleChoices = hasToday
       ? 'Story, Contrarian, Data, Positioning, Technical'
       : 'Story, Contrarian, Positioning, Technical (DO NOT use Data — no numbers available)';
@@ -315,16 +313,12 @@ DO NOT use Data angle. DO NOT invent statistics.`;
 
 === Your voice (preserve first, always) ===
 Style: ${styleFingerprint.tonality}
-Typical length: ${styleFingerprint.avgLength} chars
 
 Opening patterns (REQUIRED — AT LEAST 2 of 3 options must begin with one of these, or a close structural variation using the same syntactic shape):
 ${styleFingerprint.openingPatterns.map((p) => `  • ${p}`).join('\n')}
 
 Signature phrases: ${signaturePhrasesLine}
   Use ONLY when the phrase's meaning in the reference posts still applies. Preserve grammar exactly — do NOT re-assemble ("the constraint is the feature" must stay as-is, not become "the constraint was the X"). Better to omit than to misuse.
-
-Emoji: ${noEmoji ? 'NEVER use (strict)' : `density ~${styleFingerprint.emojiDensity}`}
-Hashtag: ${styleFingerprint.hashtagUsage === 0 ? 'NEVER use' : `density ~${styleFingerprint.hashtagUsage}`}
 
 === Reference posts from the user (your writing target — match this rhythm) ===
 ${samples}
@@ -357,10 +351,9 @@ Per-angle CONTENT shape (opening still comes from voice, not from these patterns
 
 Priority order when rules conflict (strict):
 1. User's opening pattern (≥ 2 of 3 options) — beats the angle's "typical" opener
-2. Voice's forbidden habits (${noEmoji ? 'NO emojis' : 'emojis OK'})
-3. Signature phrase original meaning preserved (or omitted)
-4. Angle's content shape
-5. Today's input as embedded evidence (never as opener or narrative spine)
+2. Signature phrase original meaning preserved (or omitted)
+3. Angle's content shape
+4. Today's input as embedded evidence (never as opener or narrative spine)
 
 Hard rules — NEVER break:
 - No AI-cliche openers: "Last summer, ...", "Six months ago, ...", "A few years ago, ...", "Three days ago, ...", "Last year, ...", "A year ago, ...", "Two weeks ago, ..."
@@ -440,9 +433,6 @@ This is an EDIT task, not a fresh generation — your job is to repair what is b
 Tonality: ${styleFingerprint.tonality}
 Opening patterns: ${styleFingerprint.openingPatterns.join(' | ') || '(none detected)'}
 Signature phrases: ${styleFingerprint.signaturePhrases.join(', ') || '(none detected)'}
-Avg post length: ${styleFingerprint.avgLength} chars
-Emoji density: ${styleFingerprint.emojiDensity}% of chars
-Hashtag usage: ${styleFingerprint.hashtagUsage} per post
 
 === Reference posts from the user (your writing target — match this rhythm) ===
 ${samples}

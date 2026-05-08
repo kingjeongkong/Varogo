@@ -7,8 +7,6 @@ import {
 import { GeminiService } from '../llm/gemini.service';
 import type { ThreadsVoiceUnit } from '../threads/types/threads-voice-unit.type';
 import type {
-  QualitativeFingerprint,
-  QuantitativeStats,
   ReferenceSample,
   StyleFingerprint,
   VoiceAnalysisResult,
@@ -16,8 +14,6 @@ import type {
 
 const REFERENCE_SAMPLE_COUNT = 5;
 const PROMPT_UNIT_LIMIT = 25;
-const EMOJI_REGEX = /\p{Extended_Pictographic}/gu;
-const HASHTAG_REGEX = /#[\w가-힣]+/g;
 
 @Injectable()
 export class VoiceAnalysisService {
@@ -26,17 +22,7 @@ export class VoiceAnalysisService {
   constructor(private readonly gemini: GeminiService) {}
 
   async analyze(units: ThreadsVoiceUnit[]): Promise<VoiceAnalysisResult> {
-    const stats = this.computeStats(units);
-    const qualitative = await this.extractQualitative(units);
-
-    const styleFingerprint: StyleFingerprint = {
-      tonality: qualitative.tonality,
-      openingPatterns: qualitative.openingPatterns,
-      signaturePhrases: qualitative.signaturePhrases,
-      avgLength: stats.avgLength,
-      emojiDensity: stats.emojiDensity,
-      hashtagUsage: stats.hashtagUsage,
-    };
+    const styleFingerprint = await this.extractQualitative(units);
 
     const referenceSamples: ReferenceSample[] = units
       .slice(0, REFERENCE_SAMPLE_COUNT)
@@ -50,35 +36,9 @@ export class VoiceAnalysisService {
     };
   }
 
-  computeStats(units: ThreadsVoiceUnit[]): QuantitativeStats {
-    if (units.length === 0) {
-      throw new InternalServerErrorException(
-        'Cannot compute stats from empty voice units',
-      );
-    }
-    const totalChars = units.reduce((sum, u) => sum + u.text.length, 0);
-    const totalEmojis = units.reduce(
-      (sum, u) => sum + (u.text.match(EMOJI_REGEX)?.length ?? 0),
-      0,
-    );
-    const totalHashtags = units.reduce(
-      (sum, u) => sum + (u.text.match(HASHTAG_REGEX)?.length ?? 0),
-      0,
-    );
-
-    const avgLength = Math.round(totalChars / units.length);
-    const emojiDensity =
-      totalChars === 0
-        ? 0
-        : Math.round((totalEmojis / totalChars) * 100 * 100) / 100;
-    const hashtagUsage = Math.round((totalHashtags / units.length) * 100) / 100;
-
-    return { avgLength, emojiDensity, hashtagUsage };
-  }
-
   private async extractQualitative(
     units: ThreadsVoiceUnit[],
-  ): Promise<QualitativeFingerprint> {
+  ): Promise<StyleFingerprint> {
     const prompt = this.buildPrompt(units);
 
     try {
@@ -99,11 +59,11 @@ export class VoiceAnalysisService {
     }
   }
 
-  private parseQualitative(raw: string | undefined): QualitativeFingerprint {
+  private parseQualitative(raw: string | undefined): StyleFingerprint {
     if (!raw) {
       throw new InternalServerErrorException('Voice extraction failed');
     }
-    const parsed = JSON.parse(raw) as Partial<QualitativeFingerprint>;
+    const parsed = JSON.parse(raw) as Partial<StyleFingerprint>;
     if (
       typeof parsed.tonality !== 'string' ||
       !Array.isArray(parsed.openingPatterns) ||
@@ -113,7 +73,7 @@ export class VoiceAnalysisService {
         'Voice extraction returned incomplete data',
       );
     }
-    return parsed as QualitativeFingerprint;
+    return parsed as StyleFingerprint;
   }
 
   private buildPrompt(units: ThreadsVoiceUnit[]): string {

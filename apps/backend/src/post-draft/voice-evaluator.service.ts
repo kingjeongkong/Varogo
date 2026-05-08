@@ -111,11 +111,8 @@ ${samples}
 
 === Voice fingerprint (extracted from the same posts) ===
 - Tonality: ${input.styleFingerprint.tonality}
-- Avg post length: ${input.styleFingerprint.avgLength} chars
 - Opening patterns: ${input.styleFingerprint.openingPatterns.join(' | ') || '(none)'}
 - Signature phrases: ${input.styleFingerprint.signaturePhrases.join(' | ') || '(none)'}
-- Emoji density: ${input.styleFingerprint.emojiDensity}% of chars
-- Hashtag usage: ${input.styleFingerprint.hashtagUsage} per post
 ${todayContext}
 === Generated options to evaluate ===
 ${options}

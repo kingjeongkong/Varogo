@@ -1,21 +1,8 @@
 export interface StyleFingerprint {
   tonality: string;
-  avgLength: number;
   openingPatterns: string[];
   signaturePhrases: string[];
-  emojiDensity: number;
-  hashtagUsage: number;
 }
-
-export type QualitativeFingerprint = Pick<
-  StyleFingerprint,
-  'tonality' | 'openingPatterns' | 'signaturePhrases'
->;
-
-export type QuantitativeStats = Pick<
-  StyleFingerprint,
-  'avgLength' | 'emojiDensity' | 'hashtagUsage'
->;
 
 export interface ReferenceSample {
   text: string;
