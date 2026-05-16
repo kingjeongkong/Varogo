@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 import bcrypt
 from jose import jwt
 from app.core.config import settings
@@ -11,7 +11,7 @@ def create_access_token(user_id: str, email: str) -> str:
   payload = {
     'sub': user_id,
     'email': email,
-    'exp': datetime.datetime.utcnow() + settings.jwt_expires_delta,
+    'exp': datetime.now(timezone.utc) + settings.jwt_expires_delta,
   }
   return jwt.encode(payload, settings.JWT_SECRET, algorithm=ALGORITHM)
 
