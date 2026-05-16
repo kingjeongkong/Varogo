@@ -1,0 +1,54 @@
+import datetime
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+  model_config = SettingsConfigDict(env_file='.env', extra='ignore')
+
+  # Database
+  DATABASE_URL: str
+
+  # JWT
+  JWT_SECRET: str
+  JWT_EXPIRES_IN: str = '15m'
+  REFRESH_TOKEN_EXPIRES_IN: int = 7
+
+  # App
+  FRONTEND_URL: str = 'http://localhost:3001'
+  COOKIE_DOMAIN: str | None = None
+  PORT: int = 3000
+  ENVIRONMENT: str = 'development'
+
+  # AI
+  GEMINI_API_KEY: str
+  OPENAI_API_KEY: str
+  OPENAI_MODEL: str = 'gpt-4o-mini'
+
+  # Threads
+  THREADS_APP_ID: str
+  THREADS_APP_SECRET: str
+  THREADS_REDIRECT_URI: str
+  THREADS_TOKEN_ENCRYPTION_KEY: str
+
+  @field_validator('THREADS_TOKEN_ENCRYPTION_KEY')
+  @classmethod
+  def validate_encryption_key(cls, v: str) -> str:
+    if len(v) != 64 or not all(c in '0123456789abcdefABCDEF' for c in v):
+      raise ValueError('THREADS_TOKEN_ENCRYPTION_KEY must be a 64-character hex string')
+    return v
+
+  @property
+  def jwt_expires_delta(self) -> datetime.timedelta:
+    unit = self.JWT_EXPIRES_IN[-1]
+    amount = int(self.JWT_EXPIRES_IN[:-1])
+    if unit == 'm':
+      return datetime.timedelta(minutes=amount)
+    elif unit == 'h':
+      return datetime.timedelta(hours=amount)
+    elif unit == 'd':
+      return datetime.timedelta(days=amount)
+    raise ValueError(f'Unsupported JWT_EXPIRES_IN unit: {unit!r}')
+
+
+settings = Settings()
