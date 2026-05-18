@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import CurrentUser, get_current_user
 from app.auth.schemas import LoginRequest, SignupRequest, UserResponse
 from app.auth.service import auth_service
 from app.core.config import settings
@@ -79,18 +79,18 @@ async def refresh(
 @router.post('/logout', status_code=200)
 async def logout(
   response: Response,
-  current_user: dict = Depends(get_current_user),
+  current_user: CurrentUser = Depends(get_current_user),
   session: AsyncSession = Depends(get_db),
 ) -> dict:
-  await auth_service.logout(current_user['sub'], session)
+  await auth_service.logout(current_user.sub, session)
   _clear_token_cookies(response)
   return {'ok': True}
 
 
 @router.get('/me', status_code=200, response_model=UserResponse)
 async def get_me(
-  current_user: dict = Depends(get_current_user),
+  current_user: CurrentUser = Depends(get_current_user),
   session: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-  user = await auth_service.get_me(current_user['sub'], session)
+  user = await auth_service.get_me(current_user.sub, session)
   return UserResponse.model_validate(user)

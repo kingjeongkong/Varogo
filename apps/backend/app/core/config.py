@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
   # JWT
   JWT_SECRET: str
-  JWT_EXPIRES_IN: str = '15m'
+  JWT_EXPIRES_MINUTES: int = 15
   REFRESH_TOKEN_EXPIRES_IN: int = 7
 
   # App
@@ -40,15 +40,7 @@ class Settings(BaseSettings):
 
   @property
   def jwt_expires_delta(self) -> datetime.timedelta:
-    unit = self.JWT_EXPIRES_IN[-1]
-    amount = int(self.JWT_EXPIRES_IN[:-1])
-    if unit == 'm':
-      return datetime.timedelta(minutes=amount)
-    elif unit == 'h':
-      return datetime.timedelta(hours=amount)
-    elif unit == 'd':
-      return datetime.timedelta(days=amount)
-    raise ValueError(f'Unsupported JWT_EXPIRES_IN unit: {unit!r}')
+    return datetime.timedelta(minutes=self.JWT_EXPIRES_MINUTES)
 
 
 settings = Settings()

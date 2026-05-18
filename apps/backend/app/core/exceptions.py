@@ -1,11 +1,7 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
-
-
-async def _http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-  return JSONResponse(status_code=exc.status_code, content={'detail': exc.detail})
 
 
 async def _validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -21,7 +17,6 @@ async def _generic_exception_handler(request: Request, exc: Exception) -> JSONRe
 
 
 def setup_exception_handlers(app: FastAPI) -> None:
-  app.add_exception_handler(HTTPException, _http_exception_handler)
   app.add_exception_handler(RequestValidationError, _validation_exception_handler)
   app.add_exception_handler(SQLAlchemyError, _sqlalchemy_exception_handler)
   app.add_exception_handler(Exception, _generic_exception_handler)
