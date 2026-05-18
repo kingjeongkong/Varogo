@@ -144,3 +144,111 @@ async def test_login_422_missing_email(client: AsyncClient):
     'password': 'securepass',
   })
   assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Refresh tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_refresh_200_returns_new_cookies(client: AsyncClient, db_session):
+  from tests.conftest import seed_test_user, TEST_USER
+  await seed_test_user(db_session)
+
+  login_res = await client.post('/auth/login', json=TEST_USER)
+  assert login_res.status_code == 200
+  refresh_token = login_res.cookies.get('refresh_token')
+  assert refresh_token is not None
+
+  response = await client.post(
+    '/auth/refresh',
+    cookies={'refresh_token': refresh_token},
+  )
+  assert response.status_code == 200
+  assert response.json() == {'ok': True}
+  assert 'access_token' in response.cookies
+  assert 'refresh_token' in response.cookies
+
+
+@pytest.mark.asyncio
+async def test_refresh_401_no_cookie(client: AsyncClient):
+  response = await client.post('/auth/refresh')
+  assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_401_invalid_token(client: AsyncClient):
+  response = await client.post(
+    '/auth/refresh',
+    cookies={'refresh_token': 'garbage_token_value'},
+  )
+  assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Logout tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_logout_200_then_refresh_401(client: AsyncClient, db_session):
+  from tests.conftest import seed_test_user, TEST_USER
+  await seed_test_user(db_session)
+
+  login_res = await client.post('/auth/login', json=TEST_USER)
+  assert login_res.status_code == 200
+  access_token = login_res.cookies.get('access_token')
+  refresh_token = login_res.cookies.get('refresh_token')
+  assert access_token is not None
+  assert refresh_token is not None
+
+  logout_res = await client.post(
+    '/auth/logout',
+    cookies={'access_token': access_token},
+  )
+  assert logout_res.status_code == 200
+  assert logout_res.json() == {'ok': True}
+
+  # Old refresh token should now be invalid
+  refresh_res = await client.post(
+    '/auth/refresh',
+    cookies={'refresh_token': refresh_token},
+  )
+  assert refresh_res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_logout_401_no_auth(client: AsyncClient):
+  response = await client.post('/auth/logout')
+  assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Me tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_me_200_returns_user(client: AsyncClient, db_session):
+  from tests.conftest import seed_test_user, TEST_USER
+  await seed_test_user(db_session)
+
+  login_res = await client.post('/auth/login', json=TEST_USER)
+  assert login_res.status_code == 200
+  access_token = login_res.cookies.get('access_token')
+  assert access_token is not None
+
+  response = await client.get(
+    '/auth/me',
+    cookies={'access_token': access_token},
+  )
+  assert response.status_code == 200
+  body = response.json()
+  assert body['email'] == TEST_USER['email']
+  assert 'id' in body
+  assert 'createdAt' in body
+  assert 'passwordHash' not in body
+
+
+@pytest.mark.asyncio
+async def test_me_401_no_auth(client: AsyncClient):
+  response = await client.get('/auth/me')
+  assert response.status_code == 401

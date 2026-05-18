@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -68,9 +68,14 @@ async def login(
 @router.post('/refresh', status_code=200)
 async def refresh(
   response: Response,
+  refresh_token: str | None = Cookie(None),
   session: AsyncSession = Depends(get_db),
-):
-  raise NotImplementedError
+) -> dict:
+  if refresh_token is None:
+    raise HTTPException(status_code=401, detail='Missing refresh token')
+  result = await auth_service.refresh(refresh_token, session)
+  _set_token_cookies(response, result['access_token'], result['refresh_token'])
+  return {'ok': True}
 
 
 @router.post('/logout', status_code=200)
@@ -78,8 +83,10 @@ async def logout(
   response: Response,
   current_user: dict = Depends(get_current_user),
   session: AsyncSession = Depends(get_db),
-):
-  raise NotImplementedError
+) -> dict:
+  await auth_service.logout(current_user['sub'], session)
+  _clear_token_cookies(response)
+  return {'ok': True}
 
 
 @router.get('/me', status_code=200, response_model=UserResponse)
@@ -87,4 +94,5 @@ async def get_me(
   current_user: dict = Depends(get_current_user),
   session: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-  raise NotImplementedError
+  user = await auth_service.get_me(current_user['sub'], session)
+  return UserResponse.model_validate(user)
