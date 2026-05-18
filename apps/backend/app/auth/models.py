@@ -16,12 +16,12 @@ class User(Base):
     )
 
     id: Mapped[str] = mapped_column(Text, primary_key=True)
-    email: Mapped[str] = mapped_column(Text, nullable=False)
-    name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    password_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3), nullable=False)
+    email: Mapped[str] = mapped_column(Text)
+    name: Mapped[Optional[str]] = mapped_column(Text)
+    password_hash: Mapped[Optional[str]] = mapped_column(Text)
+    avatar_url: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3))
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3))
 
     refresh_tokens: Mapped[list['RefreshToken']] = relationship(
         'RefreshToken',
@@ -39,14 +39,13 @@ class RefreshToken(Base):
     )
 
     id: Mapped[str] = mapped_column(Text, primary_key=True)
-    token_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    token_hash: Mapped[str] = mapped_column(Text)
     user_id: Mapped[str] = mapped_column(
         Text,
         ForeignKey('users.id', name='refresh_tokens_user_id_fkey', onupdate='CASCADE', ondelete='CASCADE'),
-        nullable=False,
     )
-    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3), nullable=False)
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(precision=3), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3))
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(precision=3))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3))
 
     user: Mapped['User'] = relationship('User', back_populates='refresh_tokens')
