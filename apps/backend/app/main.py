@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.exceptions import setup_exception_handlers
+from app.auth.router import router as auth_router
 
 
 @asynccontextmanager
@@ -24,6 +25,8 @@ app.add_middleware(
 )
 
 setup_exception_handlers(app)
+
+app.include_router(auth_router, prefix='/auth')
 
 
 @app.get('/health')
