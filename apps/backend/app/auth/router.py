@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import service as auth_service
 from app.auth.dependencies import CurrentUser, get_current_user
 from app.auth.schemas import LoginRequest, SignupRequest, UserResponse
-from app.auth.service import auth_service
 from app.core.config import settings
 from app.dependencies import get_db
 
