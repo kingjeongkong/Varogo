@@ -71,8 +71,6 @@ async def refresh(
   refresh_token: str | None = Cookie(None),
   session: AsyncSession = Depends(get_db),
 ) -> dict:
-  if refresh_token is None:
-    raise HTTPException(status_code=401, detail='Missing refresh token')
   result = await auth_service.refresh(refresh_token, session)
   _set_token_cookies(response, result['access_token'], result['refresh_token'])
   return {'ok': True}
