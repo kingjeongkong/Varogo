@@ -8,6 +8,6 @@ async def get_current_user(access_token: str | None = Cookie(None)) -> dict:
     raise HTTPException(status_code=401, detail='Not authenticated')
   try:
     payload = decode_access_token(access_token)
-  except JWTError:
+    return {'sub': payload['sub'], 'email': payload['email']}
+  except (JWTError, KeyError):
     raise HTTPException(status_code=401, detail='Invalid or expired token')
-  return {'sub': payload['sub'], 'email': payload['email']}
