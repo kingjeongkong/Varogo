@@ -1,4 +1,3 @@
-import pytest
 from httpx import AsyncClient
 
 
@@ -6,7 +5,6 @@ from httpx import AsyncClient
 # Signup tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
 async def test_signup_201_with_cookies(client: AsyncClient):
   response = await client.post('/auth/signup', json={
     'email': 'new@example.com',
@@ -18,7 +16,6 @@ async def test_signup_201_with_cookies(client: AsyncClient):
   assert 'refresh_token' in response.cookies
 
 
-@pytest.mark.asyncio
 async def test_signup_returns_user_response(client: AsyncClient):
   response = await client.post('/auth/signup', json={
     'email': 'new2@example.com',
@@ -31,7 +28,6 @@ async def test_signup_returns_user_response(client: AsyncClient):
   assert 'createdAt' in body
 
 
-@pytest.mark.asyncio
 async def test_signup_name_optional(client: AsyncClient):
   response = await client.post('/auth/signup', json={
     'email': 'noname@example.com',
@@ -42,7 +38,6 @@ async def test_signup_name_optional(client: AsyncClient):
   assert body.get('name') is None
 
 
-@pytest.mark.asyncio
 async def test_signup_with_name(client: AsyncClient):
   response = await client.post('/auth/signup', json={
     'email': 'named@example.com',
@@ -53,7 +48,6 @@ async def test_signup_with_name(client: AsyncClient):
   assert response.json()['name'] == 'Alice'
 
 
-@pytest.mark.asyncio
 async def test_signup_409_duplicate_email(client: AsyncClient):
   payload = {'email': 'dup@example.com', 'password': 'securepass'}
   first = await client.post('/auth/signup', json=payload)
@@ -63,7 +57,6 @@ async def test_signup_409_duplicate_email(client: AsyncClient):
   assert second.status_code == 409
 
 
-@pytest.mark.asyncio
 async def test_signup_422_invalid_email(client: AsyncClient):
   response = await client.post('/auth/signup', json={
     'email': 'not-an-email',
@@ -72,7 +65,6 @@ async def test_signup_422_invalid_email(client: AsyncClient):
   assert response.status_code == 422
 
 
-@pytest.mark.asyncio
 async def test_signup_422_password_too_short(client: AsyncClient):
   response = await client.post('/auth/signup', json={
     'email': 'short@example.com',
@@ -81,7 +73,6 @@ async def test_signup_422_password_too_short(client: AsyncClient):
   assert response.status_code == 422
 
 
-@pytest.mark.asyncio
 async def test_signup_422_missing_email(client: AsyncClient):
   response = await client.post('/auth/signup', json={
     'password': 'securepass',
@@ -93,7 +84,6 @@ async def test_signup_422_missing_email(client: AsyncClient):
 # Login tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
 async def test_login_200_with_cookies(client: AsyncClient, db_session):
   from tests.conftest import seed_test_user, TEST_USER
   await seed_test_user(db_session)
@@ -104,7 +94,6 @@ async def test_login_200_with_cookies(client: AsyncClient, db_session):
   assert 'refresh_token' in response.cookies
 
 
-@pytest.mark.asyncio
 async def test_login_returns_user_response(client: AsyncClient, db_session):
   from tests.conftest import seed_test_user, TEST_USER
   await seed_test_user(db_session)
@@ -117,7 +106,6 @@ async def test_login_returns_user_response(client: AsyncClient, db_session):
   assert 'createdAt' in body
 
 
-@pytest.mark.asyncio
 async def test_login_401_wrong_password(client: AsyncClient, db_session):
   from tests.conftest import seed_test_user, TEST_USER
   await seed_test_user(db_session)
@@ -129,7 +117,6 @@ async def test_login_401_wrong_password(client: AsyncClient, db_session):
   assert response.status_code == 401
 
 
-@pytest.mark.asyncio
 async def test_login_401_user_not_found(client: AsyncClient):
   response = await client.post('/auth/login', json={
     'email': 'ghost@example.com',
@@ -138,7 +125,6 @@ async def test_login_401_user_not_found(client: AsyncClient):
   assert response.status_code == 401
 
 
-@pytest.mark.asyncio
 async def test_login_422_missing_email(client: AsyncClient):
   response = await client.post('/auth/login', json={
     'password': 'securepass',
@@ -150,7 +136,6 @@ async def test_login_422_missing_email(client: AsyncClient):
 # Refresh tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
 async def test_refresh_200_returns_new_cookies(client: AsyncClient, db_session):
   from tests.conftest import seed_test_user, TEST_USER
   await seed_test_user(db_session)
@@ -170,13 +155,11 @@ async def test_refresh_200_returns_new_cookies(client: AsyncClient, db_session):
   assert 'refresh_token' in response.cookies
 
 
-@pytest.mark.asyncio
 async def test_refresh_401_no_cookie(client: AsyncClient):
   response = await client.post('/auth/refresh')
   assert response.status_code == 401
 
 
-@pytest.mark.asyncio
 async def test_refresh_401_invalid_token(client: AsyncClient):
   response = await client.post(
     '/auth/refresh',
@@ -189,7 +172,6 @@ async def test_refresh_401_invalid_token(client: AsyncClient):
 # Logout tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
 async def test_logout_200_then_refresh_401(client: AsyncClient, db_session):
   from tests.conftest import seed_test_user, TEST_USER
   await seed_test_user(db_session)
@@ -216,7 +198,6 @@ async def test_logout_200_then_refresh_401(client: AsyncClient, db_session):
   assert refresh_res.status_code == 401
 
 
-@pytest.mark.asyncio
 async def test_logout_401_no_auth(client: AsyncClient):
   response = await client.post('/auth/logout')
   assert response.status_code == 401
@@ -226,7 +207,6 @@ async def test_logout_401_no_auth(client: AsyncClient):
 # Me tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
 async def test_me_200_returns_user(client: AsyncClient, db_session):
   from tests.conftest import seed_test_user, TEST_USER
   await seed_test_user(db_session)
@@ -248,7 +228,6 @@ async def test_me_200_returns_user(client: AsyncClient, db_session):
   assert 'passwordHash' not in body
 
 
-@pytest.mark.asyncio
 async def test_me_401_no_auth(client: AsyncClient):
   response = await client.get('/auth/me')
   assert response.status_code == 401

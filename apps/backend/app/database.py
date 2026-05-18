@@ -5,7 +5,7 @@ from app.core.config import settings
 
 
 class Base(DeclarativeBase):
-    pass
+  pass
 
 
 _async_url = re.sub(r'^postgres(ql)?://', 'postgresql+asyncpg://', settings.DATABASE_URL, count=1)

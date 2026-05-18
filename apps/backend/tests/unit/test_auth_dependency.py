@@ -22,8 +22,8 @@ async def test_invalid_token_raises_401():
 async def test_valid_token_returns_payload():
   token = create_access_token(user_id='user-123', email='hello@example.com')
   result = await get_current_user(access_token=token)
-  assert result['sub'] == 'user-123'
-  assert result['email'] == 'hello@example.com'
+  assert result.sub == 'user-123'
+  assert result.email == 'hello@example.com'
 
 
 async def test_missing_claims_raises_401():

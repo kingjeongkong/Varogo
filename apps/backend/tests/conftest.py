@@ -19,6 +19,7 @@ from app.dependencies import get_db
 import re
 
 _test_async_url = re.sub(r'^postgres(ql)?://', 'postgresql+asyncpg://', settings.DATABASE_URL, count=1)
+_test_async_url = re.sub(r'\?schema=[^&]*(&|$)', '', _test_async_url).rstrip('?&')
 _test_engine = create_async_engine(_test_async_url, echo=False, poolclass=NullPool)
 _TestSessionLocal = async_sessionmaker(_test_engine, class_=AsyncSession, expire_on_commit=False)
 
