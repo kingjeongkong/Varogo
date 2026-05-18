@@ -40,7 +40,9 @@ class AuthService:
     await session.flush()
     await session.refresh(user)
 
-    return await self._issue_tokens(user.id, user.email, user, session)
+    result = await self._issue_tokens(user.id, user.email, user, session)
+    await session.commit()
+    return result
 
   async def login(
     self,
@@ -56,7 +58,9 @@ class AuthService:
     if not verify_password(password, user.password_hash):
       raise HTTPException(status_code=401, detail='Invalid credentials')
 
-    return await self._issue_tokens(user.id, user.email, user, session)
+    result = await self._issue_tokens(user.id, user.email, user, session)
+    await session.commit()
+    return result
 
   async def _issue_tokens(
     self,
@@ -67,7 +71,6 @@ class AuthService:
   ) -> dict:
     access_token = create_access_token(user_id, email)
     raw_refresh_token = await self._create_refresh_token(user_id, session)
-    await session.commit()
 
     user_response = UserResponse.model_validate(user)
     return {
