@@ -1,22 +1,12 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from pydantic.alias_generators import to_camel
 
 
 class SignupRequest(BaseModel):
   email: EmailStr
-  password: str
-  name: str | None = None
-
-  model_config = ConfigDict(
-    str_min_length=0,
-  )
-
-  def model_post_init(self, __context):
-    if len(self.password) < 8:
-      raise ValueError('password must be at least 8 characters')
-    if self.name is not None and len(self.name) > 100:
-      raise ValueError('name must be at most 100 characters')
+  password: str = Field(min_length=8)
+  name: str | None = Field(default=None, max_length=100)
 
 
 class LoginRequest(BaseModel):
