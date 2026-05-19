@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from app.database import Base
 from app.core.config import settings
 import app.auth.models  # noqa: F401 — registers ORM models with Base.metadata
+import app.products.models  # noqa: F401
 
 config = context.config
 

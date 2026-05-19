@@ -30,6 +30,8 @@ OTHER_USER = {'email': 'other@varogo.com', 'password': 'password123'}
 async def clear_database(session):
   await session.execute(text('TRUNCATE TABLE post_draft_options CASCADE'))
   await session.execute(text('TRUNCATE TABLE post_drafts CASCADE'))
+  await session.execute(text('TRUNCATE TABLE product_analyses CASCADE'))
+  await session.execute(text('TRUNCATE TABLE products CASCADE'))
   await session.execute(text('TRUNCATE TABLE voice_profiles CASCADE'))
   await session.execute(text('TRUNCATE TABLE threads_connections CASCADE'))
   await session.execute(text('TRUNCATE TABLE refresh_tokens CASCADE'))
@@ -149,7 +151,7 @@ async def seed_product(session, user_id: str):
       'alternatives': json.dumps([
         {'name': 'Manual', 'description': 'Spreadsheets', 'weaknessWeExploit': 'Slow'},
       ]),
-      'differentiators': json.dumps(['UI', 'Speed']),
+      'differentiators': ['UI', 'Speed'],
       'positioning_statement': 'Easiest for remote teams',
       'keywords': json.dumps({'primary': ['productivity'], 'secondary': []}),
       'created_at': now,
