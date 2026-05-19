@@ -1,58 +1,47 @@
 ---
 name: new-backend-test
-description: Use when writing tests for a NestJS service or controller. Covers unit tests with manual mocks and integration tests with real database.
+description: Use when writing tests for a FastAPI service or router. Covers unit tests with pytest-asyncio and integration tests with httpx AsyncClient + real database.
 ---
 
-# Skill: Write NestJS Tests
+# Skill: Write FastAPI Tests
 
 ## When to use
 
-When adding or updating tests for a NestJS service or controller.
+When adding or updating tests for a FastAPI service or router.
 
 ## Rules
 
 ### Two Test Types
-- **Unit tests** (`.spec.ts`): mock all dependencies, test business logic in isolation
-- **Integration tests** (`.integration.spec.ts`): real NestJS app + real database, test the HTTP contract
+- **Unit tests** (`tests/unit/`): test a single function/dependency in isolation, no DB or HTTP client
+- **Integration tests** (`tests/integration/`): real DB session + `httpx.AsyncClient`, test full HTTP contract
 
 ### Unit Test Setup
-- Use `Test.createTestingModule()` with manual mock objects — not `jest.mock()` at module level
-- Provide mocks via `{ provide: RealService, useValue: mockObject }`
-- Call `jest.clearAllMocks()` in `beforeEach`
-
-### Mock Structure
-- Mirror the real service interface — only mock the methods actually called
-- PrismaService: mock specific model methods (e.g., `{ product: { create: jest.fn(), findMany: jest.fn() } }`)
-- `$transaction`: mock as `jest.fn((cb) => cb(mockTx))` where `mockTx` has the same model mock structure
-- For services with many dependencies, group related mocks clearly
-
-### Unit Test Structure
-- Group by method with nested `describe` blocks
-- Each test: arrange (set mock return values) → act (call the method) → assert (verify calls and return)
-- Always test both happy path and error paths (especially `NotFoundException`, `ConflictException`)
-- Verify that mocks were called with expected arguments, not just that the method didn't throw
+- Plain `async def test_xxx()` functions — no class needed
+- No fixtures required for pure function tests
+- Do not add `@pytest.mark.asyncio` — `asyncio_mode = "auto"` is configured globally
 
 ### Integration Test Setup
-- Use real `PrismaModule` + `ConfigModule.forRoot()` — no mocks
-- Apply the same middleware as `main.ts`: `cookieParser()`, `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })`
-- `clearDatabase()` in `beforeEach` — ensures test isolation
-- `prisma.$disconnect()` and `app.close()` in `afterAll`
+- Use `client` fixture — provides an `httpx.AsyncClient` wired to the test DB
+- Use `db_session` fixture when you need to seed data before the request
+- `_auto_clear` fixture runs automatically — clears all tables before each test
+- Seed helpers and auth helpers are defined in `tests/conftest.py` — read it before writing tests
 
-### Integration Test Helpers
-- Use `db-helpers.ts` for: `clearDatabase()`, `seedTestUser()`, `getAuthCookie()`
-- When adding new models, update `clearDatabase()` to delete in reverse dependency order
+### Integration Test Structure
+- One test per HTTP scenario — do not chain multiple assertions in one test
+- Always test: 200/201 happy path, 401 when no auth cookie, 404 when resource not found
+- Ownership tests: seed two users, confirm user A cannot access user B's resources (expect 404)
+- Validation rejection: send malformed body, expect 422
 
 ### What to Test
-- **Services (unit)**: every public method, error paths, ownership checks, transaction behavior
-- **Controllers (integration)**: HTTP status codes, response shape matching Response DTO, validation rejection (400), auth rejection (401), not-found (404)
+- **Services (unit)**: every branch that raises HTTPException, business logic that transforms data
+- **Routers (integration)**: HTTP status codes, response body shape matching response schema (camelCase keys), auth enforcement, ownership enforcement
 
 ### What to Skip
-- Private methods — test them through public method behavior
-- Prisma queries themselves — that is Prisma's responsibility
-- Simple CRUD with no business logic — only if it adds no value
+- SQLAlchemy query internals — that is the ORM's responsibility
+- Private service methods — test through public method behavior
+- Simple pass-through endpoints with no logic
 
 ## References
-- `apps/backend/src/product/product.service.spec.ts` — canonical unit test (mock Prisma, test create/find/notFound)
-- `apps/backend/src/auth/auth.service.spec.ts` — unit test with multiple mocked dependencies
-- `apps/backend/src/auth/auth.controller.integration.spec.ts` — integration test (real DB, real HTTP, cookies)
-- `apps/backend/src/test/db-helpers.ts` — test utilities (clearDatabase, seedTestUser, getAuthCookie)
+- `apps/backend/tests/conftest.py` — all fixtures and seed helpers
+- `apps/backend/tests/integration/test_auth.py` — canonical integration test (signup, login, refresh, logout, me)
+- `apps/backend/tests/unit/test_auth_dependency.py` — canonical unit test (HTTPException paths, valid token)

@@ -6,11 +6,11 @@ Product analysis → Marketing strategy → Post draft generation → Threads pu
 ## Tech Stack
 
 - **Frontend**: Next.js + TypeScript → Vercel
-- **Backend**: NestJS + TypeScript → EC2 + Docker
+- **Backend**: FastAPI + Python → EC2 + Docker
 - **Database**: PostgreSQL → AWS RDS / Local Docker
-- **ORM**: Prisma
-- **Auth**: Passport.js + JWT
-- **AI**: Gemini API
+- **ORM**: SQLAlchemy (async) + Alembic
+- **Auth**: python-jose + JWT (httpOnly cookie)
+- **AI**: Gemini API + OpenAI API
 - **Payments**: Stripe
 - **CI/CD**: GitHub Actions
 - **Domain**: varo-go.com (Cloudflare)
@@ -20,7 +20,9 @@ Product analysis → Marketing strategy → Post draft generation → Threads pu
 ```
 /
 ├── apps/
-│   ├── backend/     # NestJS API (port 3000)
+│   ├── backend/     # FastAPI API (port 3000)
+│   │   ├── app/     # FastAPI application
+│   │   └── src/     # Legacy NestJS (migration in progress)
 │   └── frontend/    # Next.js (port 3001)
 ├── CLAUDE.md
 └── .claude/
@@ -30,11 +32,11 @@ Product analysis → Marketing strategy → Post draft generation → Threads pu
 
 ```bash
 # Backend (apps/backend/)
-pnpm start:dev       # Dev server (localhost:3000)
-pnpm test            # Run tests
-pnpm test:watch      # Test watch mode
-pnpm lint            # ESLint
-pnpm build           # Production build
+poetry run uvicorn app.main:app --reload --port 3000   # Dev server (localhost:3000)
+poetry run pytest                                       # Run tests
+poetry run pytest -k "test_name"                       # Run specific test
+poetry run alembic upgrade head                        # Apply DB migrations
+poetry run alembic revision --autogenerate -m "desc"   # Create migration
 
 # Frontend (apps/frontend/)
 pnpm dev             # Dev server (localhost:3001) — Turbopack
@@ -42,7 +44,6 @@ pnpm build           # Production build
 pnpm lint            # ESLint
 
 # Root (workspace)
-pnpm dev:backend     # Start backend
 pnpm dev:frontend    # Start frontend
 
 # Docker (local development)
@@ -52,21 +53,28 @@ docker compose down             # Stop
 
 ## Local Dev Setup
 
-- **Package manager**: pnpm 10 (workspaces)
-- **Backend build**: SWC (`nest-cli.json` builder: swc)
+- **Frontend package manager**: pnpm 10
+- **Backend package manager**: Poetry (Python 3.12)
 - **Frontend build**: Turbopack (`next dev --turbopack`)
 - **DB port**: 5432 — Docker container only (local postgresql@14 disabled)
-- **Prisma**: run `npx prisma generate` after schema changes or `pnpm install` / `node_modules` reinstall
+- **Alembic**: run `alembic upgrade head` after new migrations
 
 ## Coding Conventions
 
-- **File names**: kebab-case (`auth.service.ts`, `use-create-product.ts`)
-- **Component files**: PascalCase (`ProductCard.tsx`, `Header.tsx`)
-- **Class names**: PascalCase (`AuthService`, `ProductController`)
-- **Variables/functions**: camelCase (`userId`, `createProduct`)
-- **Constants**: UPPER_SNAKE_CASE (`JWT_SECRET`)
+### Backend (Python)
+- **File names**: snake_case (`auth_service.py`, `user_model.py`)
+- **Class names**: PascalCase (`AuthService`, `UserResponse`)
+- **Functions/variables**: snake_case (`user_id`, `create_product`)
+- **Constants**: UPPER_SNAKE_CASE (`JWT_SECRET`, `ALGORITHM`)
 - **Indentation**: 2 spaces
+
+### Frontend (TypeScript)
+- **File names**: kebab-case (`use-create-product.ts`)
+- **Component files**: PascalCase (`ProductCard.tsx`, `Header.tsx`)
+- **Class names**: PascalCase
+- **Variables/functions**: camelCase (`userId`, `createProduct`)
 - **Quotes**: single quote
+- **Indentation**: 2 spaces
 
 ## Environment Variables
 
@@ -78,25 +86,29 @@ docker compose down             # Stop
 
 Before finishing any task:
 
-1. Type check: `tsc --noEmit` (in the app you modified) — must have 0 errors
-2. Lint: `pnpm lint` (in the app you modified) — fix all errors before proceeding
-3. Tests: `pnpm test` (in the app you modified) — all tests must pass
+**Backend (FastAPI)**:
+1. Tests: `poetry run pytest` (in `apps/backend/`) — all tests must pass
 
-After completing a service, controller, form component, or hook with logic:
+**Frontend (Next.js)**:
+1. Type check: `tsc --noEmit` — must have 0 errors
+2. Lint: `pnpm lint` — fix all errors before proceeding
+3. Tests: `pnpm test` — all tests must pass
+
+After completing a service, router, form component, or hook with logic:
 invoke the test-writer agent to generate tests, then confirm tests pass.
 
-Skip test-writer for: DTOs, Prisma schema changes, config files, decorators,
+Skip test-writer for: Pydantic schemas (request-only), Alembic migrations, config files,
 simple UI components that only render props.
 
 ## Skills
 
 Before starting work, read the relevant skill:
 
-- New API endpoint or NestJS module → `.claude/skills/new-endpoint/`
+- New API endpoint or FastAPI router → `.claude/skills/new-endpoint/`
 - New frontend feature module → `.claude/skills/new-feature/`
 - New Next.js page → `.claude/skills/new-page/`
 - New form component → `.claude/skills/new-form/`
-- New or modified Prisma model → `.claude/skills/new-prisma-model/`
+- New or modified SQLAlchemy model → `.claude/skills/new-prisma-model/` (skill name은 레거시, 내용은 SQLAlchemy 기준)
 - Writing backend tests → `.claude/skills/new-backend-test/`
 - Writing frontend tests → `.claude/skills/new-frontend-test/`
 - Writing frontend UI → `.claude/skills/shared-ui/`

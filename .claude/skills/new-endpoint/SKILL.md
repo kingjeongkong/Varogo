@@ -1,53 +1,44 @@
 ---
 name: new-endpoint
-description: Use when adding a new API route to an existing NestJS module, or creating a new NestJS module with endpoints. Covers controller, DTO, service, and module registration patterns.
+description: Use when adding a new API route to an existing FastAPI router, or creating a new FastAPI router module. Covers router, schema, service, and router registration patterns.
 ---
 
-# Skill: Add NestJS API Endpoint
+# Skill: Add FastAPI Endpoint
 
 ## When to use
 
-When adding a new route to an existing NestJS module, or creating a new module with endpoints.
+When adding a new route to an existing FastAPI router, or creating a new router module with endpoints.
 
 ## Rules
 
-### Controller
-- Controllers handle routing and `toXxxResponse()` transformation only — zero business logic
-- Auth: global APP_GUARD protects all endpoints by default (secure by default). Use `@Public()` for public endpoints only. **Never use `@UseGuards(AuthGuard)` — it is redundant with the global guard**
-- User identity: use `@CurrentUser()` decorator to extract `JwtPayload`. Access user ID via `user.sub`
-- UUID path params: always use `ParseUUIDPipe`
-- Body params: validated via DTO classes with class-validator decorators
-- Use `@HttpCode()` when the default status code does not match (e.g., POST login returning 200 instead of 201)
+### Router
+- Routers handle routing and response schema transformation only — zero business logic
+- There is no global auth guard — every protected endpoint must explicitly declare the `get_current_user` dependency
+- Register the router in `app/main.py` with `app.include_router`
 
-### Response DTO
-- Define an interface (`XxxResponse`) and a pure transformer function (`toXxxResponse()`) in `dto/xxx.response.ts`
-- Controllers call the transformer before returning — this decouples the Prisma model from the API contract
-- Never return raw Prisma objects directly from controllers
+### Response Schema
+- Response schemas must produce camelCase JSON — check `app/auth/schemas.py` for the pattern
+- Never return raw ORM objects from routers — always return a response schema
 
-### Input DTO
-- Define in `dto/` directory with class-validator decorators on every field (`@IsString()`, `@IsEmail()`, `@IsOptional()`, etc.)
-- Never accept raw `any` or unvalidated objects
-- Global `ValidationPipe` with `whitelist: true` + `forbidNonWhitelisted: true` strips unknown fields automatically
+### Request Schema
+- Request schemas validate input automatically — invalid input returns 422
+- Check `app/auth/schemas.py` for field constraint patterns
 
 ### Service
-- All business logic, Prisma calls, and error throwing lives in services only
-- Ownership check: `findFirst({ where: { id, userId } })` + `NotFoundException` if null. Never use `findUniqueOrThrow`
-- Errors: throw `HttpException` subclasses only (`NotFoundException`, `ConflictException`, `UnauthorizedException`, etc.). Never throw plain `Error`
-- Multi-table writes: wrap in `prisma.$transaction()`. Never split across separate Prisma calls
-- Use Prisma Client exclusively — no raw SQL
-
-### Module
-- New modules must be registered in `AppModule` imports
-- Export services that other modules need to consume
+- Services are module-level async functions — not classes
+- All business logic and DB queries live in service functions, not in routers
+- Services receive `AsyncSession` as a parameter — never import the session factory directly
+- Ownership check: query by both resource ID and user ID — raise 404 if not found
+- Errors: raise `HTTPException` only — never raise plain exceptions
+- Multi-step writes: flush to get generated IDs within a transaction, commit once at the end of the public function
 
 ### API Contract
-- When adding a new endpoint, also add/update the corresponding Response type in the frontend `apps/frontend/src/lib/types.ts`
+- When adding a new endpoint, also add/update the corresponding Response type in `apps/frontend/src/lib/types.ts`
 
 ## References
-- `apps/backend/src/product/product.controller.ts` — controller pattern
-- `apps/backend/src/product/dto/product.response.ts` — Response DTO (interface + transformer)
-- `apps/backend/src/product/dto/create-product.dto.ts` — Input DTO with class-validator
-- `apps/backend/src/product/product.service.ts` — service pattern (ownership check, $transaction, HttpException)
-- `apps/backend/src/auth/decorators/public.decorator.ts` — @Public() decorator
-- `apps/backend/src/auth/decorators/current-user.decorator.ts` — @CurrentUser() decorator
-- `apps/backend/src/app.module.ts` — module registration
+- `apps/backend/app/auth/router.py` — router pattern (Depends, response_model, cookie auth)
+- `apps/backend/app/auth/schemas.py` — request + response schema patterns
+- `apps/backend/app/auth/service.py` — service pattern (select, scalar_one_or_none, HTTPException, commit)
+- `apps/backend/app/auth/dependencies.py` — get_current_user dependency
+- `apps/backend/app/auth/models.py` — ORM model pattern
+- `apps/backend/app/main.py` — router registration
