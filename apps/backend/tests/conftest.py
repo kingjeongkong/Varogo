@@ -151,7 +151,7 @@ async def seed_product(session, user_id: str):
       'alternatives': json.dumps([
         {'name': 'Manual', 'description': 'Spreadsheets', 'weaknessWeExploit': 'Slow'},
       ]),
-      'differentiators': json.dumps(['UI', 'Speed']),
+      'differentiators': ['UI', 'Speed'],
       'positioning_statement': 'Easiest for remote teams',
       'keywords': json.dumps({'primary': ['productivity'], 'secondary': []}),
       'created_at': now,
