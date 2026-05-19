@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.core.exceptions import setup_exception_handlers
 from app.auth.router import router as auth_router
 from app.llm.openai import _client as openai_client
+import app.products.models  # noqa: F401 — registers ORM models with Base.metadata
 
 
 @asynccontextmanager
