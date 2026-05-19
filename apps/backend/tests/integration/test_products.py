@@ -78,6 +78,9 @@ async def test_get_product_200_with_analysis(client: AsyncClient, db_session):
   assert 'analysis' in body
   assert body['analysis'] is not None
   assert 'category' in body['analysis']
+  assert 'jobToBeDone' in body['analysis']
+  assert 'targetAudience' in body['analysis']
+  assert 'definition' in body['analysis']['targetAudience']
 
 
 async def test_get_product_401_no_auth(client: AsyncClient, db_session):
