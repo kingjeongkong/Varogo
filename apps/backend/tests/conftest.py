@@ -8,9 +8,20 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import text
+from sqlalchemy.pool import NullPool
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.database import AsyncSessionLocal, engine
 from app.core.security import hash_password
+from app.core.config import settings
 from app.main import app
+from app.dependencies import get_db
+
+import re
+
+_test_async_url = re.sub(r'^postgres(ql)?://', 'postgresql+asyncpg://', settings.DATABASE_URL, count=1)
+_test_async_url = re.sub(r'\?schema=[^&]*(&|$)', '', _test_async_url).rstrip('?&')
+_test_engine = create_async_engine(_test_async_url, echo=False, poolclass=NullPool)
+_TestSessionLocal = async_sessionmaker(_test_engine, class_=AsyncSession, expire_on_commit=False)
 
 TEST_USER = {'email': 'test@varogo.com', 'password': 'password123'}
 OTHER_USER = {'email': 'other@varogo.com', 'password': 'password123'}
@@ -27,27 +38,32 @@ async def clear_database(session):
   await session.commit()
 
 
-@pytest_asyncio.fixture(scope='session')
+@pytest_asyncio.fixture
 async def db_session():
-  async with AsyncSessionLocal() as session:
+  async with _TestSessionLocal() as session:
     yield session
 
 
-@pytest.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def _auto_clear(db_session):
   await clear_database(db_session)
   yield
   await db_session.rollback()
 
 
-@pytest.fixture
-async def client():
+@pytest_asyncio.fixture
+async def client(db_session):
+  async def override_get_db():
+    yield db_session
+
+  app.dependency_overrides[get_db] = override_get_db
   async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as c:
     yield c
+  app.dependency_overrides.clear()
 
 
 async def seed_test_user(session):
-  now = datetime.now(timezone.utc)
+  now = datetime.utcnow()
   result = await session.execute(
     text(
       'INSERT INTO users (id, email, password_hash, created_at, updated_at) '
@@ -67,7 +83,7 @@ async def seed_test_user(session):
 
 
 async def seed_other_user(session):
-  now = datetime.now(timezone.utc)
+  now = datetime.utcnow()
   result = await session.execute(
     text(
       'INSERT INTO users (id, email, password_hash, created_at, updated_at) '
@@ -87,7 +103,7 @@ async def seed_other_user(session):
 
 
 async def seed_product(session, user_id: str):
-  now = datetime.now(timezone.utc)
+  now = datetime.utcnow()
   product_id = str(uuid.uuid4())
   product_result = await session.execute(
     text(
@@ -146,7 +162,7 @@ async def seed_product(session, user_id: str):
 
 
 async def seed_voice_profile(session, user_id: str):
-  now = datetime.now(timezone.utc)
+  now = datetime.utcnow()
   result = await session.execute(
     text(
       'INSERT INTO voice_profiles (id, user_id, source, sample_count, style_fingerprint, reference_samples, created_at, updated_at) '
@@ -175,7 +191,7 @@ async def seed_voice_profile(session, user_id: str):
 
 
 async def seed_threads_connection(session, user_id: str):
-  now = datetime.now(timezone.utc)
+  now = datetime.utcnow()
   result = await session.execute(
     text(
       'INSERT INTO threads_connections '
@@ -189,7 +205,7 @@ async def seed_threads_connection(session, user_id: str):
       'threads_user_id': 'test-threads-user-id',
       'username': 'testuser',
       'access_token_encrypted': 'placeholder-not-decrypted-in-tests',
-      'token_expires_at': datetime.now(timezone.utc) + timedelta(days=60),
+      'token_expires_at': datetime.utcnow() + timedelta(days=60),
       'created_at': now,
       'updated_at': now,
     },

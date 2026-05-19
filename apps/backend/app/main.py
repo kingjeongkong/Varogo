@@ -3,12 +3,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.exceptions import setup_exception_handlers
+from app.auth.router import router as auth_router
+from app.llm.openai import _client as openai_client
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
   yield
-  from app.llm.openai import _client as openai_client
   if openai_client is not None:
     await openai_client.aclose()
 
@@ -24,6 +25,8 @@ app.add_middleware(
 )
 
 setup_exception_handlers(app)
+
+app.include_router(auth_router, prefix='/auth')
 
 
 @app.get('/health')
