@@ -33,6 +33,12 @@ class User(Base):
     back_populates='user',
     cascade='all, delete-orphan',
   )
+  threads_connection: Mapped[Optional['ThreadsConnection']] = relationship(
+    'ThreadsConnection',
+    back_populates='user',
+    cascade='all, delete-orphan',
+    uselist=False,
+  )
 
 
 class RefreshToken(Base):
