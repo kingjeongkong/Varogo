@@ -5,9 +5,11 @@ from app.core.config import settings
 from app.core.exceptions import setup_exception_handlers
 from app.auth.router import router as auth_router
 from app.products.router import router as products_router
+from app.threads.router import router as threads_router
 from app.llm.openai import _client as openai_client
 import app.auth.models  # noqa: F401
 import app.products.models  # noqa: F401
+import app.threads.models  # noqa: F401
 
 
 @asynccontextmanager
@@ -31,6 +33,7 @@ setup_exception_handlers(app)
 
 app.include_router(auth_router, prefix='/auth')
 app.include_router(products_router, prefix='/products')
+app.include_router(threads_router, prefix='/threads')
 
 
 @app.get('/health')
