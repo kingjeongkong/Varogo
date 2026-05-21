@@ -217,7 +217,7 @@ async def seed_threads_connection(session, user_id: str):
 
 
 async def seed_post_draft(session, product_id: str):
-  now = datetime.utcnow()
+  now = datetime.now(timezone.utc).replace(tzinfo=None)
   draft_id = str(uuid.uuid4())
   draft_result = await session.execute(
     text(

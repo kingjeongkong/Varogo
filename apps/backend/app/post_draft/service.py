@@ -199,6 +199,7 @@ async def update_draft(
   if 'today_input' in dto:
     data['today_input'] = dto['today_input']
 
+  # null selected_option_id is intentionally ignored — deselection is not supported.
   if 'selected_option_id' in dto and dto['selected_option_id'] is not None:
     data['selected_option_id'] = dto['selected_option_id']
     if draft.body == '':
@@ -256,6 +257,10 @@ async def publish_draft(
       detail='This post is already being published or has been published. Please refresh.',
     )
   await session.commit()
+
+  # status='published' is now committed. If this process crashes before
+  # metadata is written below, the draft stays published with no threadsMediaId.
+  # Reconcile out-of-band via monitoring; do NOT roll status back here.
 
   # 4. Call Threads API
   try:
