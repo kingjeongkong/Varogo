@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -11,6 +12,8 @@ from app.post_draft.models import PostDraft, PostDraftOption
 from app.products.models import Product, ProductAnalysis
 from app.threads.service import publish_to_threads
 from app.voice_profile.models import VoiceProfile
+
+logger = logging.getLogger(__name__)
 
 
 async def list_drafts(
@@ -114,7 +117,7 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
   draft = PostDraft(
     id=str(uuid4()),
     product_id=product.id,
-    today_input=dto.get('today_input') or None,
+    today_input=dto.get('today_input'),
     body='',
     status='draft',
     created_at=now,
@@ -264,7 +267,7 @@ async def publish_draft(
       )
       await session.commit()
     except Exception:
-      pass
+      logger.error('Failed to revert draft status after Threads error', exc_info=True)
     raise
 
   # 5. Update metadata
