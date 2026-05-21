@@ -143,7 +143,10 @@ async def evaluate(
         response_schema=RESPONSE_SCHEMA,
       ),
     )
-    parsed_raw = json.loads(result.text or '{}')
+    raw = result.text
+    if not raw:
+      raise HTTPException(status_code=500, detail='Voice evaluation failed')
+    parsed_raw = json.loads(raw)
   except Exception:
     raise HTTPException(status_code=500, detail='Voice evaluation failed')
 
