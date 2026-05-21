@@ -36,7 +36,11 @@ class Product(Base):
     uselist=False,
     cascade='all, delete-orphan',
   )
-  # posts relationship will be added in Phase 5 when PostDraft model is implemented
+  post_drafts: Mapped[list['PostDraft']] = relationship(
+    'PostDraft',
+    back_populates='product',
+    cascade='all, delete-orphan',
+  )
 
 
 class ProductAnalysis(Base):
