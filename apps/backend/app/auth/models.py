@@ -39,6 +39,12 @@ class User(Base):
     cascade='all, delete-orphan',
     uselist=False,
   )
+  voice_profile: Mapped[Optional['VoiceProfile']] = relationship(
+    'VoiceProfile',
+    back_populates='user',
+    cascade='all, delete-orphan',
+    uselist=False,
+  )
 
 
 class RefreshToken(Base):
