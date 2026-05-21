@@ -74,7 +74,7 @@ class PostDraftResponse(BaseModel):
   product_id: str
   today_input: Optional[str] = None
   body: str
-  status: str
+  status: Literal['draft', 'published']
   selected_option_id: Optional[str] = None
   published_at: Optional[datetime] = None
   threads_media_id: Optional[str] = None
@@ -93,7 +93,7 @@ class PostDraftListResponse(BaseModel):
   )
 
   items: list[PostDraftResponse]
-  next_offset: Optional[int]
+  next_offset: Optional[int] = None
   total: int
 
 
