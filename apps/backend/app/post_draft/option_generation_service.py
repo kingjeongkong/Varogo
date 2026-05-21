@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 OPTION_COUNT = 3
 REFERENCE_SAMPLE_LIMIT = 5
-DEFAULT_MODEL = 'gpt-4o-mini'
 
 _RESPONSE_SCHEMA = {
   'type': 'json_schema',
@@ -298,7 +297,7 @@ async def _generate_options(prompt: str, model: str) -> list[dict]:
   except HTTPException:
     raise
   except Exception:
-    logger.error('OpenAI option generation failed')
+    logger.error('OpenAI option generation failed', exc_info=True)
     raise HTTPException(status_code=500, detail='Option generation failed')
 
 
@@ -326,7 +325,7 @@ async def _regenerate_failed_options(
   except HTTPException:
     raise
   except Exception:
-    logger.error('OpenAI option retry generation failed')
+    logger.error('OpenAI option retry generation failed', exc_info=True)
     raise HTTPException(status_code=500, detail='Option retry generation failed')
 
 
