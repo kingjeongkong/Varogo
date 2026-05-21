@@ -216,6 +216,52 @@ async def seed_threads_connection(session, user_id: str):
   return result.mappings().one()
 
 
+async def seed_post_draft(session, product_id: str):
+  now = datetime.utcnow()
+  draft_id = str(uuid.uuid4())
+  draft_result = await session.execute(
+    text(
+      'INSERT INTO post_drafts (id, product_id, today_input, selected_option_id, body, status, created_at, updated_at) '
+      'VALUES (:id, :product_id, :today_input, :selected_option_id, :body, :status, :created_at, :updated_at) '
+      'RETURNING id, product_id, status, created_at'
+    ),
+    {
+      'id': draft_id,
+      'product_id': product_id,
+      'today_input': None,
+      'selected_option_id': None,
+      'body': '',
+      'status': 'draft',
+      'created_at': now,
+      'updated_at': now,
+    },
+  )
+  await session.flush()
+
+  opt_id_1 = str(uuid.uuid4())
+  opt_id_2 = str(uuid.uuid4())
+  for (opt_id, text_val, angle) in [
+    (opt_id_1, 'Option 1 text', 'Story'),
+    (opt_id_2, 'Option 2 text', 'Contrarian'),
+  ]:
+    await session.execute(
+      text(
+        'INSERT INTO post_draft_options (id, post_draft_id, text, angle_label, created_at) '
+        'VALUES (:id, :post_draft_id, :text, :angle_label, :created_at)'
+      ),
+      {
+        'id': opt_id,
+        'post_draft_id': draft_id,
+        'text': text_val,
+        'angle_label': angle,
+        'created_at': now,
+      },
+    )
+  await session.commit()
+  draft_row = draft_result.mappings().one()
+  return draft_row, [opt_id_1, opt_id_2]
+
+
 async def get_auth_headers(client: AsyncClient) -> dict:
   response = await client.post('/auth/login', json=TEST_USER)
   assert response.status_code == 200, f'Login failed: {response.text}'
