@@ -12,6 +12,7 @@ import app.auth.models  # noqa: F401
 import app.products.models  # noqa: F401
 import app.threads.models  # noqa: F401
 import app.voice_profile.models  # noqa: F401
+import app.post_draft.models  # noqa: F401
 
 
 @asynccontextmanager
