@@ -10,7 +10,7 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy import text
 from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from app.database import AsyncSessionLocal, engine
+from app.database import AsyncSessionLocal, Base, engine
 from app.core.security import hash_password
 from app.core.config import settings
 from app.main import app
@@ -35,9 +35,20 @@ async def clear_database(session):
   await session.execute(text('TRUNCATE TABLE voice_profiles CASCADE'))
   await session.execute(text('TRUNCATE TABLE threads_connections CASCADE'))
   await session.execute(text('TRUNCATE TABLE refresh_tokens CASCADE'))
-  await session.execute(text('TRUNCATE TABLE accounts CASCADE'))
   await session.execute(text('TRUNCATE TABLE users CASCADE'))
   await session.commit()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def event_loop_policy():
+  import asyncio
+  return asyncio.DefaultEventLoopPolicy()
+
+
+@pytest_asyncio.fixture(scope='session', autouse=True)
+async def create_tables():
+  async with _test_engine.begin() as conn:
+    await conn.run_sync(Base.metadata.create_all)
 
 
 @pytest_asyncio.fixture
