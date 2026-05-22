@@ -20,7 +20,8 @@ jobs:
           script: |
             set -euo pipefail
             cd ~/Varogo
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             docker build -t varogo-backend -f apps/backend/Dockerfile .
             if ! docker run --rm --env-file apps/backend/.env varogo-backend alembic upgrade head; then
               echo "::error::alembic upgrade head failed - aborting before container swap. Previous container still running on old image."
