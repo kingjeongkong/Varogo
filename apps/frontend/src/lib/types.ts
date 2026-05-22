@@ -82,11 +82,8 @@ export interface PublishThreadsResponse {
 
 export interface StyleFingerprint {
   tonality: string;
-  avgLength: number;
   openingPatterns: string[];
   signaturePhrases: string[];
-  emojiDensity: number;
-  hashtagUsage: number;
 }
 
 export interface ReferenceSample {

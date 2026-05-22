@@ -5,12 +5,22 @@ from pydantic.alias_generators import to_camel
 
 
 class CurrentTractionSchema(BaseModel):
+  model_config = ConfigDict(
+    alias_generator=to_camel,
+    populate_by_name=True,
+  )
+
   users: Literal['none', 'under-100', '100-1000', '1000-plus']
   revenue: Literal['none', 'under-1k', '1k-10k', '10k-plus']
   social_proof: Optional[str] = Field(default=None, max_length=500)
 
 
 class CreateProductRequest(BaseModel):
+  model_config = ConfigDict(
+    alias_generator=to_camel,
+    populate_by_name=True,
+  )
+
   name: str = Field(max_length=200)
   url: AnyHttpUrl
   one_liner: str = Field(max_length=300)
@@ -89,7 +99,7 @@ class ProductResponse(BaseModel):
   url: str
   one_liner: str
   stage: str
-  current_traction: dict
+  current_traction: CurrentTractionSchema
   additional_info: Optional[str] = None
   created_at: datetime
   updated_at: datetime

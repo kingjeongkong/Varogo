@@ -20,7 +20,7 @@ async def import_from_threads(
   return VoiceProfileResponse.model_validate(profile)
 
 
-@router.get('/', response_model=Optional[VoiceProfileResponse])
+@router.get('', response_model=Optional[VoiceProfileResponse])
 async def find_one(
   current_user: CurrentUser = Depends(get_current_user),
   session: AsyncSession = Depends(get_db),

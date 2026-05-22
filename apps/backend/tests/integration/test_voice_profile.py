@@ -98,11 +98,11 @@ async def test_import_upsert(client: AsyncClient, db_session):
 
 
 # ---------------------------------------------------------------------------
-# GET /voice-profile/
+# GET /voice-profile
 # ---------------------------------------------------------------------------
 
 async def test_get_no_auth(client: AsyncClient):
-  response = await client.get('/voice-profile/')
+  response = await client.get('/voice-profile')
 
   assert response.status_code == 401
 
@@ -111,7 +111,7 @@ async def test_get_not_found(client: AsyncClient, db_session):
   await seed_test_user(db_session)
   headers = await get_auth_headers(client)
 
-  response = await client.get('/voice-profile/', headers=headers)
+  response = await client.get('/voice-profile', headers=headers)
 
   assert response.status_code == 200
   assert response.json() is None
@@ -122,7 +122,7 @@ async def test_get_success(client: AsyncClient, db_session):
   await seed_voice_profile(db_session, user['id'])
   headers = await get_auth_headers(client)
 
-  response = await client.get('/voice-profile/', headers=headers)
+  response = await client.get('/voice-profile', headers=headers)
 
   assert response.status_code == 200
   body = response.json()

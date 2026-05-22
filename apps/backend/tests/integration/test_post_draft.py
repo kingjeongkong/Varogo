@@ -34,7 +34,7 @@ MOCK_PUBLISH_RETURN = {
 
 @pytest.mark.asyncio
 async def test_list_no_auth(client):
-  response = await client.get('/post-drafts?product_id=00000000-0000-0000-0000-000000000000&status=draft')
+  response = await client.get('/post-drafts?productId=00000000-0000-0000-0000-000000000000&status=draft')
 
   assert response.status_code == 401
 
@@ -48,7 +48,7 @@ async def test_list_success(client, db_session):
   headers = await get_auth_headers(client)
 
   response = await client.get(
-    f'/post-drafts?product_id={product_row["id"]}&status=draft',
+    f'/post-drafts?productId={product_row["id"]}&status=draft',
     headers=headers,
   )
 

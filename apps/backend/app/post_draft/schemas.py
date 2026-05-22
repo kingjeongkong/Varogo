@@ -13,11 +13,15 @@ from app.post_draft.models import PostDraft
 # ---------------------------------------------------------------------------
 
 class CreatePostDraftRequest(BaseModel):
+  model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
   product_id: str = Field(..., pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
   today_input: Optional[str] = Field(default=None, max_length=500)
 
 
 class UpdatePostDraftRequest(BaseModel):
+  model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
   selected_option_id: Optional[str] = Field(
     default=None,
     pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
@@ -38,12 +42,12 @@ class ListPostDraftsQuery(BaseModel):
   @classmethod
   def as_query(
     cls,
-    product_id: str = Query(...),
+    productId: str = Query(...),
     status: Literal['draft', 'published'] = Query(...),
     limit: int = Query(default=20, ge=1, le=50),
     offset: int = Query(default=0, ge=0),
   ) -> 'ListPostDraftsQuery':
-    return cls(product_id=product_id, status=status, limit=limit, offset=offset)
+    return cls(product_id=productId, status=status, limit=limit, offset=offset)
 
 
 # ---------------------------------------------------------------------------
