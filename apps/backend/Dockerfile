@@ -1,34 +1,26 @@
-FROM node:20-alpine AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN pip install poetry==1.8.3
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/backend/package.json ./apps/backend/
+COPY apps/backend/pyproject.toml apps/backend/poetry.lock ./
 
-RUN pnpm install --frozen-lockfile --filter backend
+RUN poetry config virtualenvs.in-project true && \
+    poetry install --only=main --no-root
 
-COPY apps/backend ./apps/backend
-
-RUN pnpm --filter backend build
-
-FROM node:20-alpine AS production
+FROM python:3.12-slim AS production
 
 WORKDIR /app
 
-RUN npm install -g pnpm
+COPY --from=builder /app/.venv ./.venv
 
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/apps/backend/package.json ./apps/backend/
+COPY apps/backend/app ./app
+COPY apps/backend/alembic ./alembic
+COPY apps/backend/alembic.ini ./alembic.ini
 
-RUN pnpm install --prod --frozen-lockfile --filter backend
-
-COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
-
-RUN cd apps/backend && pnpm exec prisma generate
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 3000
 
-CMD ["node", "apps/backend/dist/main"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000"]

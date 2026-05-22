@@ -106,11 +106,8 @@ function mockUseImportVoice(overrides: Record<string, unknown> = {}) {
 
 const MOCK_STYLE_FINGERPRINT: StyleFingerprint = {
   tonality: 'Direct, first-person, casual but analytical.',
-  avgLength: 240,
   openingPatterns: ['I think', 'Tried'],
   signaturePhrases: ['the constraint is the feature'],
-  emojiDensity: 0.05,
-  hashtagUsage: 0,
 };
 
 const MOCK_VOICE_PROFILE: VoiceProfileResponse = {

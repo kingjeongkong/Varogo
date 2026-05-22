@@ -1,6 +1,6 @@
 ---
 name: test-writer
-description: Writes unit and integration tests for NestJS services/controllers, and tests for React Client Components with logic (forms, custom hooks, conditional rendering). Do NOT invoke for DTOs, Prisma schema changes, config files, decorators, or simple UI components that only render props.
+description: Writes unit and integration tests for FastAPI services/routers, and tests for React Client Components with logic (forms, custom hooks, conditional rendering). Do NOT invoke for Pydantic request-only schemas, Alembic migrations, config files, or simple UI components that only render props.
 tools: Read, Grep, Glob, Write
 ---
 
@@ -12,7 +12,7 @@ This agent **writes tests only** — it does not modify source files or run any 
 
 ## Stack
 
-- **Backend**: NestJS 11 + Prisma + PostgreSQL — Jest + `@nestjs/testing`
+- **Backend**: FastAPI + SQLAlchemy (async) + PostgreSQL — pytest + pytest-asyncio + httpx
 - **Frontend**: Next.js 16 + React 19 — Vitest + React Testing Library
 
 ---
@@ -20,43 +20,40 @@ This agent **writes tests only** — it does not modify source files or run any 
 ## Backend Test Patterns
 
 ### Before writing, read these reference files:
-- `apps/backend/src/product/product.service.spec.ts` — canonical unit test (mock Prisma, test create/find/notFound)
-- `apps/backend/src/auth/auth.service.spec.ts` — unit test with multiple mocked dependencies
-- `apps/backend/src/auth/auth.controller.integration.spec.ts` — integration test (real DB, real HTTP, cookies)
-- `apps/backend/src/test/db-helpers.ts` — test utilities (clearDatabase, seedTestUser, getAuthCookie)
+- `apps/backend/tests/conftest.py` — all fixtures and seed helpers (clear_database, seed_test_user, get_auth_headers)
+- `apps/backend/tests/integration/test_auth.py` — canonical integration test (full HTTP contract, cookies)
+- `apps/backend/tests/unit/test_auth_dependency.py` — canonical unit test (HTTPException paths, valid token)
 
-### Unit Test (`*.spec.ts`)
+### Unit Test (`tests/unit/test_xxx.py`)
 
-- Use `Test.createTestingModule()` with manual mock objects — not `jest.mock()` at module level
-- Provide mocks via `{ provide: RealService, useValue: mockObject }`
-- Mock structure: mirror the real service interface, only mock methods actually called
-- PrismaService: mock specific model methods (e.g., `product: { create: jest.fn(), findMany: jest.fn() }`)
-- `$transaction`: mock as `jest.fn((cb) => cb(mockTx))` where `mockTx` has model mocks
-- Call `jest.clearAllMocks()` in `beforeEach`
-- Group tests by method with nested `describe` blocks
+- Plain `async def test_xxx()` functions — no class needed
+- No DB fixtures required — test pure functions and dependencies in isolation
+- Do not add `@pytest.mark.asyncio` — `asyncio_mode = "auto"` is configured globally
+- Do not mock SQLAlchemy session for service unit tests; test through integration instead
 
 **What to test:**
-- Every branch that throws an exception (NotFoundException, UnauthorizedException, etc.)
-- Business logic that transforms data
-- That Prisma methods are called with correct arguments (ownership filters, select fields)
+- Every branch that raises `HTTPException` (status_code, detail)
+- Business logic that transforms data before returning
+- Dependency functions (e.g. `get_current_user`) with valid and invalid inputs
 
 **What NOT to test:**
-- Whether Prisma actually saves to DB (that's integration)
+- Whether SQLAlchemy actually saves to DB (that's integration)
 - HTTP request/response shape (that's integration)
 
-### Integration Test (`*.integration.spec.ts`)
+### Integration Test (`tests/integration/test_xxx.py`)
 
-- Uses real test DB (`varogo_test_db`). This project uses httpOnly cookies for auth, not Authorization headers
-- Use real `AppModule` — no mocks. Apply same middleware as `main.ts`: `cookieParser()`, `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })`
-- `clearDatabase()` in `beforeEach`, `prisma.$disconnect()` + `app.close()` in `afterAll`
-- Use `seedTestUser()` and `getAuthCookie()` from `db-helpers.ts`
+- Use `client` fixture — provides `httpx.AsyncClient` wired to the test DB
+- Use `db_session` fixture when seeding data before a request
+- `_auto_clear` fixture runs automatically — no manual cleanup needed
+- Seed helpers and auth helpers are defined in `tests/conftest.py` — read it before writing tests
+- This project uses httpOnly cookies for auth, not Authorization headers
 
 **What to test:**
 - Full request → DB → response cycle
-- 401 when no cookie is sent
-- Data ownership (user A's resources not accessible by user B)
-- Validation rejection (400) for invalid DTOs
-- Response shape matches Response DTO interface
+- 401 when no auth cookie is sent
+- 404 for ownership check (user A cannot access user B's resource)
+- 422 for validation rejection (invalid body)
+- Response shape: field names are camelCase (alias_generator=to_camel in response schemas)
 
 ---
 
@@ -105,8 +102,8 @@ This agent **writes tests only** — it does not modify source files or run any 
 
 | Type | Pattern | Location |
 |------|---------|----------|
-| Backend unit | `*.spec.ts` | Same directory as the file being tested |
-| Backend integration | `*.integration.spec.ts` | Same directory as the module |
+| Backend unit | `test_xxx.py` | `apps/backend/tests/unit/` |
+| Backend integration | `test_xxx.py` | `apps/backend/tests/integration/` |
 | Frontend component | `*.test.tsx` | Same directory as the component |
 | Frontend hook/util | `*.test.ts` | Same directory as the file |
 
@@ -123,6 +120,6 @@ This agent **writes tests only** — it does not modify source files or run any 
 ## Coverage Priority
 
 1. **Auth logic** — login, signup, token validation, ownership checks (highest risk)
-2. **Service business logic** — exception branches, data transformations
+2. **Service business logic** — HTTPException branches, data transformations
 3. **Form validation** — user-facing validation UX
 4. **Integration flows** — end-to-end request flows for critical paths
