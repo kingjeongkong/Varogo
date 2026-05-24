@@ -15,9 +15,14 @@ _REFERENCE_SAMPLE_LIMIT = 5
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def _escape(t: str) -> str:
+  """Escape double-quotes for embedding inside a quoted string."""
+  return t.replace('"', '\\"')
+
+
 def _format_samples(reference_samples: list) -> str:
   return '\n\n'.join(
-    f'{i + 1}. "{s["text"].replace(chr(34), chr(92) + chr(34))}"'
+    f'{i + 1}. "{_escape(s["text"])}"'
     for i, s in enumerate(reference_samples[:_REFERENCE_SAMPLE_LIMIT])
   )
 
@@ -43,10 +48,10 @@ Significance inflation:
   "unprecedented", "it changes everything", "marking a pivotal moment"
 
 Promotional language:
-  "empowering developers to", "delivering seamless experiences"
+  "empowering developers to", "delivering seamless experiences", "nestled within"
 
 Generic endings:
-  "The future looks bright", "exciting times ahead"
+  "The future looks bright", "exciting times ahead", "can't wait to see where this goes"
 
 Forbidden openings (do NOT start a post with):
   "Six months ago,", "Last year,", "A year ago,",
@@ -217,7 +222,7 @@ def build_repair_prompt(
   # Approved options block
   if approved_options:
     approved_block = '\n'.join(
-      f'  [{s.angle_label}]: "{s.text.replace(chr(34), chr(92) + chr(34))}"'
+      f'  [{s.angle_label}]: "{_escape(s.text)}"'
       for s in approved_options
     )
   else:
@@ -227,7 +232,7 @@ def build_repair_prompt(
   def _failed_entry(state: OptionState) -> str:
     lines = [
       f'Angle: {state.angle_label}',
-      f'Current text: "{state.text.replace(chr(34), chr(92) + chr(34))}"',
+      f'Current text: "{_escape(state.text)}"',
       'Issues to fix:',
     ]
     for issue in state.artifact_issues:
@@ -254,6 +259,8 @@ def build_repair_prompt(
   expected_angles = ', '.join(s.angle_label for s in failed_options)
   specificity_block = _specificity_instruction(has_today)
   forbidden_block = _forbidden_patterns_block()
+
+  option_stubs = ',\n    '.join('{ "text": "..." }' for _ in failed_options)
 
   return f"""You are rewriting Threads post draft options that failed quality review. Each option below has SPECIFIC, listed issues. Fix only those issues — preserve everything else.
 
@@ -290,6 +297,6 @@ For each fixed option:
 Return ONLY the rewritten option text{plural} as JSON:
 {{
   "options": [
-    {{ "text": "..." }}{chr(44) + chr(10) + '    ...' if len(failed_options) > 1 else ''}
+    {option_stubs}
   ]
 }}"""
