@@ -11,13 +11,12 @@ REFERENCE_SAMPLE_LIMIT = 5
 RESPONSE_SCHEMA = types.Schema(
   type=types.Type.OBJECT,
   properties={
-    'matched': types.Schema(type=types.Type.BOOLEAN),
     'issues': types.Schema(
       type=types.Type.ARRAY,
       items=types.Schema(type=types.Type.STRING),
     ),
   },
-  required=['matched', 'issues'],
+  required=['issues'],
 )
 
 
@@ -27,19 +26,23 @@ def _build_prompt(
   reference_samples: list,
   today_input: str | None,
 ) -> str:
+  def _escape(t: str) -> str:
+    return t.replace('"', '\\"')
+
   samples = '\n'.join(
-    f'{i + 1}. "{s["text"].replace(chr(34), chr(92) + chr(34))}"'
+    f'{i + 1}. "{_escape(s["text"])}"'
     for i, s in enumerate(reference_samples[:REFERENCE_SAMPLE_LIMIT])
   )
 
   today_context = (
-    f'\n=== Today\'s input given to the generator ===\n{today_input}\n'
+    f'\n=== Today\'s input given to the generator ===\n{today_input}\n(Context only — provided to inform what today\'s post is about. Do not penalize the draft for deviating from this topic.)\n'
     if today_input
     else ''
   )
 
   opening_patterns = style_fingerprint.get('openingPatterns', [])
   signature_phrases = style_fingerprint.get('signaturePhrases', [])
+  escaped_text = _escape(text)
 
   return f"""You are evaluating whether an AI-generated Threads post draft matches the writer's actual voice.
 
@@ -54,14 +57,13 @@ Voice = HOW they write (form: punctuation, rhythm, sentence length, emoji habits
 - Signature phrases: {' | '.join(signature_phrases) if signature_phrases else '(none)'}
 {today_context}
 === Generated post to evaluate ===
-"{text.replace(chr(34), chr(92) + chr(34))}"
+"{escaped_text}"
 
 === Task ===
-Decide if the post's FORM matches the writer's voice.
+Evaluate the post's FORM against the writer's voice.
 
 Rules:
-- "matched": true ONLY if you cannot point to a clear FORM mismatch.
-- "issues": empty [] when matched. When not matched, list 1-3 short reasons (each under 15 words). Each reason MUST cite a CONCRETE difference grounded in the reference posts (e.g. "uses exclamation mark; reference posts have zero", "emoji-heavy; reference posts have no emoji", "ends with hashtag; writer never uses hashtags").
+- "issues": empty [] if you cannot point to a clear FORM mismatch. When there are mismatches, list 1-3 short reasons (each under 15 words). Each reason MUST cite a CONCRETE difference grounded in the reference posts (e.g. "uses exclamation mark; reference posts have zero", "emoji-heavy; reference posts have no emoji", "ends with hashtag; writer never uses hashtags").
 - Be strict: tone or rhythm mismatches count, even if surface formatting is OK.
 - Do not penalize topic differences — voice = form, not subject.
 - Do not invent issues that aren't visible in the post itself."""
@@ -89,6 +91,8 @@ async def evaluate_one(
     if not raw:
       raise HTTPException(status_code=500, detail='Voice evaluation failed')
     parsed = json.loads(raw)
+  except HTTPException:
+    raise
   except Exception:
     raise HTTPException(status_code=500, detail='Voice evaluation failed')
 
