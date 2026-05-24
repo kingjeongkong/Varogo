@@ -123,6 +123,14 @@ class TestDetectArtifacts:
     assert len(matching) == 1
     assert "'" in matching[0]
 
+  def test_ai_vocabulary_seamlessly(self):
+    issues = detect_artifacts("It works seamlessly across all platforms.")
+    assert any("AI vocabulary" in i and "seamlessly" in i for i in issues)
+
+  def test_ai_vocabulary_seamless(self):
+    issues = detect_artifacts("Enjoy a seamless experience.")
+    assert any("AI vocabulary" in i and "seamless" in i for i in issues)
+
 
 # ---------------------------------------------------------------------------
 # check_specificity
@@ -154,6 +162,11 @@ class TestCheckSpecificity:
   def test_aws_tool_passes(self):
     assert check_specificity("Deployed on AWS.") == []
 
+  def test_tool_name_substring_does_not_false_positive(self):
+    # "lawson" contains "aws" as a substring but is not a standalone tool word
+    result = check_specificity("I spoke to the lawson consulting team about the project.")
+    assert result == ["specificity: no concrete detail found"]
+
 
 # ---------------------------------------------------------------------------
 # check_hallucination
@@ -184,6 +197,17 @@ class TestCheckHallucination:
     issues = check_hallucination("Fixed 3 bugs and 99 features.", today)
     assert len(issues) == 1
     assert any("99" in i for i in issues)
+
+  def test_duplicate_number_produces_single_issue(self):
+    issues = check_hallucination("99 bugs and 99 more bugs.", None)
+    matching = [i for i in issues if "99" in i]
+    assert len(matching) == 1
+
+  def test_duplicate_ungrounded_number_deduped(self):
+    today = "fixed 3 bugs"
+    issues = check_hallucination("Found 99 issues and 99 warnings.", today)
+    matching = [i for i in issues if "99" in i]
+    assert len(matching) == 1
 
 
 # ---------------------------------------------------------------------------

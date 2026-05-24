@@ -18,7 +18,7 @@ _AI_VOCAB_PATTERNS: list[tuple[str, str]] = [
   (r'\becosystem\b', 'ecosystem'),
   (r'\bgame-changer\b', 'game-changer'),
   (r'\bpivotal\b', 'pivotal'),
-  (r'\bseamless\b', 'seamless'),
+  (r'\bseamless\w*', 'seamless*'),
   (r'\brobust\b', 'robust'),
   (r'\bleverag\w*', 'leverag*'),
   (r'\btransformative\b', 'transformative'),
@@ -88,56 +88,52 @@ def auto_correct(text: str) -> str:
   # Remove all exclamation marks
   text = text.replace('!', '')
   # Remove trailing colons (end of each sentence / end of text)
-  # Strip colon from end of the entire string after whitespace normalisation
-  text = re.sub(r':(\s*)$', r'\1', text)
-  # Also strip colon that appears at end after removing !
-  text = text.rstrip(':')
+  text = re.sub(r':\s*$', '', text)
   return text
 
 
 def detect_artifacts(text: str) -> list[str]:
   """Return a list of violation strings for all detected artifacts in text."""
   issues: list[str] = []
-  lower = text.lower()
 
   # AI vocabulary
-  for pattern, label in _AI_VOCAB_PATTERNS:
+  for pattern, _ in _AI_VOCAB_PATTERNS:
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
       issues.append(f"AI vocabulary: '{match.group(0)}'")
 
   # Signposting
-  for pattern, label in _SIGNPOSTING_PATTERNS:
+  for pattern, _ in _SIGNPOSTING_PATTERNS:
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
       issues.append(f"signposting: '{match.group(0)}'")
 
   # Negative parallelism
-  for pattern, label in _NEGATIVE_PARALLELISM_PATTERNS:
+  for pattern, _ in _NEGATIVE_PARALLELISM_PATTERNS:
     match = re.search(pattern, text)
     if match:
       issues.append(f"negative parallelism: '{match.group(0)}'")
 
   # Copula avoidance
-  for pattern, label in _COPULA_PATTERNS:
+  for pattern, _ in _COPULA_PATTERNS:
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
       issues.append(f"copula avoidance: '{match.group(0)}'")
 
   # Significance inflation
-  for pattern, label in _SIGNIFICANCE_INFLATION_PATTERNS:
+  for pattern, _ in _SIGNIFICANCE_INFLATION_PATTERNS:
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
       issues.append(f"significance inflation: '{match.group(0)}'")
 
   # Promotional language
-  for pattern, label in _PROMOTIONAL_PATTERNS:
+  for pattern, _ in _PROMOTIONAL_PATTERNS:
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
       issues.append(f"promotional language: '{match.group(0)}'")
 
   # Generic endings
-  for pattern, label in _GENERIC_ENDING_PATTERNS:
+  for pattern, _ in _GENERIC_ENDING_PATTERNS:
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
       issues.append(f"generic ending: '{match.group(0)}'")
@@ -160,10 +156,10 @@ def check_specificity(text: str) -> list[str]:
   if re.search(r'\d', text):
     return []
 
-  # Known tool name (case-insensitive)
+  # Known tool name (case-insensitive, word-boundary to avoid substring false positives)
   lower = text.lower()
   for tool in _KNOWN_TOOLS:
-    if tool in lower:
+    if re.search(r'\b' + re.escape(tool) + r'\b', lower):
       return []
 
   return ["specificity: no concrete detail found"]
@@ -180,11 +176,11 @@ def check_hallucination(text: str, today_input: str | None) -> list[str]:
     return []
 
   if today_input is None:
-    return [f"hallucination: number {n} not grounded in today_input" for n in numbers]
+    return [f"hallucination: number {n} not grounded in today_input" for n in set(numbers)]
 
   issues: list[str] = []
   today_numbers = set(re.findall(r'\d+', today_input))
-  for n in numbers:
+  for n in set(numbers):
     if n not in today_numbers:
       issues.append(f"hallucination: number {n} not grounded in today_input")
   return issues
