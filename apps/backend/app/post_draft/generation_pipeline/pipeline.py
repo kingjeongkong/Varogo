@@ -2,7 +2,7 @@
 pipeline.py — 6-phase post draft generation orchestration.
 
 Phase 1: Generate 3 options via OpenAI
-Phase 2: Artifact filter (code, parallel)
+Phase 2: Artifact filter (code, sequential — sync function, fast)
 Phase 3: Voice evaluation via Gemini (parallel, graceful on failure)
 Phase 4: Assembly check — pass/fail per option
 Phase 5: Repair pass for failed options (LLM, one attempt only)
@@ -149,7 +149,7 @@ async def _evaluate_one_graceful(
       state.text, style_fingerprint, reference_samples, today_input
     )
   except Exception as e:
-    logger.warning(f'Voice evaluator failed for option (graceful pass): {e}')
+    logger.warning('Voice evaluator failed for option (graceful pass): %s', e)
     return []
 
 
@@ -219,9 +219,8 @@ async def _phase5_repair(
   repaired = parsed.get('options', [])
 
   if not isinstance(repaired, list) or len(repaired) != len(failed):
-    raise HTTPException(
-      status_code=500,
-      detail=f'Repair expected {len(failed)} option(s), got {len(repaired) if isinstance(repaired, list) else 0}',
+    raise ValueError(
+      f'Repair expected {len(failed)} option(s), got {len(repaired) if isinstance(repaired, list) else 0}'
     )
 
   for state, repaired_option in zip(failed, repaired):
@@ -334,6 +333,7 @@ async def generate(
 
   # Re-run Phase 2 + Phase 3 on repaired options only
   repaired_states = [s for s in states if s.attempt == 1]
+  # repaired_states are references to the same OptionState objects in states — mutations propagate
   _phase2_artifact_filter(repaired_states, today_input)
   await _phase3_voice_eval(
     repaired_states, style_fingerprint, reference_samples, today_input
