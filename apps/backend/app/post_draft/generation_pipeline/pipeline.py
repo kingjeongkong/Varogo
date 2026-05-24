@@ -306,7 +306,9 @@ async def generate(
 
   failed_count = sum(1 for s in states if s.status == 'failed')
   logger.warning(
-    f'Assembly check: {failed_count}/{OPTION_COUNT} option(s) failed — entering repair phase'
+    'Assembly check: %d/%d option(s) failed — entering repair phase',
+    failed_count,
+    OPTION_COUNT,
   )
 
   # Snapshot of first-pass states for fallback (deep copy of issues lists)
@@ -326,9 +328,7 @@ async def generate(
   try:
     await _phase5_repair(states, style_fingerprint, reference_samples, today_input)
   except Exception as e:
-    logger.warning(
-      f'Phase 5 repair failed — returning first-pass options with feedback: {e}'
-    )
+    logger.warning('Phase 5 repair failed — returning first-pass options with feedback: %s', e)
     return _build_first_pass_result(first_pass_snapshot)
 
   # Re-run Phase 2 + Phase 3 on repaired options only
