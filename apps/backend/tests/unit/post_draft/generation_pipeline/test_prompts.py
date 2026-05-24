@@ -8,6 +8,7 @@ import pytest
 from app.post_draft.generation_pipeline.prompts import (
   build_generation_prompt,
   build_repair_prompt,
+  build_voice_eval_prompt,
 )
 from app.post_draft.generation_pipeline.state import OptionState
 
@@ -238,4 +239,38 @@ class TestBuildRepairPrompt:
     has_edit_instruction = 'EDIT' in prompt or 'fix only' in prompt.lower()
     assert has_edit_instruction, (
       "Expected anti-full-rewrite instruction ('EDIT' or 'fix only') in repair prompt."
+    )
+
+
+# ---------------------------------------------------------------------------
+# build_voice_eval_prompt tests
+# ---------------------------------------------------------------------------
+
+class TestBuildVoiceEvalPrompt:
+  def test_today_input_appears_in_prompt_when_provided(
+    self, style_fingerprint, reference_samples, today_input
+  ):
+    """When today_input is given, its content must appear in the prompt."""
+    prompt = build_voice_eval_prompt(
+      text='Some post text.',
+      style_fingerprint=style_fingerprint,
+      reference_samples=reference_samples,
+      today_input=today_input,
+    )
+    assert today_input in prompt, (
+      f"Expected today_input '{today_input[:40]}...' to appear in voice eval prompt."
+    )
+
+  def test_today_input_section_absent_when_none(
+    self, style_fingerprint, reference_samples
+  ):
+    """When today_input is None, the today's input section must not appear in the prompt."""
+    prompt = build_voice_eval_prompt(
+      text='Some post text.',
+      style_fingerprint=style_fingerprint,
+      reference_samples=reference_samples,
+      today_input=None,
+    )
+    assert "Today's input given to the generator" not in prompt, (
+      "Expected today's input section to be absent when today_input=None."
     )
