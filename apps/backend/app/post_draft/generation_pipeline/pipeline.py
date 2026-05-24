@@ -12,8 +12,10 @@ Phase 6: Return final options + evaluation_feedback
 import asyncio
 import json
 import logging
+import os
 
 from fastapi import HTTPException
+from langsmith import traceable
 
 from app.core.config import settings
 from app.llm.openai import get_openai_client
@@ -21,6 +23,9 @@ from app.post_draft.generation_pipeline import artifact_filter, prompts, voice_e
 from app.post_draft.generation_pipeline.state import OptionState
 
 logger = logging.getLogger(__name__)
+
+# LangSmith tracing is opt-in — only active when LANGSMITH_API_KEY is set
+_LANGSMITH_ENABLED = bool(os.environ.get('LANGSMITH_API_KEY', ''))
 
 OPTION_COUNT = 3
 
@@ -76,6 +81,17 @@ _REPAIR_SCHEMA = {
     },
   },
 }
+
+
+# ---------------------------------------------------------------------------
+# LangSmith Tracing
+# ---------------------------------------------------------------------------
+
+def _maybe_traceable(fn):
+  """Apply @traceable decorator only when LANGSMITH_API_KEY is set."""
+  if _LANGSMITH_ENABLED:
+    return traceable(name=fn.__name__)(fn)
+  return fn
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +286,7 @@ def _build_first_pass_result(states: list[OptionState]) -> dict:
 # Public API
 # ---------------------------------------------------------------------------
 
+@_maybe_traceable
 async def generate(
   analysis: dict,
   style_fingerprint: dict,
