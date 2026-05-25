@@ -28,6 +28,28 @@ def _format_samples(reference_samples: list) -> str:
   )
 
 
+def _punctuation_rules(reference_samples: list) -> str:
+  """Derive hard punctuation constraints from reference samples.
+
+  If a punctuation mark never appears in the reference posts, the writer
+  clearly avoids it — inject a hard NEVER rule so the LLM can't introduce it.
+  """
+  texts = ' '.join(s['text'] for s in reference_samples[:_REFERENCE_SAMPLE_LIMIT])
+  rules = []
+  if '!' not in texts:
+    rules.append('NEVER use exclamation marks (!)')
+  if '?' not in texts:
+    rules.append('NEVER end a sentence with a question mark (?)')
+  if ':' not in texts:
+    rules.append('NEVER use colons (:)')
+  if not rules:
+    return ''
+  return (
+    'Punctuation constraints (derived from reference posts — HARD rules, no exceptions):\n'
+    + '\n'.join(f'  - {r}' for r in rules)
+  )
+
+
 def _forbidden_patterns_block() -> str:
   return """=== Forbidden patterns — NEVER generate any of the following ===
 AI vocabulary (remove entirely — rephrase naturally):
@@ -137,6 +159,8 @@ DO NOT use Data angle. DO NOT invent statistics."""
 
   specificity_block = _specificity_instruction(has_today)
   forbidden_block = _forbidden_patterns_block()
+  punctuation_block = _punctuation_rules(reference_samples)
+  punctuation_section = f'\n{punctuation_block}' if punctuation_block else ''
 
   return f"""You are writing 3 Threads post draft options FOR the user, IN the user's voice. The voice is non-negotiable — it beats any "good marketing" instinct you have.
 
@@ -147,7 +171,7 @@ Opening patterns (REQUIRED — AT LEAST 2 of 3 options must begin with one of th
 {opening_patterns_text}
 
 Signature phrases: {signature_phrases_line}
-  Use ONLY when the phrase's meaning in the reference posts still applies. Preserve grammar exactly — do NOT re-assemble. Better to omit than to misuse.
+  Use ONLY when the phrase's meaning in the reference posts still applies. Preserve grammar exactly — do NOT re-assemble. Better to omit than to misuse.{punctuation_section}
 
 === Reference posts from the user (your writing target — match this rhythm) ===
 {samples}
@@ -209,7 +233,7 @@ def build_repair_prompt(
   Build the surgical repair prompt for options that failed artifact or voice checks.
 
   Uses exact issue strings from OptionState.artifact_issues and
-  OptionState.voice_issues — the model is told to fix only those, not rewrite.
+  OptionState.eval_issues — the model is told to fix only those, not rewrite.
   Includes full formatting hard rules (forbidden patterns, 500 char limit,
   number grounding) so the repair step cannot introduce new violations.
   """
@@ -238,7 +262,7 @@ def build_repair_prompt(
     ]
     for issue in state.artifact_issues:
       lines.append(f'  - [artifact] {issue} → rephrase naturally')
-    for issue in state.voice_issues:
+    for issue in state.eval_issues:
       lines.append(f'  - [voice] {issue}')
     lines.append(
       'PRESERVE: rhythm, structure, core observation, angle — change only what is listed above'
@@ -260,6 +284,8 @@ def build_repair_prompt(
   expected_angles = ', '.join(s.angle_label for s in failed_options)
   specificity_block = _specificity_instruction(has_today)
   forbidden_block = _forbidden_patterns_block()
+  punctuation_block = _punctuation_rules(reference_samples)
+  punctuation_section = f'\n{punctuation_block}\n' if punctuation_block else '\n'
 
   option_stubs = ',\n    '.join('{ "text": "..." }' for _ in failed_options)
 
@@ -282,7 +308,7 @@ Signature phrases: {', '.join(signature_phrases) if signature_phrases else '(non
 {failed_block}
 
 {forbidden_block}
-
+{punctuation_section}
 {specificity_block}
 
 === Task ===

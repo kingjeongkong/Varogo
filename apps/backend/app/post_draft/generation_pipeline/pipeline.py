@@ -183,7 +183,7 @@ async def _phase3_voice_eval(
     ]
   )
   for state, issues in zip(states, results):
-    state.voice_issues = issues
+    state.eval_issues = issues
 
 
 # ---------------------------------------------------------------------------
@@ -193,7 +193,7 @@ async def _phase3_voice_eval(
 def _phase4_assembly_check(states: list[OptionState]) -> None:
   """Set state.status to 'passed' or 'failed' based on issues."""
   for state in states:
-    if state.artifact_issues == [] and state.voice_issues == []:
+    if state.artifact_issues == [] and state.eval_issues == []:
       state.status = 'passed'
     else:
       state.status = 'failed'
@@ -244,7 +244,7 @@ async def _phase5_repair(
     state.attempt = 1
     state.status = 'pending'
     state.artifact_issues = []
-    state.voice_issues = []
+    state.eval_issues = []
 
 
 # ---------------------------------------------------------------------------
@@ -259,7 +259,7 @@ def _build_result(states: list[OptionState]) -> dict:
   evaluation_feedback: list[str] = []
   for i, s in enumerate(states):
     if s.status == 'failed':
-      all_issues = s.artifact_issues + s.voice_issues
+      all_issues = s.artifact_issues + s.eval_issues
       for issue in all_issues:
         evaluation_feedback.append(f'option{i + 1}: {issue}')
   return {'options': options, 'evaluation_feedback': evaluation_feedback}
@@ -268,7 +268,7 @@ def _build_result(states: list[OptionState]) -> dict:
 def _build_first_pass_result(states: list[OptionState]) -> dict:
   """
   Build result from first-pass states when repair fails.
-  Uses artifact_issues and voice_issues from assembly check.
+  Uses artifact_issues and eval_issues from assembly check.
   """
   options = [
     {'text': s.text, 'angle_label': s.angle_label}
@@ -276,7 +276,7 @@ def _build_first_pass_result(states: list[OptionState]) -> dict:
   ]
   evaluation_feedback: list[str] = []
   for i, s in enumerate(states):
-    all_issues = s.artifact_issues + s.voice_issues
+    all_issues = s.artifact_issues + s.eval_issues
     for issue in all_issues:
       evaluation_feedback.append(f'option{i + 1}: {issue}')
   return {'options': options, 'evaluation_feedback': evaluation_feedback}
@@ -334,7 +334,7 @@ async def generate(
       text=s.text,
       angle_label=s.angle_label,
       artifact_issues=list(s.artifact_issues),
-      voice_issues=list(s.voice_issues),
+      eval_issues=list(s.eval_issues),
       status=s.status,
       attempt=s.attempt,
     )

@@ -6,6 +6,7 @@ All assertions are string-content checks — no LLM calls.
 import pytest
 
 from app.post_draft.generation_pipeline.prompts import (
+  _punctuation_rules,
   build_generation_prompt,
   build_repair_prompt,
   build_voice_eval_prompt,
@@ -66,7 +67,7 @@ def failed_options(style_fingerprint) -> list[OptionState]:
       text='This game-changer ecosystem is truly seamless and transformative for developers.',
       angle_label='Positioning',
       artifact_issues=["AI vocabulary: 'game-changer'", "AI vocabulary: 'seamless'"],
-      voice_issues=['rhythm mismatch: sentences too long compared to reference posts'],
+      eval_issues=['rhythm mismatch: sentences too long compared to reference posts'],
       status='failed',
       attempt=1,
     ),
@@ -74,7 +75,7 @@ def failed_options(style_fingerprint) -> list[OptionState]:
       text="Here's the thing: it's not just a tool, it's a revolution.",
       angle_label='Contrarian',
       artifact_issues=["signposting: 'Here's the thing'", "negative parallelism: \"It's not just\""],
-      voice_issues=[],
+      eval_issues=[],
       status='failed',
       attempt=1,
     ),
@@ -88,11 +89,51 @@ def approved_options() -> list[OptionState]:
       text='I built this deploy tool because Heroku cold starts were killing our iteration speed.',
       angle_label='Story',
       artifact_issues=[],
-      voice_issues=[],
+      eval_issues=[],
       status='approved',
       attempt=1,
     ),
   ]
+
+
+# ---------------------------------------------------------------------------
+# _punctuation_rules tests
+# ---------------------------------------------------------------------------
+
+class TestPunctuationRules:
+  def test_no_punctuation_in_samples_returns_all_three_rules(self):
+    samples = [{'text': 'I shipped a feature.'}, {'text': 'It worked.'}]
+    result = _punctuation_rules(samples)
+    assert 'NEVER use exclamation marks' in result
+    assert 'NEVER end a sentence with a question mark' in result
+    assert 'NEVER use colons' in result
+
+  def test_exclamation_present_skips_exclamation_rule(self):
+    samples = [{'text': 'I shipped it! Great.'}]
+    result = _punctuation_rules(samples)
+    assert 'exclamation' not in result
+
+  def test_question_mark_present_skips_question_rule(self):
+    samples = [{'text': 'Did it work? Yes.'}]
+    result = _punctuation_rules(samples)
+    assert 'question mark' not in result
+
+  def test_colon_present_skips_colon_rule(self):
+    samples = [{'text': 'Key insight: it worked.'}]
+    result = _punctuation_rules(samples)
+    assert 'colons' not in result
+
+  def test_empty_string_returned_when_all_punctuation_present(self):
+    samples = [{'text': 'Did it work? Yes! Key: value.'}]
+    assert _punctuation_rules(samples) == ''
+
+  def test_only_first_five_samples_used(self):
+    # 6th sample has colons, but only first 5 are checked
+    samples = [{'text': 'No punctuation here.'} for _ in range(5)] + [
+      {'text': 'Has colon: here.'}
+    ]
+    result = _punctuation_rules(samples)
+    assert 'colons' in result
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +210,28 @@ class TestBuildGenerationPrompt:
       "Expected 'Do NOT include any numbers' rule when today_input is None."
     )
 
+  def test_punctuation_rules_injected_when_absent_from_samples(
+    self, analysis, style_fingerprint, today_input
+  ):
+    """Punctuation rules derived from reference samples must appear in the prompt."""
+    # reference_samples fixture has no !, ?, : → all three rules should appear
+    clean_samples = [
+      {'text': 'I shipped a feature this week.'},
+      {'text': 'Nobody used it. The one thing I ignored gets all the sessions.'},
+    ]
+    prompt = build_generation_prompt(analysis, style_fingerprint, clean_samples, today_input)
+    assert 'NEVER use exclamation marks' in prompt
+    assert 'NEVER end a sentence with a question mark' in prompt
+    assert 'NEVER use colons' in prompt
+
+  def test_punctuation_rules_omitted_when_present_in_samples(
+    self, analysis, style_fingerprint, today_input
+  ):
+    """When reference samples already use !, ?, :, no hard constraint is injected."""
+    rich_samples = [{'text': 'Did it work? Yes! Key: value.'}]
+    prompt = build_generation_prompt(analysis, style_fingerprint, rich_samples, today_input)
+    assert 'Punctuation constraints' not in prompt
+
 
 # ---------------------------------------------------------------------------
 # build_repair_prompt tests
@@ -198,7 +261,7 @@ class TestBuildRepairPrompt:
       failed_options, approved_options, style_fingerprint, reference_samples, today_input
     )
     for state in failed_options:
-      for issue in state.voice_issues:
+      for issue in state.eval_issues:
         assert issue in prompt, (
           f"voice_issue '{issue}' from OptionState not found in repair prompt."
         )
