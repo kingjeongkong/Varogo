@@ -7,7 +7,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.post_draft import option_generation_service
+from app.post_draft.generation_pipeline import pipeline as generation_pipeline
 from app.post_draft.models import PostDraft, PostDraftOption
 from app.products.models import Product, ProductAnalysis
 from app.threads.service import publish_to_threads
@@ -107,7 +107,7 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
   reference_samples = voice_profile.reference_samples
 
   # 5. Generate options
-  generation_result = await option_generation_service.generate(
+  generation_result = await generation_pipeline.generate(
     analysis, style_fingerprint, reference_samples, dto.get('today_input')
   )
   options_data = generation_result['options']

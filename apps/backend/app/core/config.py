@@ -24,6 +24,7 @@ class Settings(BaseSettings):
   GEMINI_API_KEY: str
   OPENAI_API_KEY: str
   OPENAI_MODEL: str = 'gpt-4o-mini'
+  LANGSMITH_API_KEY: str = ''
 
   # Threads
   THREADS_APP_ID: str

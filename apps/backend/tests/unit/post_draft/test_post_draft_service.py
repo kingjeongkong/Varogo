@@ -95,7 +95,7 @@ async def test_create_happy_path_returns_draft_and_feedback():
     _result(draft),          # re-query after creation
   ])
 
-  with patch('app.post_draft.service.option_generation_service.generate', AsyncMock(return_value=_MOCK_GENERATION)):
+  with patch('app.post_draft.service.generation_pipeline.generate', AsyncMock(return_value=_MOCK_GENERATION)):
     result = await create('user-1', _CREATE_DTO, session)
 
   assert result['draft'] is draft
