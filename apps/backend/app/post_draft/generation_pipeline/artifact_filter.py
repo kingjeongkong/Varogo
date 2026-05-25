@@ -84,12 +84,14 @@ MAX_LENGTH = 500
 # ---------------------------------------------------------------------------
 
 def auto_correct(text: str) -> str:
-  """Remove ! characters and trailing : from text."""
-  # Remove all exclamation marks
+  """Remove ! characters and colon punctuation (explanation-style and trailing)."""
   text = text.replace('!', '')
-  # Remove trailing colons (end of each sentence / end of text)
+  # Remove explanation colons: "insight: text" → "insight text"
+  # Preserves time patterns (3:00pm) and URLs (://) since those have no space after colon.
+  text = re.sub(r':\s+', ' ', text)
+  # Remove any remaining trailing colon
   text = re.sub(r':\s*$', '', text)
-  return text
+  return text.strip()
 
 
 def detect_artifacts(text: str) -> list[str]:
