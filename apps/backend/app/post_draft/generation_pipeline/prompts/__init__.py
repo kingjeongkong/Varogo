@@ -1,5 +1,5 @@
 """
-prompts.py — Redesigned generation and repair prompts for the post-draft pipeline.
+prompts — Redesigned generation and repair prompts for the post-draft pipeline.
 
 Voice-first ordering, complete forbidden patterns list (all artifact categories
 from artifact_filter.py), explicit specificity instruction, stronger number
