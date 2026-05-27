@@ -7,7 +7,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.post_draft.generation_pipeline import pipeline as generation_pipeline
+from app.post_draft.generation_pipeline import graph as generation_pipeline
 from app.post_draft.models import PostDraft, PostDraftOption
 from app.products.models import Product, ProductAnalysis
 from app.threads.service import publish_to_threads
