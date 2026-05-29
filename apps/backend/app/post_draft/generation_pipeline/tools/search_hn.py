@@ -11,10 +11,10 @@ async def search_hn(query: str) -> str:
   """Search Hacker News via Algolia for stories relevant to the given query.
 
   Returns a formatted string of the top results (title, url, points, comments),
-  or an empty string if no results found or an error occurs.
+  or 'No results found.' if no results found or an error occurs.
   """
   try:
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
       response = await client.get(
         HN_ALGOLIA_URL,
         params={

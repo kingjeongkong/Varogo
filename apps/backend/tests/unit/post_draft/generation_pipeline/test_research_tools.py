@@ -149,3 +149,30 @@ class TestSearchDevto:
       result = await search_devto.ainvoke({'query': 'some query'})
 
     assert result == 'No results found.'
+
+  @pytest.mark.asyncio
+  async def test_article_with_missing_url_and_null_tag_list_does_not_crash(self):
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = [
+      {
+        'title': 'Article Without URL',
+        'url': None,
+        'tag_list': None,
+        'positive_reactions_count': 10,
+      },
+    ]
+
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=mock_response)
+
+    with patch('httpx.AsyncClient') as mock_async_client_cls:
+      mock_async_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+      mock_async_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+      from app.post_draft.generation_pipeline.tools.search_devto import search_devto
+      result = await search_devto.ainvoke({'query': 'some query'})
+
+    assert isinstance(result, str)
+    assert result != ''
+    assert 'Article Without URL' in result

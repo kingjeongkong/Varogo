@@ -14,7 +14,7 @@ async def search_devto(query: str) -> str:
   or 'No results found.' if no results found or an error occurs.
   """
   try:
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
       response = await client.get(
         DEVTO_API_URL,
         params={
