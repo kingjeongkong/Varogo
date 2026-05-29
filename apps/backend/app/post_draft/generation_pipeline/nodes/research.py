@@ -29,16 +29,17 @@ async def research_node(state: GraphState) -> dict:
 
     response = await _llm.ainvoke(messages)
 
-    if response.tool_calls:
+    _tool_map = {
+      'search_hn': search_hn,
+      'search_devto': search_devto,
+    }
+
+    while response.tool_calls:
       messages.append(response)
 
       for call in response.tool_calls:
         tool_name = call['name']
         tool_args = call['args']
-        _tool_map = {
-          'search_hn': search_hn,
-          'search_devto': search_devto,
-        }
         tool_fn = _tool_map.get(tool_name)
 
         if tool_fn is not None:
