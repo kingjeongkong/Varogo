@@ -53,7 +53,12 @@ async def research_node(state: GraphState) -> dict:
 
       response = await _llm.ainvoke(messages)
 
-    return {'research_context': response.content}
+    content = response.content
+    if isinstance(content, list):
+      content = ''.join(
+        block.get('text', '') for block in content if isinstance(block, dict)
+      )
+    return {'research_context': content}
 
   except Exception as e:
     logger.warning('Research agent failed (graceful fallback): %s', e)
