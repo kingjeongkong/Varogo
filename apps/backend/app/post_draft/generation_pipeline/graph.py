@@ -57,6 +57,7 @@ async def generate(
     'style_fingerprint': style_fingerprint,
     'reference_samples': reference_samples,
     'today_input': today_input,
+    'research_context': None,
     'plans': [],
     'options': [],
     'iteration': 0,

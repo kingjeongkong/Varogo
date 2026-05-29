@@ -17,6 +17,7 @@ def _make_state(options: list[OptionState], today_input: str | None = None) -> G
     style_fingerprint={'tonality': 'terse', 'openingPatterns': [], 'signaturePhrases': []},
     reference_samples=[{'text': 'Sample post one.'}, {'text': 'Sample post two.'}],
     today_input=today_input,
+    research_context=None,
     plans=[],
     options=options,
     iteration=0,

@@ -26,6 +26,7 @@ class GraphState(TypedDict):
   style_fingerprint: dict
   reference_samples: list
   today_input: str | None
+  research_context: str | None
   plans: list[PlanItem]
   options: list[OptionState]
   iteration: int
