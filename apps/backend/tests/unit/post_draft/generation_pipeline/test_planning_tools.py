@@ -144,3 +144,37 @@ class TestSearchTrends:
     assert 'HN Article' in result
     assert '=== HN ===' in result
     assert '=== Dev.to ===' not in result
+
+
+# ---------------------------------------------------------------------------
+# TestMakeSearchSimilarPosts
+# ---------------------------------------------------------------------------
+
+class TestMakeSearchSimilarPosts:
+  @pytest.mark.asyncio
+  async def test_make_search_similar_posts_returns_tool(self):
+    from app.post_draft.generation_pipeline.tools.search_similar_posts import make_search_similar_posts
+
+    tool = make_search_similar_posts(access_token='test_token')
+    assert tool is not None
+    assert hasattr(tool, 'ainvoke')
+    assert tool.name == 'search_similar_posts'
+
+  @pytest.mark.asyncio
+  async def test_search_similar_posts_returns_no_results_stub(self):
+    from app.post_draft.generation_pipeline.tools.search_similar_posts import make_search_similar_posts
+
+    tool = make_search_similar_posts(access_token='test_token')
+    result = await tool.ainvoke({'query': 'marketing strategy'})
+
+    assert result == 'No results found.'
+    assert isinstance(result, str)
+
+  @pytest.mark.asyncio
+  async def test_search_similar_posts_accepts_any_query(self):
+    from app.post_draft.generation_pipeline.tools.search_similar_posts import make_search_similar_posts
+
+    tool = make_search_similar_posts(access_token='test_token')
+    result = await tool.ainvoke({'query': 'any query string here'})
+
+    assert result == 'No results found.'
