@@ -72,3 +72,80 @@ class TestSearchHn:
 
     # on HTTP error, gracefully return the standard no-results message — pipeline must not crash
     assert result == 'No results found.'
+
+
+# ---------------------------------------------------------------------------
+# TestSearchDevto
+# ---------------------------------------------------------------------------
+
+class TestSearchDevto:
+  @pytest.mark.asyncio
+  async def test_normal_response_returns_parsed_results(self):
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = [
+      {
+        'title': 'Building a SaaS App with FastAPI',
+        'url': 'https://dev.to/example/building-saas',
+        'tag_list': ['fastapi', 'python', 'saas'],
+        'positive_reactions_count': 45,
+      },
+      {
+        'title': 'Next.js Best Practices',
+        'url': 'https://dev.to/example/nextjs-practices',
+        'tag_list': ['nextjs', 'react', 'typescript'],
+        'positive_reactions_count': 32,
+      },
+    ]
+
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=mock_response)
+
+    with patch('httpx.AsyncClient') as mock_async_client_cls:
+      mock_async_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+      mock_async_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+      from app.post_draft.generation_pipeline.tools.search_devto import search_devto
+      result = await search_devto.ainvoke({'query': 'fastapi saas'})
+
+    assert isinstance(result, str)
+    assert 'Building a SaaS App with FastAPI' in result
+    assert 'Next.js Best Practices' in result
+    assert 'https://dev.to/example/building-saas' in result
+    assert 'fastapi' in result
+    assert '45' in result
+    assert '32' in result
+
+  @pytest.mark.asyncio
+  async def test_empty_response_returns_no_results_message(self):
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = []
+
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=mock_response)
+
+    with patch('httpx.AsyncClient') as mock_async_client_cls:
+      mock_async_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+      mock_async_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+      from app.post_draft.generation_pipeline.tools.search_devto import search_devto
+      result = await search_devto.ainvoke({'query': 'no results query'})
+
+    assert result == 'No results found.'
+
+  @pytest.mark.asyncio
+  async def test_http_error_returns_no_results_graceful_fallback(self):
+    import httpx
+
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(side_effect=httpx.HTTPError('connection failed'))
+
+    with patch('httpx.AsyncClient') as mock_async_client_cls:
+      mock_async_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+      mock_async_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+      from app.post_draft.generation_pipeline.tools.search_devto import search_devto
+      result = await search_devto.ainvoke({'query': 'some query'})
+
+    assert result == 'No results found.'
