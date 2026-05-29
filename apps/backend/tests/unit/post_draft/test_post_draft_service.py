@@ -92,6 +92,7 @@ async def test_create_happy_path_returns_draft_and_feedback():
   session.execute = AsyncMock(side_effect=[
     _result(product),        # product
     _result(voice_profile),  # voice profile
+    _result(None),           # get_connection (no Threads connection)
     _result(draft),          # re-query after creation
   ])
 
