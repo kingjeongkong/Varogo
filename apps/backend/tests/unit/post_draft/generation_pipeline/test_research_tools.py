@@ -53,8 +53,8 @@ class TestSearchHn:
       from app.post_draft.generation_pipeline.tools.search_hn import search_hn
       result = await search_hn.ainvoke({'query': 'no results query'})
 
-    # empty hits should produce an empty/falsy result or a message indicating no results
-    assert result == '' or result == [] or 'no results' in result.lower() or result == 'No results found.'
+    # empty hits should produce the standard no-results message
+    assert result == 'No results found.'
 
   @pytest.mark.asyncio
   async def test_http_error_returns_empty_graceful_fallback(self):
@@ -70,5 +70,5 @@ class TestSearchHn:
       from app.post_draft.generation_pipeline.tools.search_hn import search_hn
       result = await search_hn.ainvoke({'query': 'some query'})
 
-    # on HTTP error, gracefully return empty result — pipeline must not crash
-    assert result == '' or result == [] or result == 'No results found.'
+    # on HTTP error, gracefully return the standard no-results message — pipeline must not crash
+    assert result == 'No results found.'

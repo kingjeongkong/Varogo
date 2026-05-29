@@ -40,5 +40,5 @@ async def search_hn(query: str) -> str:
 
     return '\n'.join(lines)
 
-  except httpx.HTTPError:
+  except Exception:
     return 'No results found.'
