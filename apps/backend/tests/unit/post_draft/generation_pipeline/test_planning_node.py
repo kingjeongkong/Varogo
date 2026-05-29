@@ -65,7 +65,7 @@ def _make_tool_call_msg(tool_name: str = 'search_trends', call_id: str = 'call_1
 
 
 def _setup_mock_openai():
-  """Set up MockChatOpenAI with mock_instance, mock_llm, and mock_llm_structured."""
+  """Set up MockChatOpenAI with mock_instance and mock_llm (bind_tools only)."""
   MockChatOpenAI = MagicMock()
   mock_instance = MagicMock()
   MockChatOpenAI.return_value = mock_instance
@@ -73,10 +73,7 @@ def _setup_mock_openai():
   mock_llm = MagicMock()
   mock_instance.bind_tools.return_value = mock_llm
 
-  mock_llm_structured = MagicMock()
-  mock_instance.with_structured_output.return_value = mock_llm_structured
-
-  return MockChatOpenAI, mock_instance, mock_llm, mock_llm_structured
+  return MockChatOpenAI, mock_instance, mock_llm
 
 
 # ---------------------------------------------------------------------------
@@ -93,12 +90,15 @@ class TestPlanningNode:
     final_ai_msg = AIMessage(content='Here are my plans.')
     mock_planning_output = _make_planning_output(3)
 
-    MockChatOpenAI, mock_instance, mock_llm, mock_llm_structured = _setup_mock_openai()
+    MockChatOpenAI, mock_instance, mock_llm = _setup_mock_openai()
     mock_llm.ainvoke = AsyncMock(return_value=final_ai_msg)
+
+    mock_llm_structured = MagicMock()
     mock_llm_structured.ainvoke = AsyncMock(return_value=mock_planning_output)
 
     with patch('app.post_draft.generation_pipeline.nodes.planning.ChatOpenAI', MockChatOpenAI):
-      result = await planning_node(state)
+      with patch('app.post_draft.generation_pipeline.nodes.planning._llm_structured', mock_llm_structured):
+        result = await planning_node(state)
 
     assert 'plans' in result
     assert len(result['plans']) == 3
@@ -118,8 +118,10 @@ class TestPlanningNode:
     final_ai_msg = AIMessage(content='Reasoning complete.')
     mock_planning_output = _make_planning_output(3)
 
-    MockChatOpenAI, mock_instance, mock_llm, mock_llm_structured = _setup_mock_openai()
+    MockChatOpenAI, mock_instance, mock_llm = _setup_mock_openai()
     mock_llm.ainvoke = AsyncMock(side_effect=[tool_call_msg, final_ai_msg])
+
+    mock_llm_structured = MagicMock()
     mock_llm_structured.ainvoke = AsyncMock(return_value=mock_planning_output)
 
     mock_search_trends = MagicMock()
@@ -127,8 +129,9 @@ class TestPlanningNode:
     mock_search_trends.name = 'search_trends'
 
     with patch('app.post_draft.generation_pipeline.nodes.planning.ChatOpenAI', MockChatOpenAI):
-      with patch('app.post_draft.generation_pipeline.nodes.planning.search_trends', mock_search_trends):
-        result = await planning_node(state)
+      with patch('app.post_draft.generation_pipeline.nodes.planning._llm_structured', mock_llm_structured):
+        with patch('app.post_draft.generation_pipeline.nodes.planning.search_trends', mock_search_trends):
+          result = await planning_node(state)
 
     assert 'plans' in result
     assert len(result['plans']) == 3
@@ -144,8 +147,10 @@ class TestPlanningNode:
     tool_call_msg = _make_tool_call_msg('search_trends')
     mock_planning_output = _make_planning_output(3)
 
-    MockChatOpenAI, mock_instance, mock_llm, mock_llm_structured = _setup_mock_openai()
+    MockChatOpenAI, mock_instance, mock_llm = _setup_mock_openai()
     mock_llm.ainvoke = AsyncMock(return_value=tool_call_msg)
+
+    mock_llm_structured = MagicMock()
     mock_llm_structured.ainvoke = AsyncMock(return_value=mock_planning_output)
 
     mock_search_trends = MagicMock()
@@ -153,8 +158,9 @@ class TestPlanningNode:
     mock_search_trends.name = 'search_trends'
 
     with patch('app.post_draft.generation_pipeline.nodes.planning.ChatOpenAI', MockChatOpenAI):
-      with patch('app.post_draft.generation_pipeline.nodes.planning.search_trends', mock_search_trends):
-        result = await planning_node(state)
+      with patch('app.post_draft.generation_pipeline.nodes.planning._llm_structured', mock_llm_structured):
+        with patch('app.post_draft.generation_pipeline.nodes.planning.search_trends', mock_search_trends):
+          result = await planning_node(state)
 
     assert 'plans' in result
     assert mock_llm.ainvoke.call_count == 3
@@ -168,12 +174,15 @@ class TestPlanningNode:
     final_ai_msg = AIMessage(content='Plans ready.')
     mock_planning_output = _make_planning_output(3)
 
-    MockChatOpenAI, mock_instance, mock_llm, mock_llm_structured = _setup_mock_openai()
+    MockChatOpenAI, mock_instance, mock_llm = _setup_mock_openai()
     mock_llm.ainvoke = AsyncMock(return_value=final_ai_msg)
+
+    mock_llm_structured = MagicMock()
     mock_llm_structured.ainvoke = AsyncMock(return_value=mock_planning_output)
 
     with patch('app.post_draft.generation_pipeline.nodes.planning.ChatOpenAI', MockChatOpenAI):
-      await planning_node(state)
+      with patch('app.post_draft.generation_pipeline.nodes.planning._llm_structured', mock_llm_structured):
+        await planning_node(state)
 
     tools_arg = mock_instance.bind_tools.call_args[0][0]
     tool_names = [t.name for t in tools_arg]
@@ -187,12 +196,15 @@ class TestPlanningNode:
     final_ai_msg = AIMessage(content='Plans ready.')
     mock_planning_output = _make_planning_output(3)
 
-    MockChatOpenAI, mock_instance, mock_llm, mock_llm_structured = _setup_mock_openai()
+    MockChatOpenAI, mock_instance, mock_llm = _setup_mock_openai()
     mock_llm.ainvoke = AsyncMock(return_value=final_ai_msg)
+
+    mock_llm_structured = MagicMock()
     mock_llm_structured.ainvoke = AsyncMock(return_value=mock_planning_output)
 
     with patch('app.post_draft.generation_pipeline.nodes.planning.ChatOpenAI', MockChatOpenAI):
-      await planning_node(state)
+      with patch('app.post_draft.generation_pipeline.nodes.planning._llm_structured', mock_llm_structured):
+        await planning_node(state)
 
     tools_arg = mock_instance.bind_tools.call_args[0][0]
     tool_names = [t.name for t in tools_arg]
@@ -208,8 +220,10 @@ class TestPlanningNode:
     final_ai_msg = AIMessage(content='Plans despite error.')
     mock_planning_output = _make_planning_output(3)
 
-    MockChatOpenAI, mock_instance, mock_llm, mock_llm_structured = _setup_mock_openai()
+    MockChatOpenAI, mock_instance, mock_llm = _setup_mock_openai()
     mock_llm.ainvoke = AsyncMock(side_effect=[tool_call_msg, final_ai_msg])
+
+    mock_llm_structured = MagicMock()
     mock_llm_structured.ainvoke = AsyncMock(return_value=mock_planning_output)
 
     mock_search_trends = MagicMock()
@@ -217,8 +231,9 @@ class TestPlanningNode:
     mock_search_trends.name = 'search_trends'
 
     with patch('app.post_draft.generation_pipeline.nodes.planning.ChatOpenAI', MockChatOpenAI):
-      with patch('app.post_draft.generation_pipeline.nodes.planning.search_trends', mock_search_trends):
-        result = await planning_node(state)
+      with patch('app.post_draft.generation_pipeline.nodes.planning._llm_structured', mock_llm_structured):
+        with patch('app.post_draft.generation_pipeline.nodes.planning.search_trends', mock_search_trends):
+          result = await planning_node(state)
 
     assert 'plans' in result
     mock_llm_structured.ainvoke.assert_called_once()
@@ -238,16 +253,19 @@ class TestPlanningNode:
     final_ai_msg = AIMessage(content='Retry plans.')
     mock_planning_output = _make_planning_output(1)
 
-    MockChatOpenAI, mock_instance, mock_llm, mock_llm_structured = _setup_mock_openai()
+    MockChatOpenAI, mock_instance, mock_llm = _setup_mock_openai()
     mock_llm.ainvoke = AsyncMock(return_value=final_ai_msg)
+
+    mock_llm_structured = MagicMock()
     mock_llm_structured.ainvoke = AsyncMock(return_value=mock_planning_output)
 
     with patch('app.post_draft.generation_pipeline.nodes.planning.ChatOpenAI', MockChatOpenAI):
-      with patch('app.post_draft.generation_pipeline.nodes.planning.build_retry_planning_prompt') as mock_retry:
-        with patch('app.post_draft.generation_pipeline.nodes.planning.build_initial_planning_prompt') as mock_initial:
-          mock_retry.return_value = 'retry prompt text'
-          mock_initial.return_value = 'initial prompt text'
-          result = await planning_node(state)
+      with patch('app.post_draft.generation_pipeline.nodes.planning._llm_structured', mock_llm_structured):
+        with patch('app.post_draft.generation_pipeline.nodes.planning.build_retry_planning_prompt') as mock_retry:
+          with patch('app.post_draft.generation_pipeline.nodes.planning.build_initial_planning_prompt') as mock_initial:
+            mock_retry.return_value = 'retry prompt text'
+            mock_initial.return_value = 'initial prompt text'
+            result = await planning_node(state)
 
     mock_retry.assert_called_once()
     mock_initial.assert_not_called()

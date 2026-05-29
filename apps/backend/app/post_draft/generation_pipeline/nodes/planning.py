@@ -6,8 +6,6 @@ from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 
-logger = logging.getLogger(__name__)
-
 from app.core.config import settings
 from app.post_draft.generation_pipeline.state import GraphState, PlanItem
 from app.post_draft.generation_pipeline.prompts.planning import (
@@ -17,6 +15,7 @@ from app.post_draft.generation_pipeline.prompts.planning import (
 from app.post_draft.generation_pipeline.tools.search_trends import search_trends
 from app.post_draft.generation_pipeline.tools.search_similar_posts import make_search_similar_posts
 
+logger = logging.getLogger(__name__)
 
 MAX_TOOL_CALL_ROUNDS = 3
 
@@ -30,6 +29,9 @@ class PlanItemOutput(BaseModel):
 
 class PlanningOutput(BaseModel):
   plans: list[PlanItemOutput]
+
+
+_llm_structured = ChatOpenAI(model=settings.OPENAI_MODEL).with_structured_output(PlanningOutput)
 
 
 async def planning_node(state: GraphState) -> dict:
@@ -99,8 +101,7 @@ async def planning_node(state: GraphState) -> dict:
 
   # Planning failure is fatal — unlike research, there is no fallback state that makes sense.
   # Any exception here is intentionally left unhandled so it surfaces and aborts the pipeline.
-  llm_structured = ChatOpenAI(model=settings.OPENAI_MODEL).with_structured_output(PlanningOutput)
-  result: PlanningOutput = await llm_structured.ainvoke(messages)
+  result: PlanningOutput = await _llm_structured.ainvoke(messages)
 
   plans: list[PlanItem] = [
     PlanItem(
