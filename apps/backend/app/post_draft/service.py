@@ -93,6 +93,9 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
   threads_connection = await get_connection(user_id, session)
   threads_access_token: str | None = None
   if threads_connection is not None:
+    # NOTE: This bypasses token refresh check (unlike publish path's _resolve_access_token).
+    # Safe for now — token is not used until App Review + Task 5 wires in the planning node
+    # to call Threads API. Will need refresh-aware resolution before real API calls land.
     threads_access_token = decrypt_token(threads_connection.access_token_encrypted)
 
   # 4. Build analysis dict
