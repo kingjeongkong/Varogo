@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import settings
 from app.post_draft.generation_pipeline.state import GraphState, PlanItem
@@ -76,7 +80,8 @@ async def planning_node(state: GraphState) -> dict:
           tool_result = await tool_fn.ainvoke(call['args'])
         else:
           tool_result = 'Tool not found.'
-      except Exception:
+      except Exception as e:
+        logger.warning('Tool %s failed: %s', call['name'], e)
         tool_result = 'Tool call failed.'
 
       messages.append(
@@ -92,6 +97,8 @@ async def planning_node(state: GraphState) -> dict:
   if not response.tool_calls:
     messages.append(response)
 
+  # Planning failure is fatal — unlike research, there is no fallback state that makes sense.
+  # Any exception here is intentionally left unhandled so it surfaces and aborts the pipeline.
   llm_structured = ChatOpenAI(model=settings.OPENAI_MODEL).with_structured_output(PlanningOutput)
   result: PlanningOutput = await llm_structured.ainvoke(messages)
 

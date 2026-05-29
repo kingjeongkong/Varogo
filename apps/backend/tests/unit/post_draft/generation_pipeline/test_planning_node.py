@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage
 
 from app.post_draft.generation_pipeline.state import GraphState, OptionState
 from app.post_draft.generation_pipeline.nodes.planning import planning_node
@@ -43,11 +43,11 @@ def _make_planning_output(n: int = 3):
   mock_output.plans = [
     MagicMock(
       angle='Story',
-      angle_label=f'Plan {i + 1}',
-      strategy=f'Strategy {i + 1}',
-      avoid=['cliche'],
+      angle_label='Origin Story',
+      strategy='Tell the founding story',
+      avoid=['hype'],
     )
-    for i in range(n)
+    for _ in range(n)
   ]
   return mock_output
 
@@ -102,6 +102,10 @@ class TestPlanningNode:
 
     assert 'plans' in result
     assert len(result['plans']) == 3
+    assert result['plans'][0]['angle'] == 'Story'
+    assert result['plans'][0]['angle_label'] == 'Origin Story'
+    assert result['plans'][0]['strategy'] == 'Tell the founding story'
+    assert all(k in result['plans'][0] for k in ('angle', 'angle_label', 'strategy', 'avoid'))
     mock_llm.ainvoke.assert_called_once()
     mock_llm_structured.ainvoke.assert_called_once()
 
