@@ -115,6 +115,7 @@ class TestSearchTrends:
     assert result != 'No results found.'
     assert 'Dev.to Article' in result
     assert '=== Dev.to ===' in result
+    assert '=== HN ===' not in result
 
   @pytest.mark.asyncio
   async def test_devto_fails_still_returns_hn_results(self):
@@ -142,3 +143,4 @@ class TestSearchTrends:
     assert result != 'No results found.'
     assert 'HN Article' in result
     assert '=== HN ===' in result
+    assert '=== Dev.to ===' not in result
