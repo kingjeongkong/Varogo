@@ -22,6 +22,7 @@ def build_initial_planning_prompt(
   reference_samples: list,
   today_input: str | None,
   research_context: str | None = None,
+  has_similar_posts_tool: bool = False,
 ) -> str:
   has_today = bool(today_input and today_input.strip())
 
@@ -61,6 +62,12 @@ No specific update today. Do NOT use Data angle."""
     else ''
   )
 
+  similar_posts_tool = (
+    '\nsearch_similar_posts — find posts in the user\'s history with a similar angle or topic, to avoid repeating already-used framing.'
+    if has_similar_posts_tool
+    else ''
+  )
+
   return f"""You are a plan designer, NOT a post writer — a separate generation agent will write the post using this plan.
 
 === Product context ===
@@ -82,6 +89,17 @@ Signature phrases: {signature_phrases_line}
 
 {today_block}
 {research_block}
+=== Thinking order ===
+Before finalising your plans, reason through these steps in order:
+1. What data points in the Research context connect directly with this product's differentiators or job to be done?
+2. Which angles are valid given the current context (today's update, research data, and available information)?
+3. Which of the valid angles best match the user's voice and opening patterns?
+4. Is the available data sufficient? If not, call a tool to gather more information before deciding.
+5. If there is failure feedback from a previous attempt, distinguish between artifact issues (formatting/structure) and eval issues (voice or strategy mismatch), and redesign plans accordingly.
+
+=== Tools available ===
+search_trends — look up current trends, recent events, or public data relevant to the product's category or keywords.{similar_posts_tool}
+
 === Task ===
 Design 3 plans. Each plan has:
 - angle: the angle type
@@ -139,8 +157,12 @@ def build_retry_planning_prompt(
   failed_options: list[OptionState],
   passed_angle_labels: list[str],
   research_context: str | None = None,
+  has_similar_posts_tool: bool = False,
 ) -> str:
-  base = build_initial_planning_prompt(analysis, style_fingerprint, reference_samples, today_input, research_context)
+  base = build_initial_planning_prompt(
+    analysis, style_fingerprint, reference_samples, today_input,
+    research_context, has_similar_posts_tool,
+  )
 
   failed_block = _format_failed_options(failed_options)
 
@@ -169,6 +191,7 @@ Use artifact issues vs eval issues to decide whether to reuse an angle:
 
 Artifact issues = code-level formatting/structure violations (same angle may still work).
 Eval issues = voice or strategy mismatch (change angle or significantly redesign strategy).
+If you are unsure about alternative framing approaches, you may call a tool to discover fresh angles before finalising.
 
 === Retry task ===
 Design {n} new plan(s) to replace the failed options above.

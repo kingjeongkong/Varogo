@@ -244,3 +244,73 @@ class TestResearchContext:
       research_context=None,
     )
     assert '=== Research context ===' not in prompt
+
+
+# ---------------------------------------------------------------------------
+# TestCotAndToolSections
+# ---------------------------------------------------------------------------
+
+class TestCotAndToolSections:
+  def test_initial_prompt_has_thinking_order_section(
+    self, analysis, style_fingerprint, reference_samples, today_input
+  ):
+    prompt = build_initial_planning_prompt(analysis, style_fingerprint, reference_samples, today_input)
+    assert '=== Thinking order ===' in prompt
+
+  def test_thinking_order_section_has_five_steps(
+    self, analysis, style_fingerprint, reference_samples, today_input
+  ):
+    prompt = build_initial_planning_prompt(analysis, style_fingerprint, reference_samples, today_input)
+    for i in range(1, 6):
+      assert f'{i}.' in prompt
+
+  def test_initial_prompt_has_tools_available_section(
+    self, analysis, style_fingerprint, reference_samples, today_input
+  ):
+    prompt = build_initial_planning_prompt(analysis, style_fingerprint, reference_samples, today_input)
+    assert '=== Tools available ===' in prompt
+
+  def test_search_trends_always_present(
+    self, analysis, style_fingerprint, reference_samples, today_input
+  ):
+    prompt = build_initial_planning_prompt(analysis, style_fingerprint, reference_samples, today_input)
+    assert 'search_trends' in prompt
+
+  def test_search_similar_posts_absent_when_flag_false(
+    self, analysis, style_fingerprint, reference_samples, today_input
+  ):
+    prompt = build_initial_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      has_similar_posts_tool=False,
+    )
+    assert 'search_similar_posts' not in prompt
+
+  def test_search_similar_posts_present_when_flag_true(
+    self, analysis, style_fingerprint, reference_samples, today_input
+  ):
+    prompt = build_initial_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      has_similar_posts_tool=True,
+    )
+    assert 'search_similar_posts' in prompt
+
+  def test_retry_prompt_inherits_thinking_order_section(
+    self, analysis, style_fingerprint, reference_samples, today_input,
+    failed_options, passed_angle_labels
+  ):
+    prompt = build_retry_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      failed_options, passed_angle_labels,
+    )
+    assert '=== Thinking order ===' in prompt
+
+  def test_retry_prompt_suggests_tools_for_framing(
+    self, analysis, style_fingerprint, reference_samples, today_input,
+    failed_options, passed_angle_labels
+  ):
+    prompt = build_retry_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      failed_options, passed_angle_labels,
+    )
+    assert 'tool' in prompt.lower()
+    assert 'framing' in prompt.lower()
