@@ -21,6 +21,7 @@ def build_initial_planning_prompt(
   style_fingerprint: dict,
   reference_samples: list,
   today_input: str | None,
+  research_context: str | None = None,
 ) -> str:
   has_today = bool(today_input and today_input.strip())
 
@@ -54,6 +55,12 @@ def build_initial_planning_prompt(
 No specific update today. Do NOT use Data angle."""
     angle_choices = 'Story, Contrarian, Positioning, Technical (DO NOT use Data — no numbers available)'
 
+  research_block = (
+    f'\n=== Research context ===\n{research_context}\n'
+    if research_context and research_context.strip()
+    else ''
+  )
+
   return f"""You are a plan designer, NOT a post writer — a separate generation agent will write the post using this plan.
 
 === Product context ===
@@ -74,7 +81,7 @@ Signature phrases: {signature_phrases_line}
 {samples}
 
 {today_block}
-
+{research_block}
 === Task ===
 Design 3 plans. Each plan has:
 - angle: the angle type
@@ -131,8 +138,9 @@ def build_retry_planning_prompt(
   today_input: str | None,
   failed_options: list[OptionState],
   passed_angle_labels: list[str],
+  research_context: str | None = None,
 ) -> str:
-  base = build_initial_planning_prompt(analysis, style_fingerprint, reference_samples, today_input)
+  base = build_initial_planning_prompt(analysis, style_fingerprint, reference_samples, today_input, research_context)
 
   failed_block = _format_failed_options(failed_options)
 

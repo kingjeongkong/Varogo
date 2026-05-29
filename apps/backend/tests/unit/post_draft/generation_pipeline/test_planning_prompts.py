@@ -194,3 +194,53 @@ class TestBuildRetryPlanningPrompt:
       failed_options, passed_angle_labels,
     )
     assert 'Design 2 new plan(s)' in prompt
+
+
+# ---------------------------------------------------------------------------
+# TestResearchContext
+# ---------------------------------------------------------------------------
+
+class TestResearchContext:
+  def test_initial_prompt_includes_research_context_block_when_provided(
+    self, analysis, style_fingerprint, reference_samples, today_input
+  ):
+    rc = 'Competitor X launched a new feature last week targeting enterprise.'
+    prompt = build_initial_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      research_context=rc,
+    )
+    assert '=== Research context ===' in prompt
+    assert rc in prompt
+
+  def test_initial_prompt_excludes_research_context_block_when_none(
+    self, analysis, style_fingerprint, reference_samples, today_input
+  ):
+    prompt = build_initial_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      research_context=None,
+    )
+    assert '=== Research context ===' not in prompt
+
+  def test_retry_prompt_includes_research_context_block_when_provided(
+    self, analysis, style_fingerprint, reference_samples, today_input,
+    failed_options, passed_angle_labels
+  ):
+    rc = 'Competitor X launched a new feature last week targeting enterprise.'
+    prompt = build_retry_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      failed_options, passed_angle_labels,
+      research_context=rc,
+    )
+    assert '=== Research context ===' in prompt
+    assert rc in prompt
+
+  def test_retry_prompt_excludes_research_context_block_when_none(
+    self, analysis, style_fingerprint, reference_samples, today_input,
+    failed_options, passed_angle_labels
+  ):
+    prompt = build_retry_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      failed_options, passed_angle_labels,
+      research_context=None,
+    )
+    assert '=== Research context ===' not in prompt

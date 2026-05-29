@@ -30,10 +30,12 @@ async def planning_node(state: GraphState) -> dict:
   style_fingerprint = state['style_fingerprint']
   reference_samples = state['reference_samples']
   today_input = state['today_input']
+  research_context = state['research_context']
 
   if state['iteration'] == 0:
     prompt = build_initial_planning_prompt(
-      analysis, style_fingerprint, reference_samples, today_input
+      analysis, style_fingerprint, reference_samples, today_input,
+      research_context=research_context,
     )
   else:
     options = state['options']
@@ -41,7 +43,8 @@ async def planning_node(state: GraphState) -> dict:
     passed = [o for o in options if o.status == 'passed']
     passed_angle_labels = [o.angle_label for o in passed]
     prompt = build_retry_planning_prompt(
-      analysis, style_fingerprint, reference_samples, today_input, failed, passed_angle_labels
+      analysis, style_fingerprint, reference_samples, today_input, failed, passed_angle_labels,
+      research_context=research_context,
     )
 
   result: PlanningOutput = await _llm.ainvoke(prompt)
