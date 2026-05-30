@@ -42,18 +42,33 @@ async def planning_node(state: GraphState) -> dict:
   research_context = state['research_context']
   threads_access_token = state['threads_access_token']
 
-  tools = [search_trends]
+  # TODO: After Meta App Review is approved, move search_similar_posts into the LLM tools list
+  # so the planning agent can call it freely as needed (instead of this direct pre-call).
+  # i.e. tools = [search_trends, make_search_similar_posts(threads_access_token)]
+  # and pass has_similar_posts_tool=True to the prompt builders.
+  similar_posts_context: str | None = None
   if threads_access_token is not None:
-    tools.append(make_search_similar_posts(threads_access_token))
+    primary_keywords = analysis.get('keywords', {}).get('primary', [])
+    query = ' '.join(primary_keywords[:2]) if primary_keywords else analysis.get('category', '')
+    if query:
+      tool = make_search_similar_posts(threads_access_token)
+      result = await tool.ainvoke({'query': query})
+      if result != 'No results found.':
+        similar_posts_context = result
 
+  # Merge similar posts into research context for the LLM
+  combined_research = research_context or ''
+  if similar_posts_context:
+    combined_research = (combined_research + '\n\n=== Similar posts from Threads history ===\n' + similar_posts_context).strip()
+
+  tools = [search_trends]
   tool_map = {t.name: t for t in tools}
-  has_similar_posts_tool = threads_access_token is not None
 
   if state['iteration'] == 0:
     prompt = build_initial_planning_prompt(
       analysis, style_fingerprint, reference_samples, today_input,
-      research_context=research_context,
-      has_similar_posts_tool=has_similar_posts_tool,
+      research_context=combined_research or None,
+      has_similar_posts_tool=False,
     )
   else:
     options = state['options']
@@ -62,8 +77,8 @@ async def planning_node(state: GraphState) -> dict:
     passed_angle_labels = [o.angle_label for o in passed]
     prompt = build_retry_planning_prompt(
       analysis, style_fingerprint, reference_samples, today_input, failed, passed_angle_labels,
-      research_context=research_context,
-      has_similar_posts_tool=has_similar_posts_tool,
+      research_context=combined_research or None,
+      has_similar_posts_tool=False,
     )
 
   llm = ChatOpenAI(model=settings.OPENAI_MODEL).bind_tools(tools)

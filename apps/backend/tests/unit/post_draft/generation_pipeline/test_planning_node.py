@@ -111,7 +111,7 @@ class TestPlanningNode:
 
   @pytest.mark.asyncio
   async def test_single_search_trends_call(self):
-    """LLM calls search_trends once, then structured output is extracted."""
+    """LLM calls search_trends once, then returns final response → ainvoke called twice."""
     state = _make_state()
 
     tool_call_msg = _make_tool_call_msg('search_trends', 'call_trends_1')
@@ -141,7 +141,7 @@ class TestPlanningNode:
 
   @pytest.mark.asyncio
   async def test_max_tool_call_rounds_reached(self):
-    """LLM keeps returning tool calls → ainvoke called exactly 3 times, then forced stop."""
+    """LLM keeps returning tool calls → ainvoke called MAX_TOOL_CALL_ROUNDS+1 times then forced stop."""
     state = _make_state()
 
     tool_call_msg = _make_tool_call_msg('search_trends')
@@ -163,6 +163,7 @@ class TestPlanningNode:
           result = await planning_node(state)
 
     assert 'plans' in result
+    # initial call + (MAX_TOOL_CALL_ROUNDS - 1) follow-up calls; last round breaks without extra call
     assert mock_llm.ainvoke.call_count == 3
     mock_llm_structured.ainvoke.assert_called_once()
 
@@ -189,8 +190,8 @@ class TestPlanningNode:
     assert tool_names == ['search_trends']
 
   @pytest.mark.asyncio
-  async def test_with_token_includes_search_similar_posts(self):
-    """threads_access_token present → both search_trends and search_similar_posts in bind_tools."""
+  async def test_with_token_calls_search_similar_posts_directly(self):
+    """threads_access_token present → search_similar_posts called directly, not via LLM tools."""
     state = _make_state(threads_access_token='my_token')
 
     final_ai_msg = AIMessage(content='Plans ready.')
@@ -202,14 +203,22 @@ class TestPlanningNode:
     mock_llm_structured = MagicMock()
     mock_llm_structured.ainvoke = AsyncMock(return_value=mock_planning_output)
 
+    mock_tool = AsyncMock(return_value='No results found.')
+    mock_tool.name = 'search_similar_posts'
+    mock_make = MagicMock(return_value=mock_tool)
+
     with patch('app.post_draft.generation_pipeline.nodes.planning.ChatOpenAI', MockChatOpenAI):
       with patch('app.post_draft.generation_pipeline.nodes.planning._llm_structured', mock_llm_structured):
-        await planning_node(state)
+        with patch('app.post_draft.generation_pipeline.nodes.planning.make_search_similar_posts', mock_make):
+          await planning_node(state)
+
+    mock_make.assert_called_once_with('my_token')
+    mock_tool.ainvoke.assert_called_once_with({'query': 'CI deployment'})
 
     tools_arg = mock_instance.bind_tools.call_args[0][0]
     tool_names = [t.name for t in tools_arg]
     assert 'search_trends' in tool_names
-    assert 'search_similar_posts' in tool_names
+    assert 'search_similar_posts' not in tool_names
 
   @pytest.mark.asyncio
   async def test_tool_raises_exception_node_continues(self):
