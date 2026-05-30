@@ -262,7 +262,7 @@ def generate_auth_url(user_id: str) -> str:
   params = urlencode({
     'client_id': settings.THREADS_APP_ID,
     'redirect_uri': settings.THREADS_REDIRECT_URI,
-    'scope': 'threads_basic,threads_content_publish',
+    'scope': 'threads_basic,threads_content_publish,threads_keyword_search',
     'response_type': 'code',
     'state': state,
   })

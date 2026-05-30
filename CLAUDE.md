@@ -44,7 +44,8 @@ pnpm build           # Production build
 pnpm lint            # ESLint
 
 # Root (workspace)
-pnpm dev:frontend    # Start frontend
+pnpm dev:backend     # Start FastAPI server (port 3000)
+pnpm dev:frontend    # Start frontend (port 3001)
 
 # Docker (local development)
 docker compose up -d postgres   # PostgreSQL only (port 5432)
