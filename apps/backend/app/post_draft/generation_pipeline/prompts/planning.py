@@ -30,7 +30,7 @@ def build_initial_planning_prompt(
 
   alternatives_list = analysis.get('alternatives', [])
   alternatives = '; '.join(
-    f'{a["name"]} (weakness: {a["weakness_we_exploit"]})'
+    f'{a["name"]} (weakness: {a["weakness_we_exploit"]})' if 'weakness_we_exploit' in a else a['name']
     for a in alternatives_list
   )
 
