@@ -111,7 +111,7 @@ async def test_create_success(client, db_session):
   await seed_voice_profile(db_session, user['id'])
   headers = await get_auth_headers(client)
 
-  with patch('app.post_draft.generation_pipeline.pipeline.generate', new_callable=AsyncMock) as mock_generate:
+  with patch('app.post_draft.generation_pipeline.graph.generate', new_callable=AsyncMock) as mock_generate:
     mock_generate.return_value = MOCK_GENERATE_RETURN
     response = await client.post(
       '/post-drafts',

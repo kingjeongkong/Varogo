@@ -29,8 +29,19 @@ class TestAutoCorrect:
   def test_mixed_exclamation_and_colon(self):
     result = auto_correct("Check this out!:")
     assert "!" not in result
-    # colon removal is for sentence-ending colons; after ! removal may expose colon
     assert ":" not in result
+
+  def test_removes_mid_sentence_colon(self):
+    assert auto_correct("Key insight: it worked.") == "Key insight it worked."
+
+  def test_removes_list_intro_colon(self):
+    assert auto_correct("Things I learned: build slow.") == "Things I learned build slow."
+
+  def test_preserves_time_pattern(self):
+    assert auto_correct("Shipped at 3:00pm.") == "Shipped at 3:00pm."
+
+  def test_preserves_url_colon(self):
+    assert auto_correct("See https://example.com for details.") == "See https://example.com for details."
 
 
 # ---------------------------------------------------------------------------

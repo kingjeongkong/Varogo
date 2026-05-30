@@ -7,10 +7,11 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.post_draft.generation_pipeline import pipeline as generation_pipeline
+from app.post_draft.generation_pipeline import graph as generation_pipeline
 from app.post_draft.models import PostDraft, PostDraftOption
 from app.products.models import Product, ProductAnalysis
-from app.threads.service import publish_to_threads
+from app.threads.service import get_connection, publish_to_threads
+from app.threads.threads_crypto import decrypt_token
 from app.voice_profile.models import VoiceProfile
 
 logger = logging.getLogger(__name__)
@@ -88,7 +89,16 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
   if voice_profile is None:
     raise HTTPException(status_code=400, detail='Import your Threads voice first')
 
-  # 3. Build analysis dict
+  # 3. Fetch Threads access token (optional — user may not have connected)
+  threads_connection = await get_connection(user_id, session)
+  threads_access_token: str | None = None
+  if threads_connection is not None:
+    # NOTE: This bypasses token refresh check (unlike publish path's _resolve_access_token).
+    # Safe for now — token is not used until App Review + Task 5 wires in the planning node
+    # to call Threads API. Will need refresh-aware resolution before real API calls land.
+    threads_access_token = decrypt_token(threads_connection.access_token_encrypted)
+
+  # 4. Build analysis dict
   pa: ProductAnalysis = product.analysis
   analysis = {
     'category': pa.category,
@@ -102,17 +112,18 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
     'keywords': pa.keywords,
   }
 
-  # 4. Extract voice profile data
+  # 5. Extract voice profile data
   style_fingerprint = voice_profile.style_fingerprint
   reference_samples = voice_profile.reference_samples
 
-  # 5. Generate options
+  # 6. Generate options
   generation_result = await generation_pipeline.generate(
-    analysis, style_fingerprint, reference_samples, dto.get('today_input')
+    analysis, style_fingerprint, reference_samples, dto.get('today_input'),
+    threads_access_token=threads_access_token,
   )
   options_data = generation_result['options']
 
-  # 6. Create PostDraft
+  # 7. Create PostDraft
   now = datetime.now(timezone.utc).replace(tzinfo=None)
   draft = PostDraft(
     id=str(uuid4()),
@@ -126,7 +137,7 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
   session.add(draft)
   await session.flush()
 
-  # 7. Create PostDraftOptions
+  # 8. Create PostDraftOptions
   for opt in options_data:
     session.add(
       PostDraftOption(
@@ -139,7 +150,7 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
     )
   await session.flush()
 
-  # 8. Re-query draft with options loaded
+  # 9. Re-query draft with options loaded
   requery = await session.execute(
     select(PostDraft)
     .where(PostDraft.id == draft.id)
@@ -147,10 +158,10 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
   )
   draft = requery.scalar_one()
 
-  # 9. Commit
+  # 10. Commit
   await session.commit()
 
-  # 10. Return
+  # 11. Return
   return {'draft': draft, 'evaluation_feedback': generation_result['evaluation_feedback']}
 
 
