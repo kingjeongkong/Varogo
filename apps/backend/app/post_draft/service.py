@@ -162,7 +162,7 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
   await session.commit()
 
   # 11. Return
-  return {'draft': draft, 'evaluation_feedback': generation_result['evaluation_feedback']}
+  return {'draft': draft, 'evaluation_feedback': generation_result.get('evaluation_feedback')}
 
 
 async def find_one_by_user(
