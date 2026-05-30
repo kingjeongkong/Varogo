@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import logging
+
 from pydantic import BaseModel
+from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
@@ -9,6 +12,12 @@ from app.post_draft.generation_pipeline.prompts.planning import (
   build_initial_planning_prompt,
   build_retry_planning_prompt,
 )
+from app.post_draft.generation_pipeline.tools.search_trends import search_trends
+from app.post_draft.generation_pipeline.tools.search_similar_posts import make_search_similar_posts
+
+logger = logging.getLogger(__name__)
+
+MAX_TOOL_CALL_ROUNDS = 3
 
 
 class PlanItemOutput(BaseModel):
@@ -22,7 +31,7 @@ class PlanningOutput(BaseModel):
   plans: list[PlanItemOutput]
 
 
-_llm = ChatOpenAI(model=settings.OPENAI_MODEL).with_structured_output(PlanningOutput)
+_llm_structured = ChatOpenAI(model=settings.OPENAI_MODEL).with_structured_output(PlanningOutput)
 
 
 async def planning_node(state: GraphState) -> dict:
@@ -31,11 +40,20 @@ async def planning_node(state: GraphState) -> dict:
   reference_samples = state['reference_samples']
   today_input = state['today_input']
   research_context = state['research_context']
+  threads_access_token = state['threads_access_token']
+
+  tools = [search_trends]
+  if threads_access_token is not None:
+    tools.append(make_search_similar_posts(threads_access_token))
+
+  tool_map = {t.name: t for t in tools}
+  has_similar_posts_tool = threads_access_token is not None
 
   if state['iteration'] == 0:
     prompt = build_initial_planning_prompt(
       analysis, style_fingerprint, reference_samples, today_input,
       research_context=research_context,
+      has_similar_posts_tool=has_similar_posts_tool,
     )
   else:
     options = state['options']
@@ -45,9 +63,45 @@ async def planning_node(state: GraphState) -> dict:
     prompt = build_retry_planning_prompt(
       analysis, style_fingerprint, reference_samples, today_input, failed, passed_angle_labels,
       research_context=research_context,
+      has_similar_posts_tool=has_similar_posts_tool,
     )
 
-  result: PlanningOutput = await _llm.ainvoke(prompt)
+  llm = ChatOpenAI(model=settings.OPENAI_MODEL).bind_tools(tools)
+
+  messages = [HumanMessage(content=prompt)]
+  response = await llm.ainvoke(messages)
+
+  rounds = 0
+  while response.tool_calls and rounds < MAX_TOOL_CALL_ROUNDS:
+    messages.append(response)
+
+    for call in response.tool_calls:
+      tool_fn = tool_map.get(call['name'])
+      try:
+        if tool_fn is not None:
+          tool_result = await tool_fn.ainvoke(call['args'])
+        else:
+          tool_result = 'Tool not found.'
+      except Exception as e:
+        logger.warning('Tool %s failed: %s', call['name'], e)
+        tool_result = 'Tool call failed.'
+
+      messages.append(
+        ToolMessage(content=str(tool_result), tool_call_id=call['id'])
+      )
+
+    rounds += 1
+    if rounds < MAX_TOOL_CALL_ROUNDS:
+      response = await llm.ainvoke(messages)
+    else:
+      break
+
+  if not response.tool_calls:
+    messages.append(response)
+
+  # Planning failure is fatal — unlike research, there is no fallback state that makes sense.
+  # Any exception here is intentionally left unhandled so it surfaces and aborts the pipeline.
+  result: PlanningOutput = await _llm_structured.ainvoke(messages)
 
   plans: list[PlanItem] = [
     PlanItem(
