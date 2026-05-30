@@ -161,20 +161,58 @@ class TestMakeSearchSimilarPosts:
     assert tool.name == 'search_similar_posts'
 
   @pytest.mark.asyncio
-  async def test_search_similar_posts_returns_no_results_stub(self):
+  async def test_search_similar_posts_returns_formatted_results(self):
     from app.post_draft.generation_pipeline.tools.search_similar_posts import make_search_similar_posts
 
-    tool = make_search_similar_posts(access_token='test_token')
-    result = await tool.ainvoke({'query': 'marketing strategy'})
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {
+      'data': [
+        {'id': '1', 'text': 'My launch post about indie SaaS', 'timestamp': '2025-01-01T00:00:00Z'},
+        {'id': '2', 'text': 'Another post on marketing strategy', 'timestamp': '2025-01-02T00:00:00Z'},
+      ]
+    }
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client.get = AsyncMock(return_value=mock_response)
 
-    assert result == 'No results found.'
-    assert isinstance(result, str)
+    tool = make_search_similar_posts(access_token='valid_token')
+    with patch('app.post_draft.generation_pipeline.tools.search_similar_posts.httpx.AsyncClient', return_value=mock_client):
+      result = await tool.ainvoke({'query': 'marketing strategy'})
+
+    assert 'My launch post about indie SaaS' in result
+    assert 'Another post on marketing strategy' in result
 
   @pytest.mark.asyncio
-  async def test_search_similar_posts_accepts_any_query(self):
+  async def test_search_similar_posts_returns_no_results_when_empty(self):
     from app.post_draft.generation_pipeline.tools.search_similar_posts import make_search_similar_posts
 
-    tool = make_search_similar_posts(access_token='test_token')
-    result = await tool.ainvoke({'query': 'any query string here'})
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {'data': []}
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client.get = AsyncMock(return_value=mock_response)
+
+    tool = make_search_similar_posts(access_token='valid_token')
+    with patch('app.post_draft.generation_pipeline.tools.search_similar_posts.httpx.AsyncClient', return_value=mock_client):
+      result = await tool.ainvoke({'query': 'marketing strategy'})
+
+    assert result == 'No results found.'
+
+  @pytest.mark.asyncio
+  async def test_search_similar_posts_returns_no_results_on_api_error(self):
+    from app.post_draft.generation_pipeline.tools.search_similar_posts import make_search_similar_posts
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client.get = AsyncMock(side_effect=Exception('API error'))
+
+    tool = make_search_similar_posts(access_token='invalid_token')
+    with patch('app.post_draft.generation_pipeline.tools.search_similar_posts.httpx.AsyncClient', return_value=mock_client):
+      result = await tool.ainvoke({'query': 'any query string here'})
 
     assert result == 'No results found.'
