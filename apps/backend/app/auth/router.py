@@ -17,6 +17,7 @@ def _set_token_cookies(response: Response, access_token: str, refresh_token: str
   is_prod = settings.ENVIRONMENT == 'production'
   secure = is_prod
   samesite = 'none' if is_prod else 'lax'
+  domain = settings.COOKIE_DOMAIN or None
 
   response.set_cookie(
     key='access_token',
@@ -26,6 +27,7 @@ def _set_token_cookies(response: Response, access_token: str, refresh_token: str
     path='/',
     secure=secure,
     samesite=samesite,
+    domain=domain,
   )
   response.set_cookie(
     key='refresh_token',
@@ -35,12 +37,14 @@ def _set_token_cookies(response: Response, access_token: str, refresh_token: str
     path='/auth/refresh',
     secure=secure,
     samesite=samesite,
+    domain=domain,
   )
 
 
 def _clear_token_cookies(response: Response) -> None:
-  response.delete_cookie(key='access_token', path='/')
-  response.delete_cookie(key='refresh_token', path='/auth/refresh')
+  domain = settings.COOKIE_DOMAIN or None
+  response.delete_cookie(key='access_token', path='/', domain=domain)
+  response.delete_cookie(key='refresh_token', path='/auth/refresh', domain=domain)
 
 
 @router.post('/signup', status_code=201, response_model=UserResponse)
