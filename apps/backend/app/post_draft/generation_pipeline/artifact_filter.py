@@ -35,6 +35,28 @@ _SIGNPOSTING_PATTERNS: list[tuple[str, str]] = [
   (r'Let me share', 'Let me share'),
 ]
 
+# AI filler phrases — shared with prompt builders (single source of truth)
+_AI_FILLER_PATTERNS: list[tuple[str, str]] = [
+  (r"Here's the kicker", "Here's the kicker"),
+  (r"Let's keep it real", "Let's keep it real"),
+  (r"Here's the deal", "Here's the deal"),
+  (r'\bgame changer\b', 'game changer'),
+  (r'at the end of the day', 'at the end of the day'),
+  (r"it's worth noting", "it's worth noting"),
+  (r"in today's world", "in today's world"),
+  (r'what if i told you', 'what if I told you'),
+  (r'are you ready to', 'are you ready to'),
+]
+
+_FORCED_ENDING_PATTERNS: list[tuple[str, str]] = [
+  (r'\bthe takeaway\b', 'the takeaway'),
+  (r'the lesson here', 'the lesson here'),
+]
+
+_AUDIENCE_ADDRESS_PATTERNS: list[tuple[str, str]] = [
+  (r'(?m)^(Indie devs|Founders|Builders),', 'audience address opener'),
+]
+
 _NEGATIVE_PARALLELISM_PATTERNS: list[tuple[str, str]] = [
   (r"[Ii]t's not just", "It's not just"),
 ]
@@ -77,6 +99,14 @@ _KNOWN_TOOLS: list[str] = [
 ]
 
 MAX_LENGTH = 500
+
+# ---------------------------------------------------------------------------
+# Exported constants — consumed by prompt builders (generation, evaluator)
+# so evaluator and generation always check the same AI pattern set.
+# ---------------------------------------------------------------------------
+EXPORTED_AI_FILLER_PHRASES: list[str] = [label for _, label in _AI_FILLER_PATTERNS]
+EXPORTED_FORCED_ENDING_PHRASES: list[str] = [label for _, label in _FORCED_ENDING_PATTERNS]
+EXPORTED_AUDIENCE_ADDRESS: list[str] = ['Indie devs,', 'Founders,', 'Builders,']
 
 
 # ---------------------------------------------------------------------------
@@ -140,6 +170,24 @@ def detect_artifacts(text: str) -> list[str]:
     if match:
       issues.append(f"generic ending: '{match.group(0)}'")
 
+  # AI filler phrases
+  for pattern, label in _AI_FILLER_PATTERNS:
+    match = re.search(pattern, text, re.IGNORECASE)
+    if match:
+      issues.append(f"AI filler: '{label}'")
+
+  # Forced endings
+  for pattern, label in _FORCED_ENDING_PATTERNS:
+    match = re.search(pattern, text, re.IGNORECASE)
+    if match:
+      issues.append(f"forced ending: '{label}'")
+
+  # Audience address opener
+  for pattern, label in _AUDIENCE_ADDRESS_PATTERNS:
+    match = re.search(pattern, text)
+    if match:
+      issues.append(f"AI pattern: {label}")
+
   # Forbidden openings
   for opening in _FORBIDDEN_OPENINGS:
     if text.startswith(opening):
@@ -167,22 +215,35 @@ def check_specificity(text: str) -> list[str]:
   return ["specificity: no concrete detail found"]
 
 
+def _strip_list_ordinals(text: str) -> str:
+  """Remove numbered list markers (e.g. '1. ', '2. ') — structural, not factual claims.
+  Handles both line-start ('1. item') and inline ('works 1. Analyzes') forms.
+  """
+  return re.sub(r'(?m)(^|\s)\d+\.\s', r'\1', text)
+
+
 def check_hallucination(text: str, today_input: str | None) -> list[str]:
   """
-  Check every number in text against today_input.
-  If today_input is None, any number is ungrounded.
+  Check factual numbers in text against today_input.
+  List ordinals (1. 2. 3. at line start) are excluded — they are structural markers, not claims.
+  If today_input is None, any factual number is ungrounded.
   Returns a list of issue strings for each ungrounded number.
   """
-  numbers = re.findall(r'\d+', text)
+  def _extract_numbers(t: str) -> set[str]:
+    normalized = re.sub(r'(\d),(\d)', r'\1\2', t)
+    return set(re.findall(r'\d+', normalized))
+
+  claim_text = _strip_list_ordinals(text)
+  numbers = _extract_numbers(claim_text)
   if not numbers:
     return []
 
   if today_input is None:
-    return [f"hallucination: number {n} not grounded in today_input" for n in set(numbers)]
+    return [f"hallucination: number {n} not grounded in today_input" for n in numbers]
 
   issues: list[str] = []
-  today_numbers = set(re.findall(r'\d+', today_input))
-  for n in set(numbers):
+  today_numbers = _extract_numbers(today_input)
+  for n in numbers:
     if n not in today_numbers:
       issues.append(f"hallucination: number {n} not grounded in today_input")
   return issues

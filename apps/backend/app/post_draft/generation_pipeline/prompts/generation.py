@@ -9,6 +9,11 @@ Voice section appears FIRST so the LLM prioritises voice over marketing instinct
 from __future__ import annotations
 
 from app.post_draft.generation_pipeline.state import PlanItem
+from app.post_draft.generation_pipeline.artifact_filter import (
+  EXPORTED_AI_FILLER_PHRASES,
+  EXPORTED_FORCED_ENDING_PHRASES,
+  EXPORTED_AUDIENCE_ADDRESS,
+)
 
 _REFERENCE_SAMPLE_LIMIT = 5
 
@@ -52,8 +57,12 @@ def _punctuation_rules(reference_samples: list) -> str:
 
 
 def _forbidden_patterns_block() -> str:
-  return """=== Forbidden patterns — NEVER generate any of the following ===
-AI vocabulary (remove entirely — rephrase naturally):
+  filler = ', '.join(f'"{p}"' for p in EXPORTED_AI_FILLER_PHRASES)
+  endings = ', '.join(f'"{p}"' for p in EXPORTED_FORCED_ENDING_PHRASES)
+  audience = ', '.join(f'"{p}"' for p in EXPORTED_AUDIENCE_ADDRESS)
+
+  return f"""=== Forbidden patterns — NEVER generate any of the following ===
+AI vocabulary (rephrase naturally):
   testament, ecosystem, game-changer, pivotal, seamless (seamlessly), robust,
   leverage/leveraging/leveraged, transformative, groundbreaking,
   revolutionize/revolutionizing, showcasing
@@ -61,6 +70,15 @@ AI vocabulary (remove entirely — rephrase naturally):
 Signposting phrases:
   "Let's dive in", "Here's the thing", "In conclusion",
   "Here's what I learned", "Let me share"
+
+AI filler phrases:
+  {filler}
+
+Forced endings (do NOT close with a lesson or advice to the reader):
+  {endings}
+
+Artificial audience address as opener:
+  {audience}
 
 Negative parallelism:
   "It's not just X, it's Y"
@@ -78,8 +96,7 @@ Generic endings:
   "The future looks bright", "exciting times ahead", "can't wait to see where this goes"
 
 Forbidden openings (do NOT start a post with):
-  "Six months ago,", "Last year,", "A year ago,",
-  "Two weeks ago,", "Last month,\""""
+  "Six months ago,", "Last year,", "A year ago,", "Two weeks ago,", "Last month,\""""
 
 
 def _specificity_instruction(has_today: bool) -> str:
@@ -157,28 +174,17 @@ No specific update today. Do NOT include any numbers."""
 
   return f"""You are a generation agent writing one Threads post following the given plan. Voice is the top priority — it beats any "good marketing" instinct you have.
 
-=== Your voice (preserve first, always) ===
+=== Voice (top priority — internalize before anything else) ===
 Style / tonality: {style_fingerprint.get('tonality', '')}
 
-Opening patterns (begin the post with one of these, or a close structural variation using the same syntactic shape):
+Opening patterns (begin the post with one of these, or a close structural variation):
 {opening_patterns_text}
 
 Signature phrases: {signature_phrases_line}
   Use ONLY when the phrase's meaning in the reference posts still applies. Preserve grammar exactly — do NOT re-assemble. Better to omit than to misuse.{punctuation_section}
 
-=== Reference posts from the user (your writing target — match this rhythm) ===
+=== Reference posts (match this rhythm — this is your writing target) ===
 {samples}
-
-=== The product you're posting about ===
-Category: {analysis.get('category', '')}
-Job to be done: {analysis.get('job_to_be_done', '')}
-Positioning: {analysis.get('positioning_statement', '')}
-Differentiators: {'; '.join(analysis.get('differentiators', []))}
-Alternatives: {alternatives}
-Why now: {analysis.get('why_now', '')}
-Keywords: {keywords}
-
-{today_context_block}
 
 === Plan to execute ===
 Angle: {plan.get('angle', '')}
@@ -192,6 +198,17 @@ Execute this plan's strategy exactly. Do not deviate from the angle or strategy.
 {forbidden_block}
 
 {specificity_block}
+
+=== Product context (factual grounding only — do not let this drive tone or structure) ===
+Category: {analysis.get('category', '')}
+Job to be done: {analysis.get('job_to_be_done', '')}
+Positioning: {analysis.get('positioning_statement', '')}
+Differentiators: {'; '.join(analysis.get('differentiators', []))}
+Alternatives: {alternatives}
+Why now: {analysis.get('why_now', '')}
+Keywords: {keywords}
+
+{today_context_block}
 
 === Task ===
 Generate exactly 1 post (max 500 chars) following the plan above.
