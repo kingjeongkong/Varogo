@@ -14,7 +14,7 @@ from app.post_draft.generation_pipeline.tools.search_hn import search_hn
 logger = logging.getLogger(__name__)
 
 _llm = ChatGoogleGenerativeAI(
-  model='gemini-2.5-flash',
+  model='gemini-2.5-flash-lite',
   google_api_key=settings.GEMINI_API_KEY,
 ).bind_tools([search_hn, search_devto])
 

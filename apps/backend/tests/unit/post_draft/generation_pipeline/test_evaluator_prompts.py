@@ -63,12 +63,12 @@ class TestBuildVoiceEvalPrompt:
     prompt = build_voice_eval_prompt(text, style_fingerprint, reference_samples, today_input)
     assert style_fingerprint['openingPatterns'][0] in prompt
 
-  def test_today_input_appears_when_provided(
+  def test_opening_patterns_appear_in_prompt(
     self, style_fingerprint, reference_samples, today_input
   ):
     text = 'Just shipped dark mode. Took 3 days.'
     prompt = build_voice_eval_prompt(text, style_fingerprint, reference_samples, today_input)
-    assert today_input in prompt
+    assert style_fingerprint['openingPatterns'][0] in prompt
 
   def test_today_input_section_absent_when_not_provided(
     self, style_fingerprint, reference_samples

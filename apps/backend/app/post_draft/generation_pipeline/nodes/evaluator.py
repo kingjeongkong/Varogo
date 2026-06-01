@@ -4,7 +4,7 @@ import asyncio
 import logging
 
 from pydantic import BaseModel
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
 from app.post_draft.generation_pipeline import artifact_filter
@@ -18,10 +18,7 @@ class EvaluatorOutput(BaseModel):
   issues: list[str]
 
 
-_llm = ChatGoogleGenerativeAI(
-  model='gemini-2.5-flash',
-  google_api_key=settings.GEMINI_API_KEY,
-).with_structured_output(EvaluatorOutput)
+_llm = ChatOpenAI(model='gpt-4o-mini', temperature=0).with_structured_output(EvaluatorOutput)
 
 
 async def _evaluate_one_graceful(

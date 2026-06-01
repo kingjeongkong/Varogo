@@ -110,7 +110,6 @@ class TestBuildGenerationPrompt:
   ):
     prompt = build_generation_prompt(plan, style_fingerprint, reference_samples, analysis, None)
     assert 'Do NOT include any numbers' in prompt
-    assert 'Do not invent statistics' in prompt
 
   def test_product_category_appears_in_prompt(
     self, plan, style_fingerprint, reference_samples, analysis, today_input

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from app.post_draft.generation_pipeline.state import OptionState
 
 _REFERENCE_SAMPLE_LIMIT = 5
@@ -14,6 +16,12 @@ def _format_samples(reference_samples: list) -> str:
     f'{i + 1}. "{_escape(s["text"])}"'
     for i, s in enumerate(reference_samples[:_REFERENCE_SAMPLE_LIMIT])
   )
+
+
+def _clean_opening_patterns(patterns: list[str]) -> str:
+  """Strip internal post-reference annotations (e.g. 'Posts: #1, #2') from patterns."""
+  cleaned = [re.sub(r'\s*Posts:\s*#[\d,\s#]+', '', p).strip() for p in patterns]
+  return '\n'.join(f'  • {p}' for p in cleaned if p)
 
 
 def build_initial_planning_prompt(
@@ -40,16 +48,13 @@ def build_initial_planning_prompt(
   )
 
   opening_patterns = style_fingerprint.get('openingPatterns', [])
-  opening_patterns_text = '\n'.join(f'  • {p}' for p in opening_patterns)
-
-  signature_phrases = style_fingerprint.get('signaturePhrases', [])
-  signature_phrases_line = (
-    ', '.join(signature_phrases) if signature_phrases else '(none detected)'
-  )
+  opening_patterns_text = _clean_opening_patterns(opening_patterns)
 
   if has_today:
-    today_block = f"""=== Today's context ===
-{today_input}"""
+    today_block = f"""=== Today's context (only source of facts for this post) ===
+{today_input}
+
+The generation model can only use facts explicitly stated above. Any strategy requiring facts NOT stated here (time spent, comparisons, other numbers, unrelated events) will cause a hallucination failure."""
     angle_choices = 'Story, Contrarian, Data, Positioning, Technical'
   else:
     today_block = """=== Today's context ===
@@ -73,7 +78,6 @@ No specific update today. Do NOT use Data angle."""
 === Product context ===
 Category: {analysis.get('category', '')}
 Job to be done: {analysis.get('job_to_be_done', '')}
-Positioning: {analysis.get('positioning_statement', '')}
 Differentiators: {'; '.join(analysis.get('differentiators', []))}
 Alternatives: {alternatives}
 Keywords: {keywords}
@@ -82,7 +86,6 @@ Keywords: {keywords}
 Tonality: {style_fingerprint.get('tonality', '')}
 Opening patterns:
 {opening_patterns_text}
-Signature phrases: {signature_phrases_line}
 
 === Reference samples (match this voice) ===
 {samples}
@@ -91,11 +94,12 @@ Signature phrases: {signature_phrases_line}
 {research_block}
 === Thinking order ===
 Before finalising your plans, reason through these steps in order:
-1. What data points in the Research context connect directly with this product's differentiators or job to be done?
-2. Which angles are valid given the current context (today's update, research data, and available information)?
-3. Which of the valid angles best match the user's voice and opening patterns?
-4. Is the available data sufficient? If not, call a tool to gather more information before deciding.
-5. If there is failure feedback from a previous attempt, distinguish between artifact issues (formatting/structure) and eval issues (voice or strategy mismatch), and redesign plans accordingly.
+1. List the specific facts available in Today's context (e.g., "feature name", "number flagged", "first run"). These are the ONLY facts the generation model can use.
+2. What data points in the Research context connect directly with this product's differentiators or job to be done?
+3. Which angles are achievable using ONLY the facts from step 1?
+4. Which of the valid angles best match the user's voice and opening patterns?
+5. Is the available data sufficient? If not, call a tool to gather more information before deciding.
+6. If there is failure feedback from a previous attempt, distinguish between artifact issues (formatting/structure) and eval issues (voice or strategy mismatch), and redesign plans accordingly.
 
 === Tools available ===
 search_trends — look up current trends, recent events, or public data relevant to the product's category or keywords.{similar_posts_tool}
@@ -104,11 +108,16 @@ search_trends — look up current trends, recent events, or public data relevant
 Design 3 plans. Each plan has:
 - angle: the angle type
 - angle_label: 2-3 word label
-- strategy: an approach description — NOT the post text
-- avoid: what to avoid for this option
+- strategy: an approach description — NOT the post text. Must specify: (1) what the opening line is or starts with, (2) prose or bullet-list format, (3) what the ending looks like (one-word reaction / abrupt cut / sharp punchline). Be concrete — a separate generation model will follow this exactly.
+- avoid: what to avoid for this option (include format anti-patterns like "do not use bullet list" if prose is intended)
 
 Angle choices: {angle_choices}
-Pick 3 DIFFERENT angles.
+Pick 3 DIFFERENT angles that result in structurally different posts (e.g., one bullet-list, one pure prose, one ultra-short).
+
+IMPORTANT constraints for all strategies:
+- Never name the product by name in the strategy (the post ghostwriter will not mention product names)
+- Every strategy must be achievable using ONLY the facts stated in Today's context — do not plan for content, comparisons, or timeframes not present there
+- If Today's context contains a specific number, the strategy may reference it; if not, do not plan around inventing one
 
 Return JSON:
 {{

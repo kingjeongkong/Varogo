@@ -222,16 +222,28 @@ def _strip_list_ordinals(text: str) -> str:
   return re.sub(r'(?m)(^|\s)\d+\.\s', r'\1', text)
 
 
+_WORD_TO_NUM: dict[str, str] = {
+  'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+  'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+  'ten': '10', 'dozen': '12', 'hundred': '100', 'thousand': '1000',
+}
+
+
 def check_hallucination(text: str, today_input: str | None) -> list[str]:
   """
   Check factual numbers in text against today_input.
   List ordinals (1. 2. 3. at line start) are excluded — they are structural markers, not claims.
+  Spelled-out numbers in today_input (e.g. "one-click") extend grounded digits (e.g. "1").
   If today_input is None, any factual number is ungrounded.
   Returns a list of issue strings for each ungrounded number.
   """
   def _extract_numbers(t: str) -> set[str]:
     normalized = re.sub(r'(\d),(\d)', r'\1\2', t)
     return set(re.findall(r'\d+', normalized))
+
+  def _extract_word_numbers(t: str) -> set[str]:
+    lower = t.lower()
+    return {digit for word, digit in _WORD_TO_NUM.items() if re.search(r'\b' + word + r'\b', lower)}
 
   claim_text = _strip_list_ordinals(text)
   numbers = _extract_numbers(claim_text)
@@ -242,7 +254,7 @@ def check_hallucination(text: str, today_input: str | None) -> list[str]:
     return [f"hallucination: number {n} not grounded in today_input" for n in numbers]
 
   issues: list[str] = []
-  today_numbers = _extract_numbers(today_input)
+  today_numbers = _extract_numbers(today_input) | _extract_word_numbers(today_input)
   for n in numbers:
     if n not in today_numbers:
       issues.append(f"hallucination: number {n} not grounded in today_input")
