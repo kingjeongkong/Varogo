@@ -103,3 +103,59 @@ async def analyze(units: list[dict]) -> dict:
       for u in units[:REFERENCE_SAMPLE_COUNT]
     ],
   }
+
+
+def _build_description_prompt(description: str) -> str:
+  return f"""You are analyzing a writer's voice from a description of their writing style. Identify HOW they write — their formal habits — not WHAT they write about.
+
+If your output describes their topics, opinions, expertise area, or worldview, you have failed. Voice = form, not content.
+
+=== Writing Style Description ===
+{description}
+
+=== Task ===
+Return JSON with three fields.
+
+1. "signaturePhrases" — Always return an empty array []. There are no actual posts to extract phrases from.
+
+2. "openingPatterns" — Always return an empty array []. There are no actual posts to observe opening patterns from.
+
+3. "tonality" — ONE sentence (max 25 words) describing FORM only based on the description provided.
+   Must mention at least one of: sentence rhythm, paragraph structure, punctuation habits, or transition habits.
+   Forbidden words: "casual", "friendly", "professional", "approachable", "engaging", "dissects", "highlights", "explores", "shares", "reflects".
+   Do NOT describe what the writer thinks about or analyzes — describe the SHAPE of their writing."""
+
+
+async def analyze_description(description: str) -> dict:
+  client = get_gemini_client()
+  prompt = _build_description_prompt(description)
+
+  try:
+    result = await client.aio.models.generate_content(
+      model='gemini-2.5-flash-lite',
+      contents=prompt,
+      config=types.GenerateContentConfig(
+        response_mime_type='application/json',
+        response_schema=RESPONSE_SCHEMA,
+      ),
+    )
+    raw = result.text
+    if not raw:
+      raise HTTPException(status_code=500, detail='Voice extraction failed')
+
+    import json
+    parsed = json.loads(raw)
+    if (
+      not isinstance(parsed.get('tonality'), str) or
+      not isinstance(parsed.get('openingPatterns'), list) or
+      not isinstance(parsed.get('signaturePhrases'), list)
+    ):
+      raise HTTPException(status_code=500, detail='Voice extraction returned incomplete data')
+
+    parsed['openingPatterns'] = []
+    parsed['signaturePhrases'] = []
+    return parsed
+  except HTTPException:
+    raise
+  except Exception:
+    raise HTTPException(status_code=500, detail='Voice extraction failed')
