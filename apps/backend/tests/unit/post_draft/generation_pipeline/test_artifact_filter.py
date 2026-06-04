@@ -142,40 +142,96 @@ class TestDetectArtifacts:
     issues = detect_artifacts("Enjoy a seamless experience.")
     assert any("AI vocabulary" in i and "seamless" in i for i in issues)
 
+  def test_generic_ending_excited_for_whats_next(self):
+    issues = detect_artifacts("Shipped the feature. Excited for what's next.")
+    assert any("generic ending" in i for i in issues)
+
+  def test_generic_ending_lets_see_how_it_goes(self):
+    issues = detect_artifacts("Pushed to prod. Let's see how it goes.")
+    assert any("generic ending" in i for i in issues)
+
+  def test_generic_ending_lets_see_how_this_goes(self):
+    issues = detect_artifacts("Deployed. Let's see how this goes.")
+    assert any("generic ending" in i for i in issues)
+
+  def test_generic_ending_onward_standalone_line(self):
+    issues = detect_artifacts("Fixed the bug.\nOnward.")
+    assert any("generic ending" in i for i in issues)
+
+  def test_generic_ending_onward_mid_sentence_clean(self):
+    issues = detect_artifacts("Moving onward was the only option but it worked.")
+    assert not any("generic ending" in i and "Onward" in i for i in issues)
+
+  def test_promotional_so_you_dont_have_to(self):
+    issues = detect_artifacts("It drafts the posts so you don't have to rewrite them.")
+    assert any("promotional" in i for i in issues)
+
+  def test_promotional_it_learns_your_voice(self):
+    issues = detect_artifacts("It learns your voice over time.")
+    assert any("promotional" in i for i in issues)
+
+  def test_promotional_helps_you_post(self):
+    issues = detect_artifacts("It helps you post without spending an hour rewriting.")
+    assert any("promotional" in i for i in issues)
+
 
 # ---------------------------------------------------------------------------
 # check_specificity
 # ---------------------------------------------------------------------------
 
 class TestCheckSpecificity:
-  def test_number_passes(self):
-    assert check_specificity("I built 3 features this week.") == []
+  # --- today_input has specifics → post must also have specifics ---
 
-  def test_known_tool_stripe_passes(self):
-    assert check_specificity("I integrated using Stripe.") == []
+  def test_number_in_post_passes_when_today_has_number(self):
+    assert check_specificity("I built 3 features this week.", "Fixed 3 bugs today.") == []
 
-  def test_known_tool_vercel_passes(self):
-    assert check_specificity("Deployed on Vercel.") == []
+  def test_known_tool_stripe_passes_when_today_has_number(self):
+    assert check_specificity("I integrated using Stripe.", "Earned $100 today.") == []
 
-  def test_known_tool_github_passes(self):
-    assert check_specificity("Code lives on GitHub.") == []
+  def test_known_tool_vercel_passes_when_today_has_tool(self):
+    assert check_specificity("Deployed on Vercel.", "Pushed to Vercel today.") == []
 
-  def test_known_tool_postgres_lowercase_passes(self):
-    assert check_specificity("backed by postgres.") == []
+  def test_known_tool_github_passes_when_today_has_number(self):
+    assert check_specificity("Code lives on GitHub.", "Got 100 stars.") == []
 
-  def test_generic_text_fails(self):
-    result = check_specificity("I built something amazing this week.")
+  def test_generic_post_fails_when_today_has_number(self):
+    result = check_specificity("I built something amazing this week.", "Fixed 3 bugs today.")
     assert result == ["specificity: no concrete detail found"]
 
-  def test_docker_tool_passes(self):
-    assert check_specificity("Runs inside a Docker container.") == []
+  def test_docker_passes_when_today_has_tool(self):
+    assert check_specificity("Runs inside a Docker container.", "Switched to Docker.") == []
 
-  def test_aws_tool_passes(self):
-    assert check_specificity("Deployed on AWS.") == []
+  def test_aws_passes_when_today_has_number(self):
+    assert check_specificity("Deployed on AWS.", "Hit 1000 signups.") == []
 
-  def test_tool_name_substring_does_not_false_positive(self):
-    # "lawson" contains "aws" as a substring but is not a standalone tool word
-    result = check_specificity("I spoke to the lawson consulting team about the project.")
+  def test_tool_name_substring_fails_when_today_has_number(self):
+    result = check_specificity(
+      "I spoke to the lawson consulting team about the project.", "Fixed 3 bugs."
+    )
+    assert result == ["specificity: no concrete detail found"]
+
+  # --- today_input has no specifics → waive check ---
+
+  def test_waived_when_today_has_no_specifics(self):
+    # "Fixed a bug." has no numbers or tools — waive specificity entirely
+    result = check_specificity("Fixed a bug. That's it.", "Fixed a bug.")
+    assert result == []
+
+  def test_waived_for_feature_with_no_details(self):
+    result = check_specificity("Added dark mode. Finally.", "Added dark mode.")
+    assert result == []
+
+  def test_waived_for_vague_today_input(self):
+    result = check_specificity("Good progress today.", "Good week. Making progress.")
+    assert result == []
+
+  # --- today_input is None (no-update) → always check ---
+
+  def test_no_update_with_tool_passes(self):
+    assert check_specificity("Using Stripe for payments. Nothing new today.", None) == []
+
+  def test_no_update_without_specifics_fails(self):
+    result = check_specificity("Nothing new to share today.", None)
     assert result == ["specificity: no concrete detail found"]
 
 

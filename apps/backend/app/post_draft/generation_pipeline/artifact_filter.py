@@ -77,12 +77,19 @@ _PROMOTIONAL_PATTERNS: list[tuple[str, str]] = [
   (r'empowering developers to', 'empowering developers to'),
   (r'delivering seamless experiences', 'delivering seamless experiences'),
   (r'nestled within', 'nestled within'),
+  (r"so you don't have to\b", "so you don't have to"),
+  (r"it learns your voice", "it learns your voice"),
+  (r"[Hh]elps you post", "helps you post"),
 ]
 
 _GENERIC_ENDING_PATTERNS: list[tuple[str, str]] = [
   (r'The future looks bright', 'The future looks bright'),
   (r'exciting times ahead', 'exciting times ahead'),
-  (r"can't wait to see where this goes", "can't wait to see where this goes"),
+  (r"[Cc]an't wait to see where this goes", "can't wait to see where this goes"),
+  (r'[Ee]xcited for what\'s next', "Excited for what's next"),
+  (r"[Ll]et's see how (it|this) goes", "Let's see how it goes"),
+  (r'(?m)^[Oo]nward[.!]?\s*$', 'Onward'),
+  (r'[Ll]ooking forward to what', 'Looking forward to what'),
 ]
 
 _FORBIDDEN_OPENINGS: list[str] = [
@@ -200,13 +207,32 @@ def detect_artifacts(text: str) -> list[str]:
   return issues
 
 
-def check_specificity(text: str) -> list[str]:
-  """Return [] if text contains a digit or known tool name, else return a specificity issue."""
-  # Any digit present → concrete
+def _input_has_specifics(today_input: str) -> bool:
+  """Return True if today_input itself contains numbers or known tool names."""
+  if re.search(r'\d', today_input):
+    return True
+  lower = today_input.lower()
+  return any(re.search(r'\b' + re.escape(t) + r'\b', lower) for t in _KNOWN_TOOLS)
+
+
+def check_specificity(text: str, today_input: str | None = None) -> list[str]:
+  """Return [] if the post meets specificity requirements.
+
+  Specificity is only required when today_input itself has concrete details (numbers or
+  known tool names). If today_input has none, waiving avoids pressuring the model to
+  invent specifics that don't exist in the source content.
+
+  Special cases:
+  - today_input is None (no-update path): always check — the prompt requires a tool name.
+  - today_input has no specifics: waive — an honest thin post is acceptable.
+  - today_input has specifics: post must also contain a digit or known tool name.
+  """
+  if today_input is not None and not _input_has_specifics(today_input):
+    return []
+
   if re.search(r'\d', text):
     return []
 
-  # Known tool name (case-insensitive, word-boundary to avoid substring false positives)
   lower = text.lower()
   for tool in _KNOWN_TOOLS:
     if re.search(r'\b' + re.escape(tool) + r'\b', lower):
@@ -223,7 +249,7 @@ def _strip_list_ordinals(text: str) -> str:
 
 
 _WORD_TO_NUM: dict[str, str] = {
-  'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+  'zero': '0', 'one': '1', 'single': '1', 'two': '2', 'three': '3', 'four': '4',
   'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
   'ten': '10', 'dozen': '12', 'hundred': '100', 'thousand': '1000',
 }
@@ -273,6 +299,6 @@ def run(text: str, today_input: str | None) -> tuple[str, list[str]]:
   corrected = auto_correct(text)
   issues: list[str] = []
   issues.extend(detect_artifacts(corrected))
-  issues.extend(check_specificity(corrected))
+  issues.extend(check_specificity(corrected, today_input))
   issues.extend(check_hallucination(corrected, today_input))
   return corrected, issues
