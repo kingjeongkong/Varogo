@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from pydantic import BaseModel
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
 from app.post_draft.generation_pipeline.state import GraphState, OptionState
@@ -15,9 +15,9 @@ class GenerationOutput(BaseModel):
   angle_label: str
 
 
-_llm = ChatGoogleGenerativeAI(
-  model='gemini-2.5-flash-lite',
-  google_api_key=settings.GEMINI_API_KEY,
+_llm = ChatOpenAI(
+  model='gpt-4o-mini',
+  api_key=settings.OPENAI_API_KEY,
   temperature=0.4,
 ).with_structured_output(GenerationOutput)
 
