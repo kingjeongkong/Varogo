@@ -4,8 +4,19 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
 
+def _make_serializable(errors: list) -> list:
+  result = []
+  for error in errors:
+    entry = {k: v for k, v in error.items() if k != 'url'}
+    if 'ctx' in entry and 'error' in entry['ctx']:
+      ctx_error = entry['ctx']['error']
+      entry['ctx'] = {**entry['ctx'], 'error': str(ctx_error)}
+    result.append(entry)
+  return result
+
+
 async def _validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-  return JSONResponse(status_code=422, content={'detail': exc.errors()})
+  return JSONResponse(status_code=422, content={'detail': _make_serializable(exc.errors())})
 
 
 async def _sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:

@@ -98,6 +98,112 @@ async def test_import_upsert(client: AsyncClient, db_session):
 
 
 # ---------------------------------------------------------------------------
+# POST /voice-profile/import-manual
+# ---------------------------------------------------------------------------
+
+FAKE_ANALYZE_RESULT = {
+  'source': 'threads_import',
+  'sample_count': 3,
+  'style_fingerprint': {'tonality': 'Test tonality.', 'openingPatterns': [], 'signaturePhrases': []},
+  'reference_samples': [],
+}
+
+FAKE_DESCRIPTION_FINGERPRINT = {
+  'tonality': 'Test description tonality.',
+  'openingPatterns': [],
+  'signaturePhrases': [],
+}
+
+VALID_TEXT_UNITS = [
+  'This is a sufficiently long text unit number one.',
+  'This is a sufficiently long text unit number two.',
+  'This is a sufficiently long text unit number three.',
+]
+
+
+async def test_import_manual_no_auth(client: AsyncClient):
+  response = await client.post('/voice-profile/import-manual', json={'method': 'paste', 'text_units': VALID_TEXT_UNITS})
+
+  assert response.status_code == 401
+
+
+async def test_import_manual_paste_success(client: AsyncClient, db_session):
+  await seed_test_user(db_session)
+  headers = await get_auth_headers(client)
+
+  with patch('app.voice_profile.service.analyze', new_callable=AsyncMock) as mock_analyze:
+    mock_analyze.return_value = FAKE_ANALYZE_RESULT
+    response = await client.post(
+      '/voice-profile/import-manual',
+      json={'method': 'paste', 'text_units': VALID_TEXT_UNITS},
+      headers=headers,
+    )
+
+  assert response.status_code == 201
+  body = response.json()
+  assert body['source'] == 'text_import'
+
+
+async def test_import_manual_preset_success(client: AsyncClient, db_session):
+  await seed_test_user(db_session)
+  headers = await get_auth_headers(client)
+
+  response = await client.post(
+    '/voice-profile/import-manual',
+    json={'method': 'preset', 'preset_id': 'concise'},
+    headers=headers,
+  )
+
+  assert response.status_code == 201
+  body = response.json()
+  assert body['source'] == 'preset_selection'
+  assert body['sampleCount'] == 0
+
+
+async def test_import_manual_custom_success(client: AsyncClient, db_session):
+  await seed_test_user(db_session)
+  headers = await get_auth_headers(client)
+
+  with patch('app.voice_profile.service.analyze_description', new_callable=AsyncMock) as mock_desc:
+    mock_desc.return_value = FAKE_DESCRIPTION_FINGERPRINT
+    response = await client.post(
+      '/voice-profile/import-manual',
+      json={'method': 'custom', 'custom_description': 'This is a custom writing style description that is long enough.'},
+      headers=headers,
+    )
+
+  assert response.status_code == 201
+  body = response.json()
+  assert body['source'] == 'custom_description'
+
+
+async def test_import_manual_unknown_preset(client: AsyncClient, db_session):
+  await seed_test_user(db_session)
+  headers = await get_auth_headers(client)
+
+  response = await client.post(
+    '/voice-profile/import-manual',
+    json={'method': 'preset', 'preset_id': 'nonexistent_preset'},
+    headers=headers,
+  )
+
+  assert response.status_code == 400
+
+
+async def test_import_manual_text_unit_too_short(client: AsyncClient, db_session):
+  await seed_test_user(db_session)
+  headers = await get_auth_headers(client)
+
+  response = await client.post(
+    '/voice-profile/import-manual',
+    json={'method': 'paste', 'text_units': ['short']},
+    headers=headers,
+  )
+
+  assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
 # GET /voice-profile
 # ---------------------------------------------------------------------------
 
