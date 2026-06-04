@@ -17,6 +17,8 @@ vi.mock('@/features/threads', () => ({
 vi.mock('@/features/voice-profile', () => ({
   useVoiceProfile: vi.fn(),
   useImportVoice: vi.fn(),
+  VoiceFallbackModal: ({ open }: { open: boolean; onClose: () => void }) =>
+    open ? <div role="dialog" aria-label="Voice fallback" /> : null,
 }));
 
 vi.mock('next/link', () => ({
@@ -274,16 +276,17 @@ describe('PostFlowVoiceGate', () => {
       expect(button).toBeDisabled();
     });
 
-    it('displays the import error message when the mutation has errored', () => {
+    it('opens the VoiceFallbackModal when the import button is clicked and the mutation errors', async () => {
       mockUseImportVoice({
-        isError: true,
-        error: new Error('Threads API rejected the request'),
+        mutate: vi.fn((_vars, opts) => opts?.onError?.(new Error('fail'), undefined, undefined)),
       });
       renderGate();
 
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Threads API rejected the request',
+      await userEvent.click(
+        screen.getByRole('button', { name: /import voice from threads/i }),
       );
+
+      expect(screen.getByRole('dialog', { name: /voice fallback/i })).toBeInTheDocument();
     });
 
     it('does not render children in this state', () => {

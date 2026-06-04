@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -8,7 +9,7 @@ import {
   useThreadsConnectionStatus,
   useThreadsDisconnect,
 } from '@/features/threads';
-import { useImportVoice, useVoiceProfile } from '@/features/voice-profile';
+import { useImportVoice, useVoiceProfile, VoiceFallbackModal } from '@/features/voice-profile';
 import { Info } from 'lucide-react';
 
 const headingId = 'threads-tile-heading';
@@ -134,6 +135,7 @@ export function ThreadsTile() {
 }
 
 function VoiceRow() {
+  const [modalOpen, setModalOpen] = useState(false);
   const {
     data: profile,
     isLoading: profileLoading,
@@ -179,14 +181,14 @@ function VoiceRow() {
           variant="outline"
           loading={importMutation.isPending}
           loadingText="Importing..."
-          onClick={() => importMutation.mutate()}
+          onClick={() => importMutation.mutate(undefined, { onError: () => setModalOpen(true) })}
           className="w-full"
         >
           Import voice
         </Button>
       ) : null}
 
-      {importMutation.isError && <Alert>{importMutation.error.message}</Alert>}
+      <VoiceFallbackModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }
