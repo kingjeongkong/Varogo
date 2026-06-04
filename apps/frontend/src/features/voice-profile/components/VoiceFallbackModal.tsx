@@ -39,13 +39,37 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
   const pasteTabPanelId = 'tabpanel-paste';
   const styleTabPanelId = 'tabpanel-style';
 
-  // ESC 키 닫힘
+  // ESC 닫힘 + focus trap
   useEffect(() => {
     if (!open) return;
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
       }
     }
 
@@ -264,7 +288,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
             loading={mutation.isPending}
             loadingText="분석 중..."
             onClick={handlePasteSubmit}
-            disabled={textUnits.every((t) => t.trim().length === 0)}
+            disabled={!textUnits.some((t) => t.trim().length >= 20)}
             className="w-full"
           >
             분석하기

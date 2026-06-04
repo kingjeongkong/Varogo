@@ -187,7 +187,7 @@ async def test_import_manual_unknown_preset(client: AsyncClient, db_session):
     headers=headers,
   )
 
-  assert response.status_code == 400
+  assert response.status_code == 422
 
 
 async def test_import_manual_text_unit_too_short(client: AsyncClient, db_session):

@@ -62,16 +62,15 @@ async def import_manual(user_id: str, request: ImportManualRequest, session: Asy
   now = datetime.now(timezone.utc).replace(tzinfo=None)
 
   if request.method == 'paste':
-    units = [{'text': item, 'timestamp': ''} for item in request.text_units]
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    units = [{'text': item, 'timestamp': today} for item in request.text_units]
     result = await analyze(units)
     source = 'text_import'
     sample_count = len(request.text_units)
     style_fingerprint = result['style_fingerprint']
     reference_samples = result['reference_samples']
   elif request.method == 'preset':
-    preset = PRESET_FINGERPRINTS.get(request.preset_id)
-    if preset is None:
-      raise HTTPException(status_code=400, detail=f'Unknown preset_id: {request.preset_id}')
+    preset = PRESET_FINGERPRINTS[request.preset_id]
     source = 'preset_selection'
     sample_count = 0
     style_fingerprint = preset['style_fingerprint']

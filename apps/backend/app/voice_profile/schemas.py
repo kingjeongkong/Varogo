@@ -4,6 +4,8 @@ from typing import Annotated, Literal, Union
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 
+from app.voice_profile.presets import PRESET_FINGERPRINTS
+
 
 class StyleFingerprintSchema(BaseModel):
   model_config = ConfigDict(
@@ -56,6 +58,13 @@ class PasteImportRequest(BaseModel):
 class PresetImportRequest(BaseModel):
   method: Literal["preset"]
   preset_id: str
+
+  @field_validator("preset_id")
+  @classmethod
+  def validate_preset_id(cls, v: str) -> str:
+    if v not in PRESET_FINGERPRINTS:
+      raise ValueError(f"Unknown preset_id: {v!r}. Valid options: {list(PRESET_FINGERPRINTS)}")
+    return v
 
 
 class CustomImportRequest(BaseModel):

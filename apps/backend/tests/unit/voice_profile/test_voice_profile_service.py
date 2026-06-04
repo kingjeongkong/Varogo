@@ -124,8 +124,9 @@ async def test_import_manual_paste_calls_analyze_with_correct_units():
   with patch('app.voice_profile.service.analyze', analyze_mock):
     await import_manual('user-1', request, session)
 
-  expected_units = [{'text': item, 'timestamp': ''} for item in text_units]
-  analyze_mock.assert_called_once_with(expected_units)
+  call_args = analyze_mock.call_args[0][0]
+  assert [u['text'] for u in call_args] == text_units
+  assert all(u['timestamp'] for u in call_args)
 
 
 # ---------------------------------------------------------------------------
@@ -145,15 +146,10 @@ async def test_import_manual_preset_concise_creates_profile():
   session.add.assert_called_once()
 
 
-async def test_import_manual_preset_unknown_id_raises_400():
-  session = AsyncMock()
-
-  request = PresetImportRequest(method='preset', preset_id='nonexistent_preset')
-
-  with pytest.raises(HTTPException) as exc_info:
-    await import_manual('user-1', request, session)
-
-  assert exc_info.value.status_code == 400
+def test_import_manual_preset_unknown_id_raises_validation_error():
+  from pydantic import ValidationError
+  with pytest.raises(ValidationError):
+    PresetImportRequest(method='preset', preset_id='nonexistent_preset')
 
 
 # ---------------------------------------------------------------------------
