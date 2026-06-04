@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from langchain_core.messages import AIMessage
 
 from app.post_draft.generation_pipeline.state import GraphState, OptionState
-from app.post_draft.generation_pipeline.nodes.planning import planning_node
+from app.post_draft.generation_pipeline.nodes.planning import planning_node, MAX_TOOL_CALL_ROUNDS
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +164,7 @@ class TestPlanningNode:
 
     assert 'plans' in result
     # initial call + (MAX_TOOL_CALL_ROUNDS - 1) follow-up calls; last round breaks without extra call
-    assert mock_llm.ainvoke.call_count == 3
+    assert mock_llm.ainvoke.call_count == MAX_TOOL_CALL_ROUNDS
     mock_llm_structured.ainvoke.assert_called_once()
 
   @pytest.mark.asyncio

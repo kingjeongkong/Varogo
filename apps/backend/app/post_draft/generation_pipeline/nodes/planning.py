@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import json
 import logging
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 
@@ -17,7 +18,7 @@ from app.post_draft.generation_pipeline.tools.search_similar_posts import make_s
 
 logger = logging.getLogger(__name__)
 
-MAX_TOOL_CALL_ROUNDS = 3
+MAX_TOOL_CALL_ROUNDS = 2
 
 
 class PlanItemOutput(BaseModel):
@@ -32,6 +33,19 @@ class PlanningOutput(BaseModel):
 
 
 _llm_structured = ChatOpenAI(model=settings.OPENAI_MODEL).with_structured_output(PlanningOutput)
+
+
+def _try_parse_planning_output(content: str) -> PlanningOutput | None:
+  """Parse JSON directly from LLM response to avoid a redundant structured-output call."""
+  try:
+    text = content.strip()
+    if '```json' in text:
+      text = text.split('```json')[1].split('```')[0].strip()
+    elif '```' in text:
+      text = text.split('```')[1].split('```')[0].strip()
+    return PlanningOutput(**json.loads(text))
+  except (json.JSONDecodeError, ValidationError, KeyError, TypeError):
+    return None
 
 
 async def planning_node(state: GraphState) -> dict:
@@ -111,12 +125,17 @@ async def planning_node(state: GraphState) -> dict:
     else:
       break
 
+  # Try parsing JSON directly from the final response to skip the redundant structured call.
+  # Falls back to _llm_structured if the content is missing or malformed.
+  result: PlanningOutput | None = None
   if not response.tool_calls:
     messages.append(response)
+    content = response.content if isinstance(response.content, str) else ''
+    result = _try_parse_planning_output(content)
 
-  # Planning failure is fatal — unlike research, there is no fallback state that makes sense.
-  # Any exception here is intentionally left unhandled so it surfaces and aborts the pipeline.
-  result: PlanningOutput = await _llm_structured.ainvoke(messages)
+  if result is None:
+    # Planning failure is fatal — any exception here is intentionally left unhandled.
+    result = await _llm_structured.ainvoke(messages)
 
   plans: list[PlanItem] = [
     PlanItem(
