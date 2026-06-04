@@ -66,11 +66,15 @@ If today mentions a version (v2, v3), treat the version label itself as the conc
 If today's content has no numbers or very few, keep your post equally sparse — do not add numbers to fill space.
 
 CONTENT RULE: Do not invent events, outcomes, or results that happened TODAY unless explicitly stated in today's content above.
-What the product does in general (its features, what it checks, how it works) is known product knowledge — you can describe those freely.
-What you CANNOT do: invent that something specific happened today.
-Example: if today says "Shipped v2 today.", writing "Most drafts got flagged" or "It caught 3 issues" violates this rule — those are invented today-events not stated above.
-But "Built v2. It catches when output doesn't sound like me." is fine — that's product description, not a today-event.
-If the plan asks for today's results you don't have, describe what you built/fixed and what it does — do not invent today's outcomes."""
+What the product does in general (its features, what it checks, how it works) is known product knowledge — you can describe those as standalone statements.
+
+Two things you CANNOT do:
+1. Invent that something specific happened today — e.g. "Most drafts got flagged" when today only says "Shipped v2."
+2. Use product knowledge to explain today's event — e.g. "Fixed a bug. It was causing drafts to get flagged incorrectly." The bug's behavior is not stated; using product knowledge to fill in what the bug did is still invention.
+
+Correct pattern when today has no detail: state the fact, then optionally describe what the product does as a separate standalone sentence.
+OK:     "Fixed a bug. My tool analyzes voice patterns from past posts." — product description stands alone, not linked to the bug.
+NOT OK: "Fixed a bug. It was causing some drafts to get flagged." — product knowledge used to invent what the bug was causing."""
     if _input_has_specifics(today_input):
       specificity_rule = "Ground at least one concrete detail in today's content above — this can be a version number like 'v2', a count, a dollar amount, or a duration."
     else:
