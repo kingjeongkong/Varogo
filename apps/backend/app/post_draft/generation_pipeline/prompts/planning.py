@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 from app.post_draft.generation_pipeline.state import OptionState
+from app.post_draft.generation_pipeline.artifact_filter import _input_has_specifics
 
 _REFERENCE_SAMPLE_LIMIT = 5
 
@@ -51,14 +52,32 @@ def build_initial_planning_prompt(
   opening_patterns_text = _clean_opening_patterns(opening_patterns)
 
   if has_today:
-    today_block = f"""=== Today's context (only source of facts for this post) ===
+    today_has_specifics = _input_has_specifics(today_input)
+    if today_has_specifics:
+      today_block = f"""=== Today's context (only source of facts for this post) ===
 {today_input}
 
 The generation model can only use facts explicitly stated above. Any strategy requiring facts NOT stated here (time spent, comparisons, other numbers, unrelated events) will cause a hallucination failure."""
+      format_guidance = "Pick 3 DIFFERENT angles that result in structurally different posts (e.g., one bullet-list, one pure prose, one ultra-short)."
+      thin_constraint = ""
+    else:
+      today_block = f"""=== Today's context (only source of facts for this post) ===
+{today_input}
+
+THIN CONTENT: No numbers or tool names present. The generation model can ONLY use the literal words above — no inferences, no product behavior claims, no invented details allowed."""
+      format_guidance = "Today's content has no concrete details to list. All 3 plans MUST use short prose or ultra-short format — NO bullet lists. Each plan should target a 2-3 sentence post."
+      thin_constraint = (
+        "\n- Do NOT design bullet-list strategies — there are no concrete details to enumerate"
+        "\n- All 3 formats must be short prose or ultra-short (2-3 sentences max)"
+        "\n- Strategy field must be structural guidance only (format / length / tone / ending type) — do NOT write example post sentences or invent any narrative in the strategy field itself"
+        "\n- Do NOT invent angles that require facts beyond what is stated (e.g. AI struggles, comparisons, outcomes) — only angles achievable from the literal words in Today's context"
+      )
     angle_choices = 'Story, Contrarian, Data, Positioning, Technical'
   else:
     today_block = """=== Today's context ===
 No specific update today. Do NOT use Data angle."""
+    format_guidance = "Pick 3 DIFFERENT angles that result in structurally different posts (e.g., one bullet-list, one pure prose, one ultra-short)."
+    thin_constraint = ""
     angle_choices = 'Story, Contrarian, Positioning, Technical (DO NOT use Data — no numbers available)'
 
   research_block = (
@@ -112,12 +131,12 @@ Design 3 plans. Each plan has:
 - avoid: what to avoid for this option (include format anti-patterns like "do not use bullet list" if prose is intended)
 
 Angle choices: {angle_choices}
-Pick 3 DIFFERENT angles that result in structurally different posts (e.g., one bullet-list, one pure prose, one ultra-short).
+{format_guidance}
 
 IMPORTANT constraints for all strategies:
 - Never name the product by name in the strategy (the post ghostwriter will not mention product names)
 - Every strategy must be achievable using ONLY the facts stated in Today's context — do not plan for content, comparisons, or timeframes not present there
-- If Today's context contains a specific number, the strategy may reference it; if not, do not plan around inventing one
+- If Today's context contains a specific number, the strategy may reference it; if not, do not plan around inventing one{thin_constraint}
 
 Return JSON:
 {{

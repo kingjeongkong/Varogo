@@ -46,34 +46,46 @@ def build_voice_eval_prompt(
 {style_fingerprint.get('tonality', '')}
 Opening patterns: {opening_patterns_text}
 
-=== What "too formal" looks like — read carefully ===
+=== What "too formal" means — examples ===
 
 FAILS (corporate press release — flag this):
 "We're excited to announce our new Voice Evaluator feature. This powerful tool leverages AI to detect when generated content doesn't match your natural writing patterns. Our beta testing demonstrated significant improvements in voice authenticity."
-Why it fails: corporate "we", "excited to announce", "powerful tool", "leverages AI", no personal voice.
+Why it fails: corporate "we", "excited to announce", "powerful tool", "leverages AI", no personal voice, reads like a product launch.
 
-PASSES (same product, indie dev register — do NOT flag):
+PASSES (same product, short, factual):
 "Shipped the voice evaluator. It flags when my AI output doesn't sound like me. First run: 2 of 3 drafts flagged."
-Why it passes: first person, short, factual, no marketing.
 
-PASSES (ultra-short, casual ending — also fine):
+PASSES (ultra-short with reaction):
 "AI writing is too formal. My own drafts got flagged. 2 of 3. Yikes."
-Why it passes: blunt, first person reaction, ends abruptly.
 
-PASSES (minimal, no reaction at all):
+PASSES (product description in first person — still fine):
 "Built the voice evaluator. It checks if AI output matches my writing patterns. First run flagged 2 of 3 drafts."
-Why it passes: plain statement of facts, no corporate framing, first person.
 
-The only thing worth flagging is corporate/marketing language: "we", "excited to announce", "powerful tool", "leverages", "enables users to", "proud to present."
-Writing in first person about your own product is NEVER corporate, even if the sentence is slightly stiff or plain.
+PASSES (slightly stiff, plain language — still fine):
+"Fixed a bug. Posts were cut at 280 chars instead of 500. Took 20 minutes to find and 5 minutes to fix. Not great."
+
+PASSES (personal narrative, slightly longer — still fine):
+"Tried to add auto-scheduling. Took 3 days. Scrapped it. The cron jobs were unreliable. Users wanted one-click posts, not schedules."
+
+PASSES (very short with uncertainty — still fine):
+"Shipped v2 today. It flagged 2 drafts. Not sure if it's a good thing or a bad thing."
+
+=== DO NOT flag any of these — they are always fine ===
+- First person ("I", "my", "me") throughout → always fine
+- Product description in first person ("It catches when...", "It checks if...", "It analyzes...") → fine
+- Casual filler phrases ("Just part of the grind", "Simple but necessary", "Not great", "Pretty wild") → fine
+- Short sentences with no conclusion → fine
+- Slightly stiff but still first-person → fine
+
+=== The ONLY things worth flagging ===
+Corporate register signals: "we", "our", "excited to announce", "proud to present", "powerful tool", "leverages", "enables users to", "game-changing", "revolutionizes", "seamlessly".
+A post written in first person about personal experience is NEVER corporate, even if the writing is plain.
 
 === Post to evaluate ===
 "{escaped_text}"
 
 === Task ===
-Compare the post against the FAILS example above (not against the most casual reference post).
-
-Return [] if the post reads like either PASSES example — even if it's slightly more structured than the most casual reference post.
-Return a single issue in under 12 words ONLY if it genuinely reads like the FAILS example.
+Compare the post against the FAILS example ONLY. If it does NOT use the listed corporate register signals, return [].
+Return a single issue in under 12 words ONLY if it genuinely uses corporate/marketing language like the FAILS example.
 
 IMPORTANT: Return [] as an empty JSON array — never return ["None"] or ["No issues"]."""

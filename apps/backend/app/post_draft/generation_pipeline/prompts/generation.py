@@ -7,6 +7,7 @@ from __future__ import annotations
 import re
 
 from app.post_draft.generation_pipeline.state import PlanItem
+from app.post_draft.generation_pipeline.artifact_filter import _KNOWN_TOOLS, _input_has_specifics
 
 _REFERENCE_SAMPLE_LIMIT = 5
 
@@ -55,11 +56,25 @@ def build_generation_prompt(
   avoid_text = '\n'.join(f'  - {item}' for item in avoid_list)
 
   if has_today:
-    content_block = f"""=== Today's content (only source of facts for this post) ===
+    content_block = f"""=== Today's content (ONLY source of facts for this post) ===
 {today_input}
 
-Numbers: use ONLY digits found above. The reference posts below contain different numbers from a different product context — do not use them."""
-    specificity_rule = "Ground at least one concrete detail in today's content above."
+NUMBER RULE: Every number in your post must appear literally in the text above.
+The reference posts below are for style only — their numbers belong to a different product and must NOT be used.
+Example: if today says "Shipped v2 today.", the ONLY valid number is 2 (from "v2"). Writing "1 new component" or "1 dependency" violates this rule because "1" is not in today's content.
+If today mentions a version (v2, v3), treat the version label itself as the concrete detail — do not invent what was inside the version.
+If today's content has no numbers or very few, keep your post equally sparse — do not add numbers to fill space.
+
+CONTENT RULE: Do not invent events, outcomes, or results that happened TODAY unless explicitly stated in today's content above.
+What the product does in general (its features, what it checks, how it works) is known product knowledge — you can describe those freely.
+What you CANNOT do: invent that something specific happened today.
+Example: if today says "Shipped v2 today.", writing "Most drafts got flagged" or "It caught 3 issues" violates this rule — those are invented today-events not stated above.
+But "Built v2. It catches when output doesn't sound like me." is fine — that's product description, not a today-event.
+If the plan asks for today's results you don't have, describe what you built/fixed and what it does — do not invent today's outcomes."""
+    if _input_has_specifics(today_input):
+      specificity_rule = "Ground at least one concrete detail in today's content above — this can be a version number like 'v2', a count, a dollar amount, or a duration."
+    else:
+      specificity_rule = "Today's content has no numbers or tool names — do not add any. Write only what is stated. A short honest post ('Fixed a bug. That\\'s it.') is correct."
   else:
     content_block = """=== Today's content ===
 No specific update today.
@@ -68,7 +83,8 @@ STRICT RULES for this case — these OVERRIDE the Plan's strategy below:
 - Any Plan instruction about "use the number from context" or "exact number" does NOT apply here — ignore that part
 - Do NOT borrow numbers, claims, or events from the reference posts below
 - Do NOT invent features, updates, or events
-- MUST mention at least one known tool by name (Stripe, Vercel, GitHub, Docker, etc.) to satisfy specificity"""
+- MUST write in first person (I/my/me) — never use "we", "our", or "you"
+- MUST mention at least one known tool by name (Stripe, Vercel, GitHub, Docker, Railway, Supabase, etc.) to satisfy specificity"""
     specificity_rule = "REQUIRED: mention one known tool name (Stripe, Vercel, GitHub, Docker, etc.) — this is mandatory for no-update posts."
 
   return f"""You are a ghostwriter. Write exactly 1 Threads post following the plan below.
@@ -116,15 +132,16 @@ Avoid:
 - Do not use AI vocabulary: "game-changer", "game changer", "seamless", "seamlessly", "ecosystem", "transformative", "groundbreaking", "leveraging", "leveraged", "robust", "pivotal", "showcasing"
 - Do not use AI filler: "Here's the kicker", "Here's the deal", "Here's the catch", "keep it real", "at the end of the day", "it's worth noting"
 - Do not address the reader as an opener: "Founders,", "Indie devs,", "Builders,"
-- Do not end with advice or a lesson directed at the reader
+- Do not end with advice, a lesson directed at the reader, or upbeat forward-looking phrases ("Excited for what's next", "Can't wait to see where this goes", "Looking forward to", "Onward")
 - Do not reuse the same ending across posts — vary the closing line each time
 - Never write value propositions or marketing copy about the product: no "it learns your voice", no "so you don't have to rewrite", no "helps you post without X"
 - Never mention the tool or platform name in the post — the post should read as the user's personal experience, not a product feature description
 - Write about what YOU experienced (what happened, what you observed, what surprised you) — not what the product does for its users
-- Every claim must be grounded in today's content above — never invent behaviors, frequencies, or outcomes not stated there (e.g., "now I monitor every hour" is not in the content)
-- Never do arithmetic on numbers from today's content — use each number exactly as stated, do not add, multiply, or derive totals (e.g., if context says "20 minutes to find and 5 minutes to fix", do not write "25 minutes total")
-- Do not decompose large numbers — if today's content says "1,000 signups", do not use "1" separately
-- If today's content contains very few numbers, keep your post equally sparse — do not invent additional numbers to fill the post
+- Every claim must be grounded in today's content above — never invent behaviors, frequencies, or outcomes not stated there
+- HARD CONSTRAINT — numbers: every digit in your post must literally appear in today's content block above. The reference posts are style examples from a different product — their numbers (2, 30+, $5,000, 17,000) must never appear in your output. If today's content mentions a feature without a count (e.g. "shipped voice evaluator" with no flag count), write "some drafts" or "most" — never invent "2 of 3" or any specific count
+- Never do arithmetic on numbers — if context says "20 minutes to find and 5 minutes to fix", do not write "25 minutes total"
+- Do not decompose large numbers — if today's content says "1,000 signups", do not use "1" or "1000" separately
+- If today's content is very short or has no numbers, your post must also be short with no numbers — do not pad with invented details
 - Write with the directness of the reference posts above — not like a content marketer
 
 === Product context ===
