@@ -19,12 +19,12 @@ type StylePreset = {
 };
 
 const STYLE_PRESETS: StylePreset[] = [
-  { value: 'concise', label: '간결·직접적', description: '짧고 명확하게 핵심만 전달합니다.' },
-  { value: 'storytelling', label: '스토리텔링', description: '이야기 흐름으로 독자를 몰입시킵니다.' },
-  { value: 'educational', label: '교육적·분석적', description: '정보를 체계적으로 설명하고 분석합니다.' },
-  { value: 'humorous', label: '유머러스·가벼운', description: '재치 있고 친근한 톤으로 씁니다.' },
-  { value: 'professional', label: '전문적·격식', description: '신뢰감 있고 격식 있는 표현을 사용합니다.' },
-  { value: 'custom', label: '직접 입력', description: '원하는 스타일을 직접 설명합니다.' },
+  { value: 'concise', label: 'Concise & Direct', description: 'Short, clear sentences that get straight to the point.' },
+  { value: 'storytelling', label: 'Storytelling', description: 'Narrative-driven posts that pull readers in.' },
+  { value: 'educational', label: 'Educational', description: 'Structured explanations with clear steps and examples.' },
+  { value: 'humorous', label: 'Humorous', description: 'Light-hearted tone with wit and unexpected comparisons.' },
+  { value: 'professional', label: 'Professional', description: 'Authoritative and measured, backed by data or experience.' },
+  { value: 'custom', label: 'Describe your own', description: 'Write a description of your preferred style.' },
 ];
 
 export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
@@ -39,7 +39,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
   const pasteTabPanelId = 'tabpanel-paste';
   const styleTabPanelId = 'tabpanel-style';
 
-  // ESC 닫힘 + focus trap
+  // ESC close + focus trap
   useEffect(() => {
     if (!open) return;
 
@@ -77,7 +77,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
 
-  // 모달 열릴 때 첫 번째 focusable 요소에 포커스
+  // Focus first focusable element on open
   useEffect(() => {
     if (!open) return;
 
@@ -93,7 +93,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
     return () => clearTimeout(timer);
   }, [open]);
 
-  // 모달 닫힐 때 상태 초기화
+  // Reset state on close
   useEffect(() => {
     if (!open) {
       setActiveTab('paste');
@@ -102,13 +102,13 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
       setCustomDescription('');
       mutation.reset();
     }
-  // mutation.reset을 deps에 넣으면 무한루프 발생하므로 제외
+  // mutation.reset intentionally excluded — including it causes an infinite loop
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   if (!open) return null;
 
-  // Tab 1 핸들러
+  // Tab 1 handlers
   function handleAddTextUnit() {
     setTextUnits((prev) => [...prev, '']);
   }
@@ -133,7 +133,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
     );
   }
 
-  // Tab 2 핸들러
+  // Tab 2 handlers
   function handleStyleSubmit() {
     if (selectedPreset === 'custom') {
       mutation.mutate(
@@ -168,18 +168,18 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
         aria-labelledby={titleId}
         className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-surface-elevated p-6 shadow-2xl"
       >
-        {/* 안내 메시지 */}
+        {/* Info message */}
         <p
           id={titleId}
           className="mb-5 text-sm text-text-secondary leading-relaxed"
         >
-          Threads 계정에 포스트가 충분하지 않아 수동으로 voice를 설정해 주세요.
+          Your Threads account doesn't have enough posts yet. Set up your voice manually below.
         </p>
 
-        {/* 탭 바 */}
+        {/* Tab bar */}
         <div
           role="tablist"
-          aria-label="Voice 설정 방법 선택"
+          aria-label="Choose voice setup method"
           className="mb-5 flex gap-1 rounded-lg border border-border bg-surface p-1"
         >
           <button
@@ -197,7 +197,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
                 : 'text-text-muted hover:text-text-secondary'
             }`}
           >
-            내 글 붙여넣기
+            Paste your writing
           </button>
           <button
             role="tab"
@@ -214,11 +214,11 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
                 : 'text-text-muted hover:text-text-secondary'
             }`}
           >
-            스타일 선택
+            Choose a style
           </button>
         </div>
 
-        {/* Tab 1 — 내 글 붙여넣기 */}
+        {/* Tab 1 — Paste your writing */}
         <div
           role="tabpanel"
           id={pasteTabPanelId}
@@ -227,7 +227,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
           className="space-y-4"
         >
           <p className="text-xs text-text-muted">
-            최소 3개 이상의 글 조각을 붙여넣으면 더 정확한 분석이 가능합니다.
+            Paste 3 or more writing samples for a more accurate analysis.
           </p>
 
           <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
@@ -235,17 +235,17 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
               <div key={index} className="flex gap-2 items-start">
                 <textarea
                   id={`text-unit-${index}`}
-                  aria-label={`글 조각 ${index + 1}`}
+                  aria-label={`Writing sample ${index + 1}`}
                   value={unit}
                   onChange={(e) => handleTextUnitChange(index, e.target.value)}
                   rows={3}
-                  placeholder={`글 조각 ${index + 1}을 붙여넣으세요`}
+                  placeholder={`Paste writing sample ${index + 1}`}
                   className="flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
                 />
                 {textUnits.length > 1 && (
                   <button
                     type="button"
-                    aria-label={`글 조각 ${index + 1} 삭제`}
+                    aria-label={`Remove sample ${index + 1}`}
                     onClick={() => handleRemoveTextUnit(index)}
                     className="mt-1 rounded-md p-1.5 text-text-muted hover:text-error hover:bg-error-dim transition-colors"
                   >
@@ -276,7 +276,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
             onClick={handleAddTextUnit}
             className="w-full text-sm"
           >
-            + 글 조각 추가
+            + Add sample
           </Button>
 
           {mutation.isError && (
@@ -286,16 +286,16 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
           <Button
             type="button"
             loading={mutation.isPending}
-            loadingText="분석 중..."
+            loadingText="Analyzing..."
             onClick={handlePasteSubmit}
             disabled={!textUnits.some((t) => t.trim().length >= 20)}
             className="w-full"
           >
-            분석하기
+            Analyze
           </Button>
         </div>
 
-        {/* Tab 2 — 스타일 선택 */}
+        {/* Tab 2 — Choose a style */}
         <div
           role="tabpanel"
           id={styleTabPanelId}
@@ -305,7 +305,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
         >
           <div
             role="radiogroup"
-            aria-label="글쓰기 스타일 선택"
+            aria-label="Select writing style"
             className="grid grid-cols-1 gap-2 sm:grid-cols-2"
           >
             {STYLE_PRESETS.map((preset) => (
@@ -337,14 +337,14 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
                 htmlFor="custom-description"
                 className="block text-sm font-medium text-text-secondary"
               >
-                스타일 설명
+                Style description
               </label>
               <textarea
                 id="custom-description"
                 value={customDescription}
                 onChange={(e) => setCustomDescription(e.target.value)}
                 rows={4}
-                placeholder="예: 전문 용어를 피하고 친근한 말투로, 독자가 바로 실행할 수 있도록 구체적인 팁 위주로 작성합니다."
+                placeholder="e.g. I avoid jargon and keep things conversational, focusing on actionable tips readers can use right away."
                 className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
               />
             </div>
@@ -357,14 +357,14 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
           <Button
             type="button"
             loading={mutation.isPending}
-            loadingText="저장 중..."
+            loadingText="Saving..."
             onClick={handleStyleSubmit}
             disabled={
               selectedPreset === 'custom' && customDescription.trim().length === 0
             }
             className="w-full"
           >
-            저장하기
+            Save
           </Button>
         </div>
       </div>
