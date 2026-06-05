@@ -173,7 +173,7 @@ export function VoiceFallbackModal({ open, onClose }: VoiceFallbackModalProps) {
           id={titleId}
           className="mb-5 text-sm text-text-secondary leading-relaxed"
         >
-          Your Threads account doesn't have enough posts yet. Set up your voice manually below.
+          Your Threads account doesn&apos;t have enough posts yet. Set up your voice manually below.
         </p>
 
         {/* Tab bar */}
