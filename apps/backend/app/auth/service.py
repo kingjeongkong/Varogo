@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.models import RefreshToken, User
 from app.auth.schemas import UserResponse
 from app.core.config import settings
+from app.core.discord import notify_signup
 from app.core.security import create_access_token, hash_password, verify_password
 
 
@@ -111,6 +112,7 @@ async def signup(
 
   result = await _issue_tokens(user.id, user.email, user, session)
   await session.commit()
+  notify_signup(email)
   return result
 
 

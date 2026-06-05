@@ -7,6 +7,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.discord import notify_published
 from app.post_draft.generation_pipeline import graph as generation_pipeline
 from app.post_draft.models import PostDraft, PostDraftOption
 from app.products.models import Product, ProductAnalysis
@@ -306,4 +307,6 @@ async def publish_draft(
     .where(PostDraft.id == draft_id)
     .options(selectinload(PostDraft.options))
   )
-  return result.scalar_one()
+  draft = result.scalar_one()
+  notify_published(user_id, draft.permalink)
+  return draft

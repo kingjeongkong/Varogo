@@ -32,6 +32,10 @@ class Settings(BaseSettings):
   THREADS_REDIRECT_URI: str
   THREADS_TOKEN_ENCRYPTION_KEY: str
 
+  # Discord notifications (optional)
+  DISCORD_WEBHOOK_SIGNUPS: str | None = None
+  DISCORD_WEBHOOK_PUBLISHED: str | None = None
+
   @field_validator('THREADS_TOKEN_ENCRYPTION_KEY')
   @classmethod
   def validate_encryption_key(cls, v: str) -> str:
