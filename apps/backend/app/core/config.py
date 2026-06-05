@@ -32,6 +32,9 @@ class Settings(BaseSettings):
   THREADS_REDIRECT_URI: str
   THREADS_TOKEN_ENCRYPTION_KEY: str
 
+  # Sentry (optional)
+  SENTRY_DSN: str | None = None
+
   # Discord notifications (optional)
   DISCORD_WEBHOOK_SIGNUPS: str | None = None
   DISCORD_WEBHOOK_PUBLISHED: str | None = None

@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import sentry_sdk
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +26,13 @@ async def lifespan(app: FastAPI):
   if openai_client is not None:
     await openai_client.aclose()
 
+
+if settings.SENTRY_DSN:
+  sentry_sdk.init(
+    dsn=settings.SENTRY_DSN,
+    traces_sample_rate=0,
+    send_default_pii=False,
+  )
 
 app = FastAPI(title='Varogo API', lifespan=lifespan)
 
