@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from app.voice_profile.service import find_one, import_from_threads
+from app.voice_profile.schemas import CustomImportRequest, PasteImportRequest, PresetImportRequest
+from app.voice_profile.service import find_one, import_from_threads, import_manual
 
 _MOCK_ANALYSIS = {
   'source': 'threads_import',
@@ -84,3 +85,93 @@ async def test_find_one_returns_none_when_not_found():
   session.execute = AsyncMock(return_value=_result(None))
   result = await find_one('user-1', session)
   assert result is None
+
+
+# ---------------------------------------------------------------------------
+# import_manual — paste
+# ---------------------------------------------------------------------------
+
+_MOCK_PASTE_ANALYSIS = {
+  'source': 'threads_import',
+  'sample_count': 2,
+  'style_fingerprint': {'tonality': 'Short sentences.', 'openingPatterns': [], 'signaturePhrases': []},
+  'reference_samples': [],
+}
+
+
+async def test_import_manual_paste_creates_profile_with_text_import_source():
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(None))
+
+  request = PasteImportRequest(method='paste', text_units=['This is a long enough post one.', 'This is a long enough post two.'])
+  analyze_mock = AsyncMock(return_value=_MOCK_PASTE_ANALYSIS)
+
+  with patch('app.voice_profile.service.analyze', analyze_mock):
+    profile = await import_manual('user-1', request, session)
+
+  assert profile.source == 'text_import'
+  session.add.assert_called_once()
+
+
+async def test_import_manual_paste_calls_analyze_with_correct_units():
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(None))
+
+  text_units = ['This is a long enough post one.', 'This is a long enough post two.']
+  request = PasteImportRequest(method='paste', text_units=text_units)
+  analyze_mock = AsyncMock(return_value=_MOCK_PASTE_ANALYSIS)
+
+  with patch('app.voice_profile.service.analyze', analyze_mock):
+    await import_manual('user-1', request, session)
+
+  call_args = analyze_mock.call_args[0][0]
+  assert [u['text'] for u in call_args] == text_units
+  assert all(u['timestamp'] for u in call_args)
+
+
+# ---------------------------------------------------------------------------
+# import_manual — preset
+# ---------------------------------------------------------------------------
+
+async def test_import_manual_preset_concise_creates_profile():
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(None))
+
+  request = PresetImportRequest(method='preset', preset_id='concise')
+
+  profile = await import_manual('user-1', request, session)
+
+  assert profile.source == 'preset_selection'
+  assert profile.sample_count == 0
+  session.add.assert_called_once()
+
+
+def test_import_manual_preset_unknown_id_raises_validation_error():
+  from pydantic import ValidationError
+  with pytest.raises(ValidationError):
+    PresetImportRequest(method='preset', preset_id='nonexistent_preset')
+
+
+# ---------------------------------------------------------------------------
+# import_manual — custom
+# ---------------------------------------------------------------------------
+
+_MOCK_DESCRIPTION_FINGERPRINT = {
+  'tonality': 'Uses short declarative bursts.',
+  'openingPatterns': [],
+  'signaturePhrases': [],
+}
+
+
+async def test_import_manual_custom_creates_profile_with_custom_description_source():
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(None))
+
+  request = CustomImportRequest(method='custom', custom_description='I write in short punchy sentences with minimal punctuation.')
+  analyze_description_mock = AsyncMock(return_value=_MOCK_DESCRIPTION_FINGERPRINT)
+
+  with patch('app.voice_profile.service.analyze_description', analyze_description_mock):
+    profile = await import_manual('user-1', request, session)
+
+  assert profile.source == 'custom_description'
+  session.add.assert_called_once()

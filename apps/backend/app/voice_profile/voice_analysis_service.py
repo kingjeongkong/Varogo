@@ -1,3 +1,5 @@
+import json
+
 from fastapi import HTTPException
 from google.genai import types
 
@@ -58,10 +60,27 @@ Return JSON with three fields. Every claim must be grounded in specific posts.
    Do NOT describe what the writer thinks about or analyzes — describe the SHAPE of their writing."""
 
 
-async def _extract_qualitative(units: list[dict]) -> dict:
-  client = get_gemini_client()
-  prompt = _build_prompt(units)
+def _build_description_prompt(description: str) -> str:
+  return f"""You are generating a voice fingerprint from a plain-language writing style description. Identify HOW the style writes — formal habits — not WHAT it writes about.
 
+=== Writing Style Description ===
+{description}
+
+=== Task ===
+Return JSON with three fields.
+
+1. "signaturePhrases" — Always return an empty array [].
+
+2. "openingPatterns" — Always return an empty array [].
+
+3. "tonality" — ONE sentence (max 25 words) describing FORM only based on the description.
+   Must mention at least one of: sentence rhythm, paragraph structure, punctuation habits, or transition habits.
+   Forbidden words: "casual", "friendly", "professional", "approachable", "engaging", "dissects", "highlights", "explores", "shares", "reflects".
+   Do NOT describe what the writer thinks about — describe the SHAPE of their writing."""
+
+
+async def _call_gemini(prompt: str) -> dict:
+  client = get_gemini_client()
   try:
     result = await client.aio.models.generate_content(
       model='gemini-2.5-flash-lite',
@@ -75,7 +94,6 @@ async def _extract_qualitative(units: list[dict]) -> dict:
     if not raw:
       raise HTTPException(status_code=500, detail='Voice extraction failed')
 
-    import json
     parsed = json.loads(raw)
     if (
       not isinstance(parsed.get('tonality'), str) or
@@ -91,6 +109,10 @@ async def _extract_qualitative(units: list[dict]) -> dict:
     raise HTTPException(status_code=500, detail='Voice extraction failed')
 
 
+async def _extract_qualitative(units: list[dict]) -> dict:
+  return await _call_gemini(_build_prompt(units))
+
+
 async def analyze(units: list[dict]) -> dict:
   fingerprint = await _extract_qualitative(units)
 
@@ -103,3 +125,10 @@ async def analyze(units: list[dict]) -> dict:
       for u in units[:REFERENCE_SAMPLE_COUNT]
     ],
   }
+
+
+async def analyze_description(description: str) -> dict:
+  fingerprint = await _call_gemini(_build_description_prompt(description))
+  fingerprint['openingPatterns'] = []
+  fingerprint['signaturePhrases'] = []
+  return fingerprint

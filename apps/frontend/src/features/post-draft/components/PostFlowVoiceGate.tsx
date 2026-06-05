@@ -1,17 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { useThreadsConnectionStatus } from '@/features/threads';
-import { useImportVoice, useVoiceProfile } from '@/features/voice-profile';
+import { useImportVoice, useVoiceProfile, VoiceFallbackModal } from '@/features/voice-profile';
 
 interface PostFlowVoiceGateProps {
   children: ReactNode;
 }
 
 export function PostFlowVoiceGate({ children }: PostFlowVoiceGateProps) {
+  const [modalOpen, setModalOpen] = useState(false);
   const {
     data: connection,
     isLoading: connectionLoading,
@@ -68,27 +69,27 @@ export function PostFlowVoiceGate({ children }: PostFlowVoiceGateProps) {
 
   if (!profile) {
     return (
-      <section className="glass-card p-6 space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-lg font-heading font-semibold text-text-primary">
-            Import your voice
-          </h2>
-          <p className="text-sm text-text-muted">
-            One-time step. We read your recent Threads posts so the angles we
-            suggest sound like you.
-          </p>
-        </div>
-        <Button
-          loading={importMutation.isPending}
-          loadingText="Importing..."
-          onClick={() => importMutation.mutate()}
-        >
-          Import voice from Threads
-        </Button>
-        {importMutation.isError && (
-          <Alert>{importMutation.error.message}</Alert>
-        )}
-      </section>
+      <>
+        <section className="glass-card p-6 space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-lg font-heading font-semibold text-text-primary">
+              Import your voice
+            </h2>
+            <p className="text-sm text-text-muted">
+              One-time step. We read your recent Threads posts so the angles we
+              suggest sound like you.
+            </p>
+          </div>
+          <Button
+            loading={importMutation.isPending}
+            loadingText="Importing..."
+            onClick={() => importMutation.mutate(undefined, { onError: () => setModalOpen(true) })}
+          >
+            Import voice from Threads
+          </Button>
+        </section>
+        <VoiceFallbackModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      </>
     );
   }
 
