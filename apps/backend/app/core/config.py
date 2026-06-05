@@ -38,6 +38,7 @@ class Settings(BaseSettings):
   # Discord notifications (optional)
   DISCORD_WEBHOOK_SIGNUPS: str | None = None
   DISCORD_WEBHOOK_PUBLISHED: str | None = None
+  DISCORD_WEBHOOK_ERRORS: str | None = None
 
   @field_validator('THREADS_TOKEN_ENCRYPTION_KEY')
   @classmethod
