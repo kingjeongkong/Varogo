@@ -1,11 +1,13 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import logging
 import sentry_sdk
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.core.discord import DiscordErrorHandler
 from app.core.exceptions import setup_exception_handlers
 from app.auth.router import router as auth_router
 from app.post_draft.router import router as post_draft_router
@@ -33,6 +35,9 @@ if settings.SENTRY_DSN:
     traces_sample_rate=0,
     send_default_pii=False,
   )
+
+if settings.DISCORD_WEBHOOK_ERRORS:
+  logging.getLogger().addHandler(DiscordErrorHandler())
 
 app = FastAPI(title='Varogo API', lifespan=lifespan)
 

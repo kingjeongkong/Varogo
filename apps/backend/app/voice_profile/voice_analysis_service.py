@@ -1,9 +1,12 @@
 import json
+import logging
 
 from fastapi import HTTPException
 from google.genai import types
 
 from app.llm.gemini import get_gemini_client
+
+logger = logging.getLogger(__name__)
 
 
 REFERENCE_SAMPLE_COUNT = 5
@@ -106,6 +109,7 @@ async def _call_gemini(prompt: str) -> dict:
   except HTTPException:
     raise
   except Exception:
+    logger.exception('Voice extraction failed')
     raise HTTPException(status_code=500, detail='Voice extraction failed')
 
 

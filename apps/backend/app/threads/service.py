@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from urllib.parse import urlencode
+
+logger = logging.getLogger(__name__)
 
 import httpx
 from fastapi import HTTPException
@@ -203,6 +206,7 @@ async def _fetch_own_replies(
   except HTTPException:
     raise
   except Exception:
+    logger.warning('Failed to fetch replies for post %s', post_id, exc_info=True)
     return []
 
 
@@ -404,7 +408,7 @@ async def publish_to_threads(
     if media_res.is_success:
       permalink = media_res.json().get('permalink')
   except Exception:
-    pass
+    logger.warning('Failed to fetch permalink for media %s', media_id, exc_info=True)
 
   return {'threads_media_id': media_id, 'permalink': permalink}
 

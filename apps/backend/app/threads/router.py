@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Response
@@ -9,6 +10,8 @@ from app.core.config import settings
 from app.dependencies import get_db
 from app.threads import service
 from app.threads.schemas import AuthUrlResponse, PublishRequest, PublishResponse, ThreadsConnectionResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -40,6 +43,7 @@ async def callback(
     redirect_url = await service.handle_callback(code, state, session)
     return RedirectResponse(redirect_url, status_code=302)
   except Exception:
+    logger.exception('Threads OAuth callback failed')
     return error_redirect
 
 

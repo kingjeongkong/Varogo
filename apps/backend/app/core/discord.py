@@ -26,6 +26,22 @@ def _fire(webhook_url: str | None, content: str) -> None:
     pass
 
 
+class DiscordErrorHandler(logging.Handler):
+  def __init__(self) -> None:
+    super().__init__(level=logging.ERROR)
+
+  def emit(self, record: logging.LogRecord) -> None:
+    try:
+      text = f'🚨 `{record.name}`\n{record.getMessage()}'
+      if record.exc_info:
+        import traceback
+        tb = ''.join(traceback.format_exception(*record.exc_info))
+        text += f'\n```\n{tb[:1500]}\n```'
+      _fire(settings.DISCORD_WEBHOOK_ERRORS, text[:2000])
+    except Exception:
+      pass
+
+
 def notify_signup(email: str) -> None:
   _fire(settings.DISCORD_WEBHOOK_SIGNUPS, f'🆕 새 유저 가입: `{email}`')
 

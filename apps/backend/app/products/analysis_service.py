@@ -1,9 +1,12 @@
 import json
+import logging
 
 from fastapi import HTTPException
 from google.genai import types
 
 from app.llm.gemini import get_gemini_client
+
+logger = logging.getLogger(__name__)
 
 
 RESPONSE_SCHEMA = types.Schema(
@@ -178,4 +181,5 @@ async def analyze(input: dict) -> dict:
   except HTTPException:
     raise
   except Exception:
+    logger.exception('Product analysis failed')
     raise HTTPException(status_code=500, detail='Product analysis failed')
