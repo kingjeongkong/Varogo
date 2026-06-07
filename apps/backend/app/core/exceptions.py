@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
+
+logger = logging.getLogger(__name__)
 
 
 def _make_serializable(errors: list) -> list:
@@ -20,10 +24,12 @@ async def _validation_exception_handler(request: Request, exc: RequestValidation
 
 
 async def _sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
+  logger.exception('Database error on %s %s', request.method, request.url.path)
   return JSONResponse(status_code=500, content={'detail': 'Internal server error'})
 
 
 async def _generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+  logger.exception('Unhandled exception on %s %s', request.method, request.url.path)
   return JSONResponse(status_code=500, content={'detail': 'Internal server error'})
 
 
