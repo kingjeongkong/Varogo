@@ -54,7 +54,6 @@ async def generate(
   style_fingerprint: dict,
   reference_samples: list,
   today_input: str | None,
-  threads_access_token: str | None = None,
 ) -> dict:
   initial_state: GraphState = {
     'product_analysis': analysis,
@@ -65,7 +64,6 @@ async def generate(
     'plans': [],
     'options': [],
     'iteration': 0,
-    'threads_access_token': threads_access_token,
   }
 
   result = await _graph.ainvoke(initial_state)

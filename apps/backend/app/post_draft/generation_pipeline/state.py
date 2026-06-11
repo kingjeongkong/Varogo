@@ -30,4 +30,3 @@ class GraphState(TypedDict):
   plans: list[PlanItem]
   options: list[OptionState]
   iteration: int
-  threads_access_token: str | None

@@ -276,23 +276,13 @@ class TestCotAndToolSections:
     prompt = build_initial_planning_prompt(analysis, style_fingerprint, reference_samples, today_input)
     assert 'search_trends' in prompt
 
-  def test_search_similar_posts_absent_when_flag_false(
+  def test_search_similar_posts_not_in_prompt(
     self, analysis, style_fingerprint, reference_samples, today_input
   ):
     prompt = build_initial_planning_prompt(
       analysis, style_fingerprint, reference_samples, today_input,
-      has_similar_posts_tool=False,
     )
     assert 'search_similar_posts' not in prompt
-
-  def test_search_similar_posts_present_when_flag_true(
-    self, analysis, style_fingerprint, reference_samples, today_input
-  ):
-    prompt = build_initial_planning_prompt(
-      analysis, style_fingerprint, reference_samples, today_input,
-      has_similar_posts_tool=True,
-    )
-    assert 'search_similar_posts' in prompt
 
   def test_retry_prompt_inherits_thinking_order_section(
     self, analysis, style_fingerprint, reference_samples, today_input,

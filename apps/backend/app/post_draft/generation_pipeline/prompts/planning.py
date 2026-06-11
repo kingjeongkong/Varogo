@@ -31,7 +31,6 @@ def build_initial_planning_prompt(
   reference_samples: list,
   today_input: str | None,
   research_context: str | None = None,
-  has_similar_posts_tool: bool = False,
 ) -> str:
   has_today = bool(today_input and today_input.strip())
 
@@ -86,12 +85,6 @@ No specific update today. Do NOT use Data angle."""
     else ''
   )
 
-  similar_posts_tool = (
-    '\nsearch_similar_posts — find posts in the user\'s history with a similar angle or topic, to avoid repeating already-used framing.'
-    if has_similar_posts_tool
-    else ''
-  )
-
   return f"""You are a plan designer, NOT a post writer — a separate generation agent will write the post using this plan.
 
 === Product context ===
@@ -121,7 +114,7 @@ Before finalising your plans, reason through these steps in order:
 6. If there is failure feedback from a previous attempt, distinguish between artifact issues (formatting/structure) and eval issues (voice or strategy mismatch), and redesign plans accordingly.
 
 === Tools available ===
-search_trends — look up current trends, recent events, or public data relevant to the product's category or keywords.{similar_posts_tool}
+search_trends — look up current trends, recent events, or public data relevant to the product's category or keywords.
 
 === Task ===
 Design 3 plans. Each plan has:
@@ -185,11 +178,10 @@ def build_retry_planning_prompt(
   failed_options: list[OptionState],
   passed_angle_labels: list[str],
   research_context: str | None = None,
-  has_similar_posts_tool: bool = False,
 ) -> str:
   base = build_initial_planning_prompt(
     analysis, style_fingerprint, reference_samples, today_input,
-    research_context, has_similar_posts_tool,
+    research_context,
   )
 
   failed_block = _format_failed_options(failed_options)
