@@ -11,7 +11,8 @@ from app.auth.models import RefreshToken, User
 from app.auth.schemas import UserResponse
 from app.core.config import settings
 from app.core.discord import notify_signup
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.email import send_password_reset_email
+from app.core.security import create_access_token, create_password_reset_token, hash_password, verify_password
 
 
 def _refresh_expires_at() -> datetime:
@@ -176,3 +177,17 @@ async def get_me(
   if user is None:
     raise HTTPException(status_code=401, detail='User not found')
   return user
+
+
+async def forgot_password(
+  email: str,
+  session: AsyncSession,
+) -> None:
+  result = await session.execute(select(User).where(User.email == email))
+  user = result.scalar_one_or_none()
+  if user is None:
+    return
+
+  token = create_password_reset_token(user.id, user.password_hash)
+  reset_link = f'{settings.FRONTEND_URL}/reset-password?token={token}'
+  send_password_reset_email(user.email, reset_link)
