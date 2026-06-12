@@ -1,9 +1,11 @@
 import hashlib
+import hmac
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
+from jose import JWTError
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +13,8 @@ from app.auth.models import RefreshToken, User
 from app.auth.schemas import UserResponse
 from app.core.config import settings
 from app.core.discord import notify_signup
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.email import send_password_reset_email
+from app.core.security import create_access_token, create_password_reset_token, decode_password_reset_token, hash_password, verify_password
 
 
 def _refresh_expires_at() -> datetime:
@@ -176,3 +179,45 @@ async def get_me(
   if user is None:
     raise HTTPException(status_code=401, detail='User not found')
   return user
+
+
+async def forgot_password(
+  email: str,
+  session: AsyncSession,
+) -> None:
+  result = await session.execute(select(User).where(User.email == email))
+  user = result.scalar_one_or_none()
+  if user is None:
+    return
+
+  token = create_password_reset_token(user.id, user.password_hash)
+  reset_link = f'{settings.FRONTEND_URL}/reset-password?token={token}'
+  send_password_reset_email(user.email, reset_link)
+
+
+async def reset_password(
+  token: str,
+  new_password: str,
+  session: AsyncSession,
+) -> None:
+  try:
+    payload = decode_password_reset_token(token)
+  except JWTError:
+    raise HTTPException(status_code=401, detail='Invalid or expired reset token')
+
+  user_id = payload.get('sub')
+  result = await session.execute(select(User).where(User.id == user_id))
+  user = result.scalar_one_or_none()
+  if user is None:
+    raise HTTPException(status_code=401, detail='Invalid or expired reset token')
+
+  expected_frag = hmac.new(
+    settings.JWT_SECRET.encode(),
+    user.password_hash.encode(),
+    hashlib.sha256,
+  ).hexdigest()[:16]
+  if payload.get('frag') != expected_frag:
+    raise HTTPException(status_code=401, detail='Invalid or expired reset token')
+
+  user.password_hash = hash_password(new_password)
+  await session.commit()

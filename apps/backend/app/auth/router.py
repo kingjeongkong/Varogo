@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import service as auth_service
 from app.auth.dependencies import CurrentUser, get_current_user
-from app.auth.schemas import LoginRequest, SignupRequest, UserResponse
+from app.auth.schemas import ForgotPasswordRequest, LoginRequest, ResetPasswordRequest, SignupRequest, UserResponse
 from app.core.config import settings
 from app.dependencies import get_db
 
@@ -88,6 +88,24 @@ async def logout(
 ) -> dict:
   await auth_service.logout(current_user.sub, session)
   _clear_token_cookies(response)
+  return {'ok': True}
+
+
+@router.post('/forgot-password', status_code=200)
+async def forgot_password(
+  body: ForgotPasswordRequest,
+  session: AsyncSession = Depends(get_db),
+) -> dict:
+  await auth_service.forgot_password(body.email, session)
+  return {'ok': True}
+
+
+@router.post('/reset-password', status_code=200)
+async def reset_password(
+  body: ResetPasswordRequest,
+  session: AsyncSession = Depends(get_db),
+) -> dict:
+  await auth_service.reset_password(body.token, body.new_password, session)
   return {'ok': True}
 
 

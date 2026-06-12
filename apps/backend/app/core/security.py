@@ -1,6 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import hmac
+import hashlib
 import bcrypt
-from jose import jwt
+from jose import jwt, JWTError
 from app.core.config import settings
 
 ALGORITHM = 'HS256'
@@ -26,3 +28,25 @@ def hash_password(plain: str) -> str:
 
 def verify_password(plain: str, hashed: str) -> bool:
   return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
+
+
+def create_password_reset_token(user_id: str, password_hash: str) -> str:
+  frag = hmac.new(
+    settings.JWT_SECRET.encode(),
+    password_hash.encode(),
+    hashlib.sha256,
+  ).hexdigest()[:16]
+  payload = {
+    'sub': user_id,
+    'purpose': 'password_reset',
+    'frag': frag,
+    'exp': datetime.now(timezone.utc) + timedelta(minutes=15),
+  }
+  return jwt.encode(payload, settings.JWT_SECRET, algorithm=ALGORITHM)
+
+
+def decode_password_reset_token(token: str) -> dict:
+  payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[ALGORITHM])
+  if payload.get('purpose') != 'password_reset':
+    raise JWTError('invalid purpose')
+  return payload

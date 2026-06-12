@@ -4,21 +4,19 @@ import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useAuth } from '../hooks/use-auth';
 
 const schema = z.object({
   email: z.string().email('Please enter a valid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 type FormData = z.infer<typeof schema>;
 
-export function LoginForm() {
+export function ForgotPasswordForm() {
   const {
-    loginMutation: { mutate: login, isPending, error },
+    forgotPasswordMutation: { mutate: forgotPassword, isPending, isSuccess, error },
   } = useAuth();
   const {
     register,
@@ -26,9 +24,20 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
+  if (isSuccess) {
+    return (
+      <div className="space-y-2 text-center">
+        <p className="font-semibold">Check your email</p>
+        <p className="text-text-muted text-sm">
+          We&apos;ve sent a password reset link to your email address.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <form
-      onSubmit={handleSubmit((data) => login(data))}
+      onSubmit={handleSubmit((data) => forgotPassword(data))}
       noValidate
       className="space-y-5"
     >
@@ -37,35 +46,18 @@ export function LoginForm() {
         label="Email"
         type="email"
         autoComplete="email"
-
+        placeholder="name@example.com"
         error={errors.email}
         {...register('email')}
       />
-      <FormField
-        id="password"
-        label="Password"
-        type="password"
-        autoComplete="current-password"
-
-        error={errors.password}
-        {...register('password')}
-      />
-      <div className="text-right">
-        <Link
-          href="/forgot-password"
-          className="text-sm text-primary hover:text-primary-hover font-medium"
-        >
-          Forgot password?
-        </Link>
-      </div>
       {error && <Alert>{error.message}</Alert>}
       <Button
         type="submit"
         loading={isPending}
-        loadingText="Logging in..."
+        loadingText="Sending..."
         className="w-full"
       >
-        Log in
+        Send reset link
       </Button>
     </form>
   );
