@@ -4,6 +4,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useAuth } from '../hooks/use-auth';
@@ -49,6 +50,14 @@ export function LoginForm() {
         error={errors.password}
         {...register('password')}
       />
+      <div className="text-right">
+        <Link
+          href="/forgot-password"
+          className="text-sm text-primary hover:text-primary-hover font-medium"
+        >
+          Forgot password?
+        </Link>
+      </div>
       {error && <Alert>{error.message}</Alert>}
       <Button
         type="submit"
