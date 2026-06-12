@@ -23,10 +23,14 @@ vi.mock('@/stores/auth-store', () => ({
 const mockLogin = vi.fn();
 const mockSignup = vi.fn();
 const mockLogout = vi.fn();
+const mockForgotPassword = vi.fn();
+const mockResetPassword = vi.fn();
 vi.mock('../api-client', () => ({
   login: (...args: unknown[]) => mockLogin(...args),
   signup: (...args: unknown[]) => mockSignup(...args),
   logout: (...args: unknown[]) => mockLogout(...args),
+  forgotPassword: (...args: unknown[]) => mockForgotPassword(...args),
+  resetPassword: (...args: unknown[]) => mockResetPassword(...args),
 }));
 
 // useMutation is a thin wrapper — we test the callbacks by capturing them at
@@ -59,9 +63,9 @@ describe('useAuth', () => {
     vi.clearAllMocks();
   });
 
-  it('registers three mutations (login, signup, logout)', () => {
+  it('registers five mutations (login, signup, logout, forgotPassword, resetPassword)', () => {
     renderHook(() => useAuth());
-    expect(capturedMutations).toHaveLength(3);
+    expect(capturedMutations).toHaveLength(5);
   });
 
   describe('loginMutation', () => {
@@ -171,10 +175,12 @@ describe('useAuth', () => {
     });
   });
 
-  it('returns loginMutation, signupMutation, and logoutMutation', () => {
+  it('returns all five mutations', () => {
     const { result } = renderHook(() => useAuth());
     expect(result.current).toHaveProperty('loginMutation');
     expect(result.current).toHaveProperty('signupMutation');
     expect(result.current).toHaveProperty('logoutMutation');
+    expect(result.current).toHaveProperty('forgotPasswordMutation');
+    expect(result.current).toHaveProperty('resetPasswordMutation');
   });
 });
