@@ -40,6 +40,10 @@ class Settings(BaseSettings):
   DISCORD_WEBHOOK_PUBLISHED: str | None = None
   DISCORD_WEBHOOK_ERRORS: str | None = None
 
+  # AWS SES (email)
+  AWS_SES_REGION: str = 'us-east-1'
+  AWS_SES_FROM_EMAIL: str = ''
+
   @field_validator('THREADS_TOKEN_ENCRYPTION_KEY')
   @classmethod
   def validate_encryption_key(cls, v: str) -> str:
