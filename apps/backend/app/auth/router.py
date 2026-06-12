@@ -9,7 +9,7 @@ from app.dependencies import get_db
 
 router = APIRouter()
 
-_ACCESS_TOKEN_MAX_AGE = 15 * 60          # 15 minutes in seconds
+_ACCESS_TOKEN_MAX_AGE = 60 * 60          # 1 hour in seconds
 _REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
 
 

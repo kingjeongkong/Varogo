@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
   # JWT
   JWT_SECRET: str
-  JWT_EXPIRES_MINUTES: int = 15
+  JWT_EXPIRES_MINUTES: int = 60
   REFRESH_TOKEN_EXPIRES_IN: int = 7
 
   # App
