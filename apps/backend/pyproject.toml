@@ -26,6 +26,7 @@ langchain-openai = "^1.2.2"
 langchain-google-genai = "^4.2.3"
 langgraph = "^1.2.1"
 sentry-sdk = {extras = ["fastapi"], version = "^2.61.1"}
+boto3 = "^1.43.28"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.3.0"
