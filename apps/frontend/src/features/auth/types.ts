@@ -8,3 +8,12 @@ export interface SignupInput {
   password: string;
   name?: string;
 }
+
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  newPassword: string;
+}
