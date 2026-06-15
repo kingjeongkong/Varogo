@@ -225,7 +225,7 @@ async def google_oauth_callback(
 
   if existing_user is not None and existing_user.password_hash is not None:
     # 3a. Email/password account conflict
-    raise HTTPException(status_code=409, detail='이미 이메일/비밀번호로 가입된 계정입니다.')
+    raise HTTPException(status_code=409, detail='An account with this email already exists. Please log in with your email and password.')
 
   # 3b. No existing user — create new User
   if existing_user is None:
