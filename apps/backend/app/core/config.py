@@ -32,6 +32,10 @@ class Settings(BaseSettings):
   THREADS_REDIRECT_URI: str
   THREADS_TOKEN_ENCRYPTION_KEY: str
 
+  # Google OAuth
+  GOOGLE_CLIENT_ID: str
+  GOOGLE_CLIENT_SECRET: str
+
   # Sentry (optional)
   SENTRY_DSN: str | None = None
 
