@@ -34,6 +34,7 @@ async def clear_database(session):
   await session.execute(text('TRUNCATE TABLE products CASCADE'))
   await session.execute(text('TRUNCATE TABLE voice_profiles CASCADE'))
   await session.execute(text('TRUNCATE TABLE threads_connections CASCADE'))
+  await session.execute(text('TRUNCATE TABLE oauth_accounts CASCADE'))
   await session.execute(text('TRUNCATE TABLE refresh_tokens CASCADE'))
   await session.execute(text('TRUNCATE TABLE users CASCADE'))
   await session.commit()
@@ -219,6 +220,27 @@ async def seed_threads_connection(session, user_id: str):
       'username': 'testuser',
       'access_token_encrypted': 'placeholder-not-decrypted-in-tests',
       'token_expires_at': datetime.utcnow() + timedelta(days=60),
+      'created_at': now,
+      'updated_at': now,
+    },
+  )
+  await session.commit()
+  return result.mappings().one()
+
+
+async def seed_oauth_account(session, user_id: str, provider: str = 'google', provider_id: str = 'google-sub-123'):
+  now = datetime.utcnow()
+  result = await session.execute(
+    text(
+      'INSERT INTO oauth_accounts (id, user_id, provider, provider_id, created_at, updated_at) '
+      'VALUES (:id, :user_id, :provider, :provider_id, :created_at, :updated_at) '
+      'RETURNING id, user_id, provider, provider_id, created_at'
+    ),
+    {
+      'id': str(uuid.uuid4()),
+      'user_id': user_id,
+      'provider': provider,
+      'provider_id': provider_id,
       'created_at': now,
       'updated_at': now,
     },

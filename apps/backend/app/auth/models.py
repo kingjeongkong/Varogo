@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Index, Text
+from sqlalchemy import ForeignKey, Index, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,6 +25,11 @@ class User(Base):
 
   refresh_tokens: Mapped[list['RefreshToken']] = relationship(
     'RefreshToken',
+    back_populates='user',
+    cascade='all, delete-orphan',
+  )
+  oauth_accounts: Mapped[list['OAuthAccount']] = relationship(
+    'OAuthAccount',
     back_populates='user',
     cascade='all, delete-orphan',
   )
@@ -66,3 +71,24 @@ class RefreshToken(Base):
   created_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3))
 
   user: Mapped['User'] = relationship('User', back_populates='refresh_tokens')
+
+
+class OAuthAccount(Base):
+  __tablename__ = 'oauth_accounts'
+
+  __table_args__ = (
+    Index('oauth_accounts_user_id_idx', 'user_id'),
+    UniqueConstraint('provider', 'provider_id', name='oauth_accounts_provider_provider_id_key'),
+  )
+
+  id: Mapped[str] = mapped_column(Text, primary_key=True)
+  user_id: Mapped[str] = mapped_column(
+    Text,
+    ForeignKey('users.id', name='oauth_accounts_user_id_fkey', ondelete='CASCADE'),
+  )
+  provider: Mapped[str] = mapped_column(Text)
+  provider_id: Mapped[str] = mapped_column(Text)
+  created_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3))
+  updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3))
+
+  user: Mapped['User'] = relationship('User', back_populates='oauth_accounts')
