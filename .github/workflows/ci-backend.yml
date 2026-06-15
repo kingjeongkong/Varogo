@@ -60,6 +60,9 @@ jobs:
           THREADS_TOKEN_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           OPENAI_API_KEY=test-key
           GEMINI_API_KEY=test-key
+          GOOGLE_CLIENT_ID=test-google-client-id
+          GOOGLE_CLIENT_SECRET=test-google-client-secret
+          BACKEND_URL=http://localhost:3000
           EOF
 
       - name: Run integration tests
