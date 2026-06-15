@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/constants';
 import { useAuth } from '../hooks/use-auth';
 
 const schema = z.object({
@@ -103,7 +104,7 @@ export function SignupForm() {
         </div>
       </div>
       <a
-        href={`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`}
+        href={`${API_BASE_URL}/auth/google`}
         className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface-elevated px-4 py-2.5 text-base font-medium text-text-secondary transition-all duration-200 hover:border-border-hover hover:bg-surface-hover hover:text-text-primary active:scale-[0.97]"
         aria-label="Continue with Google"
       >
