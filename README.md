@@ -25,36 +25,59 @@ A Threads marketing copilot built around two onboarding artifacts — a product 
 
 - 🔍 **Product Analysis**: AI analyzes your product's target audience, value prop, and competitive edges from a URL
 - 🗣️ **Voice Import**: Pulls your recent Threads posts to learn tone, opening patterns, and signature phrases
-- ✍️ **3-Angle Generation**: Produces three differentiated post drafts per request (Story / Contrarian / Data / Positioning / Technical), each grounded in your voice
+- 🤖 **Multi-Agent Generation**: A LangGraph pipeline (Research → Planning → Generation → Evaluation) produces three differentiated post drafts grounded in your voice
 - 🚀 **One-Click Publish**: Edit body, hit publish — straight to Threads via the Graph API
 
 <br/>
 
 ## ✨ Key Features
 
-| Feature                   | Description                                                               |
-| ------------------------- | ------------------------------------------------------------------------- |
-| 🔎 **Product Analysis**   | AI-driven marketing strategy and positioning via Gemini                                 |
-| 🧬 **Voice Profile**      | Style fingerprint + reference samples extracted from your Threads history |
-| 🎯 **3 Angle Options**    | OpenAI generates three differentiated drafts, each angle-labeled          |
-| 📝 **Body Editor**        | 500-char counter, draft autosave, angle → body carry-over                 |
-| 🚀 **Threads Publish**    | Container status polling + optimistic locking for safe one-click publish  |
-| 🗂️ **Drafts & Published** | Per-product post list with deep-link resume                               |
+| Feature                   | Description                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| 🔎 **Product Analysis**   | AI-driven marketing strategy and positioning via Gemini                                  |
+| 🧬 **Voice Profile**      | Style fingerprint extracted from Threads history; manual import for cold-start users     |
+| 🤖 **Generation Pipeline**| LangGraph multi-agent pipeline: Research → Planning → Generation → Evaluation            |
+| 🎯 **3 Angle Options**    | Three differentiated drafts per run (Story / Contrarian / Data / Positioning / Technical)|
+| 📝 **Body Editor**        | 500-char counter, draft autosave, angle → body carry-over                                |
+| 🚀 **Threads Publish**    | Container status polling + optimistic locking for safe one-click publish                 |
+| 🗂️ **Drafts & Published** | Per-product post list with deep-link resume                                              |
+| 🔐 **Auth**               | Email/password + Google OAuth, forgot password via AWS SES                              |
+
+<br/>
+
+## 🤖 Generation Pipeline
+
+Post draft generation runs as a four-node LangGraph graph:
+
+```
+Research Agent → Planning Agent → Generation Agent → Evaluator Agent
+```
+
+| Node | Role | Model |
+| ---- | ---- | ----- |
+| **Research** | Calls `search_hn` + `search_devto` directly; synthesizes trend signals into a brief | Gemini flash-lite |
+| **Planning** | ReAct agent — calls `search_trends` (HN + Dev.to combined) to pick three post angles | gpt-4o-mini |
+| **Generation** | Writes three angle-differentiated drafts grounded in voice profile (parallel async) | gpt-4o-mini |
+| **Evaluator** | Runs `artifact_filter` (regex auto-correct + issue detection) then voice-match eval; triggers repair loop on failure | Gemini flash-lite |
+
+An `artifact_filter` post-processing step strips clichés and formatting violations before the drafts are returned.
 
 <br/>
 
 ## 🛠️ Tech Stack
 
-| Category           | Technologies                                                    |
-| ------------------ | --------------------------------------------------------------- |
-| **Frontend**       | Next.js 16, React 19, TypeScript, TailwindCSS 4, TanStack Query |
-| **Backend**        | NestJS 11, TypeScript, Passport.js + JWT                        |
-| **Database**       | PostgreSQL, Prisma 6                                            |
-| **AI**             | OpenAI (gpt-4o-mini), Google Gemini (gemini-2.5-flash-lite)     |
-| **External**       | Threads Graph API                                               |
-| **Infrastructure** | AWS EC2 + Docker, AWS RDS, Vercel, Cloudflare                   |
-| **CI/CD**          | GitHub Actions                                                  |
-| **Tools**          | pnpm workspaces, Turbopack, SWC                                 |
+| Category           | Technologies                                                         |
+| ------------------ | -------------------------------------------------------------------- |
+| **Frontend**       | Next.js 16, React 19, TypeScript, TailwindCSS 4, TanStack Query      |
+| **Backend**        | FastAPI, Python 3.12, SQLAlchemy (async), Alembic                    |
+| **Auth**           | python-jose + JWT (httpOnly cookie), Google OAuth 2.0, AWS SES       |
+| **Database**       | PostgreSQL (AWS RDS / local Docker)                                  |
+| **AI**             | OpenAI (gpt-4o-mini), Google Gemini (gemini-2.5-flash-lite), LangGraph |
+| **External**       | Threads Graph API                                                    |
+| **Observability**  | Sentry, LangSmith, Discord webhooks                                  |
+| **Infrastructure** | AWS EC2 + Docker, AWS RDS, Vercel, Cloudflare                        |
+| **CI/CD**          | GitHub Actions                                                       |
+| **Tools**          | pnpm workspaces, Turbopack, Poetry                                   |
 
 <br/>
 
@@ -63,25 +86,31 @@ A Threads marketing copilot built around two onboarding artifacts — a product 
 ```
 /
 ├── apps/
-│   ├── backend/              # NestJS API (port 3000)
-│   │   └── src/
-│   │       ├── auth/
+│   ├── backend/              # FastAPI API (port 3000)
+│   │   └── app/
+│   │       ├── core/         # Config, Discord/SES notifications
+│   │       ├── auth/         # JWT + Google OAuth + password reset
 │   │       ├── llm/          # OpenAI + Gemini clients
-│   │       ├── post-draft/   # Angle generation + publish flow
-│   │       ├── product/      # Product + analysis
+│   │       ├── post_draft/   # Generation pipeline + publish flow
+│   │       │   └── generation_pipeline/
+│   │       │       ├── nodes/    # research, planning, generation, evaluator
+│   │       │       └── tools/    # search_trends, search_hn, search_devto
+│   │       ├── products/     # Product + Gemini analysis
 │   │       ├── threads/      # Threads OAuth + Graph API
-│   │       └── voice-profile/
+│   │       └── voice_profile/ # Threads import + manual import (paste/preset/custom)
 │   └── frontend/             # Next.js (port 3001)
 │       └── src/
 │           ├── app/          # App Router pages
 │           ├── features/     # Domain-specific modules
 │           │   ├── auth/
+│           │   ├── landing/
 │           │   ├── post-draft/
 │           │   ├── product/
 │           │   ├── threads/
 │           │   └── voice-profile/
 │           ├── components/   # Shared UI
-│           ├── hooks/
+│           ├── stores/       # Zustand (auth, UI state)
+│           ├── providers/    # Auth + Query providers
 │           └── lib/
 └── .github/workflows/        # CI + deploy automation
 ```
