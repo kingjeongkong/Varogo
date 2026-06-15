@@ -1,4 +1,9 @@
+import secrets
+import urllib.parse
+
+import httpx
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import service as auth_service
@@ -116,3 +121,92 @@ async def get_me(
 ) -> UserResponse:
   user = await auth_service.get_me(current_user.sub, session)
   return UserResponse.model_validate(user)
+
+
+@router.get('/google')
+async def google_oauth_start() -> RedirectResponse:
+  state = secrets.token_hex(16)
+  params = urllib.parse.urlencode({
+    'client_id': settings.GOOGLE_CLIENT_ID,
+    'redirect_uri': f'{settings.BACKEND_URL}/auth/google/callback',
+    'response_type': 'code',
+    'scope': 'openid email profile',
+    'state': state,
+  })
+  google_oauth_url = f'https://accounts.google.com/o/oauth2/v2/auth?{params}'
+
+  is_prod = settings.ENVIRONMENT == 'production'
+  redirect = RedirectResponse(url=google_oauth_url, status_code=302)
+  redirect.set_cookie(
+    key='oauth_state',
+    value=state,
+    httponly=True,
+    max_age=600,
+    path='/',
+    secure=is_prod,
+    samesite='none' if is_prod else 'lax',
+    domain=settings.COOKIE_DOMAIN or None,
+  )
+  return redirect
+
+
+@router.get('/google/callback')
+async def google_oauth_callback(
+  response: Response,
+  code: str | None = None,
+  state: str | None = None,
+  error: str | None = None,
+  oauth_state: str | None = Cookie(None),
+  session: AsyncSession = Depends(get_db),
+) -> RedirectResponse:
+  if error:
+    return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=oauth_error', status_code=302)
+
+  if code is None or state is None:
+    return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=invalid_request', status_code=302)
+
+  if oauth_state != state:
+    return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=invalid_state', status_code=302)
+
+  async with httpx.AsyncClient() as client:
+    token_response = await client.post(
+      'https://oauth2.googleapis.com/token',
+      data={
+        'code': code,
+        'client_id': settings.GOOGLE_CLIENT_ID,
+        'client_secret': settings.GOOGLE_CLIENT_SECRET,
+        'redirect_uri': f'{settings.BACKEND_URL}/auth/google/callback',
+        'grant_type': 'authorization_code',
+      },
+    )
+    if token_response.status_code != 200:
+      return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=token_exchange_failed', status_code=302)
+
+    access_token = token_response.json().get('access_token')
+
+    userinfo_response = await client.get(
+      'https://www.googleapis.com/oauth2/v2/userinfo',
+      headers={'Authorization': f'Bearer {access_token}'},
+    )
+    if userinfo_response.status_code != 200:
+      return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=userinfo_failed', status_code=302)
+
+  userinfo = userinfo_response.json()
+  provider_user_id = userinfo['id']
+  email = userinfo['email']
+  name = userinfo.get('name', email)
+  avatar_url = userinfo.get('picture')
+
+  try:
+    result = await auth_service.google_oauth_callback(
+      provider_user_id, email, name, avatar_url, session
+    )
+  except HTTPException as e:
+    if e.status_code == 409:
+      return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=email_conflict', status_code=302)
+    return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=oauth_error', status_code=302)
+
+  redirect = RedirectResponse(f'{settings.FRONTEND_URL}/products', status_code=302)
+  _set_token_cookies(redirect, result['access_token'], result['refresh_token'])
+  redirect.delete_cookie(key='oauth_state', path='/', domain=settings.COOKIE_DOMAIN or None)
+  return redirect
