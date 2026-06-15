@@ -174,7 +174,7 @@ async def _analyze_product(input: dict, product_info: str) -> dict:
 
 
 async def analyze(input: dict) -> dict:
-  """두 단계 Gemini 호출로 제품 분석 결과 반환. 실패 시 HTTPException(500) raise."""
+  """Run two-stage Gemini analysis and return result. Raises HTTPException(500) on failure."""
   try:
     product_info = await _fetch_product_info(input)
     return await _analyze_product(input, product_info)

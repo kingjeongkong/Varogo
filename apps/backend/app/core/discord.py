@@ -43,9 +43,9 @@ class DiscordErrorHandler(logging.Handler):
 
 
 def notify_signup(email: str) -> None:
-  _fire(settings.DISCORD_WEBHOOK_SIGNUPS, f'🆕 새 유저 가입: `{email}`')
+  _fire(settings.DISCORD_WEBHOOK_SIGNUPS, f'🆕 New signup: `{email}`')
 
 
 def notify_published(user_id: str, permalink: str | None) -> None:
   link = f'\n{permalink}' if permalink else ''
-  _fire(settings.DISCORD_WEBHOOK_PUBLISHED, f'🚀 포스트 발행: `{user_id}`{link}')
+  _fire(settings.DISCORD_WEBHOOK_PUBLISHED, f'🚀 Post published: `{user_id}`{link}')

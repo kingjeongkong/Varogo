@@ -5,6 +5,10 @@ import { LoginForm } from './LoginForm';
 
 const mockLoginMutate = vi.fn();
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => ({ get: () => null }),
+}));
+
 vi.mock('../hooks/use-auth', () => ({
   useAuth: vi.fn(),
 }));
