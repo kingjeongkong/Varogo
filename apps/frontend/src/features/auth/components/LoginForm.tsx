@@ -19,8 +19,8 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const oauthErrorMessages: Record<string, string> = {
-  email_conflict: '이미 이메일/비밀번호로 가입된 계정입니다. 이메일로 로그인해주세요.',
-  invalid_state: '인증에 실패했습니다. 다시 시도해주세요.',
+  email_conflict: 'An account with this email already exists. Please log in with your email and password.',
+  invalid_state: 'Authentication failed. Please try again.',
 };
 
 function OAuthError() {
@@ -30,7 +30,7 @@ function OAuthError() {
   if (!error) return null;
 
   const message =
-    oauthErrorMessages[error] ?? '로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
+    oauthErrorMessages[error] ?? 'Something went wrong. Please try again.';
 
   return <Alert>{message}</Alert>;
 }
@@ -94,13 +94,13 @@ export function LoginForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">또는</span>
+          <span className="bg-background px-2 text-muted-foreground">or</span>
         </div>
       </div>
       <a
         href={`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`}
         className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface-elevated px-4 py-2.5 text-base font-medium text-text-secondary transition-all duration-200 hover:border-border-hover hover:bg-surface-hover hover:text-text-primary active:scale-[0.97]"
-        aria-label="Google 계정으로 계속하기"
+        aria-label="Continue with Google"
       >
         <svg viewBox="0 0 24 24" className="mr-2 h-4 w-4" aria-hidden="true">
           <path
@@ -120,7 +120,7 @@ export function LoginForm() {
             fill="#EA4335"
           />
         </svg>
-        Google로 계속하기
+        Continue with Google
       </a>
     </form>
   );
