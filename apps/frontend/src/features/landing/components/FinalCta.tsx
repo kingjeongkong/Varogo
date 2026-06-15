@@ -14,7 +14,7 @@ export default function FinalCta() {
           Stop shipping into silence.
         </h2>
         <p className="mt-3 text-base text-text-secondary max-w-xl">
-          Start with a free product analysis.
+          Generate Threads posts that sound like you — not AI.
         </p>
 
         <Link
@@ -23,11 +23,6 @@ export default function FinalCta() {
         >
           Start free →
         </Link>
-
-        <p className="mt-6 text-xs text-text-muted">
-          Review every draft before it goes live. You&rsquo;re always in
-          control.
-        </p>
       </div>
     </section>
   );

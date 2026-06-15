@@ -23,12 +23,14 @@ export default function Hero() {
         >
           You shipped it.
           <br />
-          Now the feed is silent.
+          Now make sure someone notices.
         </h1>
 
         <p className="mt-6 text-lg text-text-secondary max-w-2xl">
-          Marketing strategy and post drafts, built for indie developers on
-          Threads.
+          Generate Threads posts that sound like you — not AI.
+        </p>
+        <p className="text-lg text-text-secondary max-w-2xl">
+          Varogo learns your writing style and product context automatically.
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center gap-3">

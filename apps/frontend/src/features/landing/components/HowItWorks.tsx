@@ -1,26 +1,29 @@
-import { Sparkles, Target, Send } from 'lucide-react';
+import { Link2, Mic2, CalendarDays, Send } from 'lucide-react';
 
 const steps = [
   {
     number: '01',
-    Icon: Sparkles,
-    title: 'Analyze',
-    description:
-      "Paste your product URL. AI reads what you built and who it's for.",
+    Icon: Link2,
+    title: 'Add your product',
+    description: 'Paste a URL. Varogo reads what you built.',
   },
   {
     number: '02',
-    Icon: Target,
-    title: 'Strategize',
-    description:
-      'Get a Threads marketing plan — tone, angles, posting cadence.',
+    Icon: Mic2,
+    title: 'Build your voice',
+    description: 'Varogo learns how you write from your Threads posts.',
   },
   {
     number: '03',
+    Icon: CalendarDays,
+    title: "Tell it what's happening today",
+    description: 'A launch, a fix, a lesson — give it context.',
+  },
+  {
+    number: '04',
     Icon: Send,
-    title: 'Draft & Ship',
-    description:
-      'Generate post drafts that match your strategy. Review, then publish.',
+    title: 'Review and publish',
+    description: '3 drafts. Edit or publish straight to Threads.',
   },
 ];
 
@@ -43,7 +46,7 @@ export default function HowItWorks() {
         </p>
       </div>
 
-      <ol className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <ol className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {steps.map(({ number, Icon, title, description }) => (
           <li key={number} className="glass-card p-6">
             <div

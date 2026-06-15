@@ -1,29 +1,25 @@
-import { Search, Compass, PenLine, Send } from 'lucide-react';
+import { Mic2, Package, Globe, GitBranch } from 'lucide-react';
 
 const features = [
   {
-    Icon: Search,
-    title: 'Deep product analysis',
-    description:
-      'AI reads your product and extracts positioning, target audience, and differentiators before writing anything.',
+    Icon: Mic2,
+    title: 'Writes in your voice',
+    description: 'Learns from your Threads history. Every draft starts from how you actually write.',
   },
   {
-    Icon: Compass,
-    title: 'Strategy, not just prompts',
-    description:
-      'A full plan — post angle, campaign goal, content format, cadence. Drafts follow from it.',
+    Icon: Package,
+    title: 'Understands your product',
+    description: 'Reads your landing page and product context before drafting anything.',
   },
   {
-    Icon: PenLine,
-    title: 'Threads-native drafts',
-    description:
-      'Posts tuned for Threads — tone, length, and platform tips baked in.',
+    Icon: Globe,
+    title: 'Researches the web',
+    description: 'An AI agent searches across the web for context around your product before every draft.',
   },
   {
-    Icon: Send,
-    title: 'Connect and publish',
-    description:
-      'Connect your Threads account once. Review drafts and publish directly from Varogo.',
+    Icon: GitBranch,
+    title: 'Multiple angles, every time',
+    description: 'Get 3 different post directions per run — not the same template repeated.',
   },
 ];
 
