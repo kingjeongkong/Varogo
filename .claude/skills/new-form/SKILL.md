@@ -35,6 +35,10 @@ When adding a form that submits data to the backend (create, update, login, etc.
 - Field errors: `errors.fieldName.message` rendered next to each input
 - API errors: `apiError.message` rendered in a distinct container above or below the form
 
+### Language
+- All user-visible text must be in English: button labels, dividers, error messages, placeholders, aria-labels, and any other UI-facing strings
+- Never write Korean strings in JSX or component logic — even temporary placeholders
+
 ### Accessibility (WCAG 2.1 AA)
 - Every input needs `id` + matching `<label htmlFor>`
 - `aria-invalid={!!errors.fieldName}` on inputs with errors

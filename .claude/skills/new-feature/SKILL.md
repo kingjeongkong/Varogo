@@ -39,6 +39,7 @@ When implementing a new domain in the frontend (e.g., `subscription`, `post-draf
 ### components/
 - Import response types from `@/lib/types`, feature types from `../types`
 - API calls through hooks only — never import `api-client` directly in components
+- All user-visible text must be in English: button labels, dividers, error messages, placeholders, aria-labels — never Korean strings in JSX
 
 ### API Access Rules
 - **Server Components** (in `app/`): use `serverFetch` from `@/lib/server-http-client` — never use `apiFetch` or feature `api-client` directly

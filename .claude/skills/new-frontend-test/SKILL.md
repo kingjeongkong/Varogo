@@ -19,6 +19,7 @@ When adding or updating tests for a React component or custom hook.
 - `vi.mock()` the hook module at the top of the test file
 - Create a helper function (e.g., `mockUseCreateProduct()`) that calls `vi.mocked(hook).mockReturnValue(...)` with sensible defaults + an overrides parameter
 - Call `vi.clearAllMocks()` in `beforeEach`
+- If the component uses `useSearchParams`, `useRouter`, or `usePathname` from `next/navigation`, mock the entire module at the top of the test file — these hooks return `null` in the test environment and throw TypeError if called unmocked: `vi.mock('next/navigation', () => ({ useSearchParams: () => ({ get: () => null }), useRouter: () => ({ push: vi.fn() }), usePathname: () => '/' }))`
 
 ### Test Groups
 - Use nested `describe` blocks: `rendering`, `validation`, `submission`, `error states`, `loading states`

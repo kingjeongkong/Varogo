@@ -31,6 +31,11 @@ When adding a new route to an existing FastAPI router, or creating a new router 
 - Ownership check: query by both resource ID and user ID — raise 404 if not found
 - Errors: raise `HTTPException` only — never raise plain exceptions
 - Multi-step writes: flush to get generated IDs within a transaction, commit once at the end of the public function
+- Token issuance order: any function that stages DB writes (e.g. `_issue_tokens`, which calls `session.add` internally) must be called BEFORE `session.commit()` — never after
+
+### Environment Variables
+- Before adding a new required field to `Settings` in `app/core/config.py`, check if an equivalent already exists (e.g. `API_BASE_URL` in `apps/frontend/src/lib/constants.ts`, existing config fields)
+- When adding a new required `Settings` field (non-optional, no default), also add a dummy test value to the `.env.test` creation step in `.github/workflows/ci-backend.yml` — otherwise the Pydantic `Settings` instantiation will raise `ValidationError` and break all CI tests
 
 ### API Contract
 - When adding a new endpoint, also add/update the corresponding Response type in `apps/frontend/src/lib/types.ts`
