@@ -9,7 +9,7 @@ from jose import JWTError
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.models import RefreshToken, User
+from app.auth.models import OAuthAccount, RefreshToken, User
 from app.auth.schemas import UserResponse
 from app.core.config import settings
 from app.core.discord import notify_signup
@@ -193,6 +193,70 @@ async def forgot_password(
   token = create_password_reset_token(user.id, user.password_hash)
   reset_link = f'{settings.FRONTEND_URL}/reset-password?token={token}'
   send_password_reset_email(user.email, reset_link)
+
+
+async def google_oauth_callback(
+  provider_user_id: str,
+  email: str,
+  name: str,
+  avatar_url: str | None,
+  session: AsyncSession,
+) -> dict:
+  # 1. Check if OAuthAccount already exists
+  oauth_result = await session.execute(
+    select(OAuthAccount).where(
+      OAuthAccount.provider == 'google',
+      OAuthAccount.provider_id == provider_user_id,
+    )
+  )
+  oauth_account = oauth_result.scalar_one_or_none()
+
+  if oauth_account is not None:
+    # 2. Returning user — fetch user and issue tokens
+    user_result = await session.execute(select(User).where(User.id == oauth_account.user_id))
+    user = user_result.scalar_one_or_none()
+    return await _issue_tokens(user.id, user.email, user, session)
+
+  # 3. No OAuthAccount — check for existing email
+  email_result = await session.execute(select(User).where(User.email == email))
+  existing_user = email_result.scalar_one_or_none()
+
+  if existing_user is not None and existing_user.password_hash is not None:
+    # 3a. Email/password account conflict
+    raise HTTPException(status_code=409, detail='이미 이메일/비밀번호로 가입된 계정입니다.')
+
+  # 3b. No existing user — create new User
+  if existing_user is None:
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    user = User(
+      id=str(uuid.uuid4()),
+      email=email,
+      name=name,
+      password_hash=None,
+      avatar_url=avatar_url,
+      created_at=now,
+      updated_at=now,
+    )
+    session.add(user)
+    await session.flush()
+  else:
+    user = existing_user
+
+  # 4. Create OAuthAccount
+  now = datetime.now(timezone.utc).replace(tzinfo=None)
+  new_oauth = OAuthAccount(
+    id=str(uuid.uuid4()),
+    user_id=user.id,
+    provider='google',
+    provider_id=provider_user_id,
+    created_at=now,
+    updated_at=now,
+  )
+  session.add(new_oauth)
+
+  # 5. Commit and issue tokens
+  await session.commit()
+  return await _issue_tokens(user.id, user.email, user, session)
 
 
 async def reset_password(
