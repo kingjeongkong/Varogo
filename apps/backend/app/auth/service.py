@@ -215,7 +215,9 @@ async def google_oauth_callback(
     # 2. Returning user — fetch user and issue tokens
     user_result = await session.execute(select(User).where(User.id == oauth_account.user_id))
     user = user_result.scalar_one_or_none()
-    return await _issue_tokens(user.id, user.email, user, session)
+    result = await _issue_tokens(user.id, user.email, user, session)
+    await session.commit()
+    return result
 
   # 3. No OAuthAccount — check for existing email
   email_result = await session.execute(select(User).where(User.email == email))
@@ -254,9 +256,10 @@ async def google_oauth_callback(
   )
   session.add(new_oauth)
 
-  # 5. Commit and issue tokens
+  # 5. Issue tokens then commit
+  result = await _issue_tokens(user.id, user.email, user, session)
   await session.commit()
-  return await _issue_tokens(user.id, user.email, user, session)
+  return result
 
 
 async def reset_password(
