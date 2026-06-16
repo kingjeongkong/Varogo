@@ -17,8 +17,8 @@ export function AuthPageLayout({ title, subtitle, footer, children }: AuthPageLa
           <Image
             src="/logo.png"
             alt="Varogo"
-            width={56}
-            height={56}
+            width={64}
+            height={64}
             className="mx-auto mb-5 animate-glow"
             priority
           />

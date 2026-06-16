@@ -177,7 +177,7 @@ function SidebarContent({
           className="flex items-center gap-2 group"
           onClick={onCloseMobile}
         >
-          <Image src="/logo.png" alt="Varogo" width={32} height={32} priority />
+          <Image src="/logo.png" alt="Varogo" width={36} height={36} priority />
           <span
             id={titleId}
             className="font-heading font-bold text-text-primary text-lg tracking-tight"

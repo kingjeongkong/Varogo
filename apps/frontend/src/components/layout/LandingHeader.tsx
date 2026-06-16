@@ -6,7 +6,7 @@ export default function LandingHeader() {
     <header className="border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
-          <Image src="/logo.png" alt="Varogo" width={32} height={32} priority />
+          <Image src="/logo.png" alt="Varogo" width={36} height={36} priority />
           <span className="font-heading font-bold text-text-primary text-lg tracking-tight">
             Varogo
           </span>
