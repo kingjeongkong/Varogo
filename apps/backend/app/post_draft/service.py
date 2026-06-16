@@ -268,7 +268,7 @@ async def publish_draft(
 
   # 4. Call Threads API
   try:
-    threads_result = await publish_to_threads(user_id, body, session)
+    threads_result = await publish_to_threads(user_id, body, session, draft.topic_tag)
   except Exception:
     try:
       await session.execute(

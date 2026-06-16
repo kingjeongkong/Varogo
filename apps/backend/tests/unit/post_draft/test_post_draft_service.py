@@ -368,6 +368,56 @@ async def test_publish_draft_happy_path_returns_published_draft():
   assert result is published_draft
 
 
+async def test_publish_draft_passes_topic_tag_to_publish_to_threads():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.selected_option_id = 'opt-1'
+  draft.topic_tag = 'MyTag'
+
+  published_draft = MagicMock()
+  claim_result = _result('draft-1')
+  metadata_result = MagicMock()
+  requery_result = _result(published_draft)
+
+  session = AsyncMock()
+  session.execute = AsyncMock(side_effect=[claim_result, metadata_result, requery_result])
+
+  threads_result = {'threads_media_id': 'media-789', 'permalink': 'https://threads.net/post/abc'}
+  mock_publish_to_threads = AsyncMock(return_value=threads_result)
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
+       patch('app.post_draft.service.publish_to_threads', mock_publish_to_threads):
+    result = await publish_draft('draft-1', 'user-1', 'Post body', session)
+
+  mock_publish_to_threads.assert_awaited_once_with('user-1', 'Post body', session, 'MyTag')
+  assert result is published_draft
+
+
+async def test_publish_draft_without_topic_tag_passes_none():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.selected_option_id = 'opt-1'
+  draft.topic_tag = None
+
+  published_draft = MagicMock()
+  claim_result = _result('draft-1')
+  metadata_result = MagicMock()
+  requery_result = _result(published_draft)
+
+  session = AsyncMock()
+  session.execute = AsyncMock(side_effect=[claim_result, metadata_result, requery_result])
+
+  threads_result = {'threads_media_id': 'media-789', 'permalink': 'https://threads.net/post/abc'}
+  mock_publish_to_threads = AsyncMock(return_value=threads_result)
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
+       patch('app.post_draft.service.publish_to_threads', mock_publish_to_threads):
+    result = await publish_draft('draft-1', 'user-1', 'Post body', session)
+
+  mock_publish_to_threads.assert_awaited_once_with('user-1', 'Post body', session, None)
+  assert result is published_draft
+
+
 # ---------------------------------------------------------------------------
 # list_drafts — nextOffset logic
 # ---------------------------------------------------------------------------
