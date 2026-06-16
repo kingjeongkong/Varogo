@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -176,11 +177,7 @@ function SidebarContent({
           className="flex items-center gap-2 group"
           onClick={onCloseMobile}
         >
-          <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center group-hover:bg-primary/25 motion-safe:transition-colors">
-            <span className="text-primary font-heading font-bold text-sm">
-              V
-            </span>
-          </div>
+          <Image src="/logo.png" alt="Varogo" width={32} height={32} priority />
           <span
             id={titleId}
             className="font-heading font-bold text-text-primary text-lg tracking-tight"

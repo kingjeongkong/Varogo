@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function LandingHeader() {
@@ -5,11 +6,7 @@ export default function LandingHeader() {
     <header className="border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
-            <span className="text-primary font-heading font-bold text-sm">
-              V
-            </span>
-          </div>
+          <Image src="/logo.png" alt="Varogo" width={32} height={32} priority />
           <span className="font-heading font-bold text-text-primary text-lg tracking-tight">
             Varogo
           </span>

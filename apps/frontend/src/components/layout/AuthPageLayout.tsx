@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import type { ReactNode } from 'react';
 
 interface AuthPageLayoutProps {
@@ -13,9 +14,14 @@ export function AuthPageLayout({ title, subtitle, footer, children }: AuthPageLa
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
       <div className="w-full max-w-sm animate-slide-up relative">
         <div className="mb-10 text-center">
-          <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center animate-glow">
-            <span className="text-primary font-heading font-bold text-xl">V</span>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Varogo"
+            width={56}
+            height={56}
+            className="mx-auto mb-5 animate-glow"
+            priority
+          />
           <h1 className="text-2xl font-bold text-text-primary font-heading tracking-tight">
             {title}
           </h1>
