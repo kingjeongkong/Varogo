@@ -1,13 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  type RenderOptions,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import * as RadixTooltip from '@radix-ui/react-tooltip';
 import { BodyEditor } from './BodyEditor';
 import type { PostDraftResponse } from '@/lib/types';
 
+function render(ui: React.ReactElement, options?: RenderOptions) {
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <RadixTooltip.Provider delayDuration={200}>
+        {children}
+      </RadixTooltip.Provider>
+    ),
+    ...options,
+  });
+}
+
 const mockPublishMutate = vi.fn();
+const mockUpdateMutate = vi.fn();
 
 vi.mock('../hooks/use-post-draft', () => ({
   usePublishPostDraft: vi.fn(),
+  useUpdatePostDraft: vi.fn(),
 }));
 
 vi.mock('next/link', () => ({
@@ -22,12 +41,24 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-import { usePublishPostDraft } from '../hooks/use-post-draft';
+import { usePublishPostDraft, useUpdatePostDraft } from '../hooks/use-post-draft';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mockUsePublishPostDraft(overrides: Record<string, any> = {}) {
   vi.mocked(usePublishPostDraft).mockReturnValue({
     mutate: mockPublishMutate,
+    isPending: false,
+    isError: false,
+    error: null,
+    ...overrides,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mockUseUpdatePostDraft(overrides: Record<string, any> = {}) {
+  vi.mocked(useUpdatePostDraft).mockReturnValue({
+    mutate: mockUpdateMutate,
     isPending: false,
     isError: false,
     error: null,
@@ -74,6 +105,7 @@ describe('BodyEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePublishPostDraft();
+    mockUseUpdatePostDraft();
   });
 
   it('renders the Review your post heading', () => {
@@ -185,6 +217,93 @@ describe('BodyEditor', () => {
 
     expect(mockPublishMutate).toHaveBeenCalledTimes(1);
     expect(mockPublishMutate).toHaveBeenCalledWith({ body: 'Edited body' });
+  });
+
+  it('renders topic tag input empty by default when draft has no topicTag', () => {
+    render(<BodyEditor draft={DRAFT} />);
+
+    const input = screen.getByRole('textbox', { name: /topic tag/i }) as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    expect(input.value).toBe('');
+  });
+
+  it('renders the tooltip trigger for the topic tag field', () => {
+    render(<BodyEditor draft={DRAFT} />);
+
+    expect(
+      screen.getByRole('button', { name: /about topic tag/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('typing into the topic tag field updates its value', async () => {
+    render(<BodyEditor draft={DRAFT} />);
+
+    const input = screen.getByRole('textbox', { name: /topic tag/i }) as HTMLInputElement;
+    await userEvent.type(input, 'indie hacking');
+
+    expect(input.value).toBe('indie hacking');
+  });
+
+  it('strips "." and "&" characters as the user types into the topic tag field', async () => {
+    render(<BodyEditor draft={DRAFT} />);
+
+    const input = screen.getByRole('textbox', { name: /topic tag/i }) as HTMLInputElement;
+    await userEvent.type(input, 'a.b&c');
+
+    expect(input.value).toBe('abc');
+  });
+
+  it('caps the topic tag input at 50 characters', async () => {
+    render(<BodyEditor draft={DRAFT} />);
+
+    const input = screen.getByRole('textbox', { name: /topic tag/i }) as HTMLInputElement;
+    await userEvent.click(input);
+    await userEvent.paste('a'.repeat(60));
+
+    expect(input.value).toHaveLength(50);
+  });
+
+  it('saves the topic tag via the update mutation when the field loses focus', async () => {
+    render(<BodyEditor draft={DRAFT} />);
+
+    const tagInput = screen.getByRole('textbox', { name: /topic tag/i });
+    await userEvent.type(tagInput, 'indiehacking');
+    await userEvent.tab();
+
+    expect(mockUpdateMutate).toHaveBeenCalledTimes(1);
+    expect(mockUpdateMutate).toHaveBeenCalledWith({ topicTag: 'indiehacking' });
+  });
+
+  it('saves null via the update mutation when the topic tag is cleared', async () => {
+    const draftWithTag = { ...DRAFT, topicTag: 'existing-tag' };
+    render(<BodyEditor draft={draftWithTag} />);
+
+    const tagInput = screen.getByRole('textbox', { name: /topic tag/i });
+    await userEvent.clear(tagInput);
+    await userEvent.tab();
+
+    expect(mockUpdateMutate).toHaveBeenCalledWith({ topicTag: null });
+  });
+
+  it('does not call the update mutation on blur when the topic tag is unchanged', async () => {
+    render(<BodyEditor draft={DRAFT} />);
+
+    const tagInput = screen.getByRole('textbox', { name: /topic tag/i });
+    await userEvent.click(tagInput);
+    await userEvent.tab();
+
+    expect(mockUpdateMutate).not.toHaveBeenCalled();
+  });
+
+  it('renders Alert with error message when the topic tag update mutation fails', () => {
+    mockUseUpdatePostDraft({
+      isError: true,
+      error: new Error('Network error'),
+    });
+    render(<BodyEditor draft={DRAFT} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/failed to save topic tag/i);
+    expect(screen.getByRole('alert')).toHaveTextContent('Network error');
   });
 
   it('renders Alert with error message when mutation.isError', () => {
