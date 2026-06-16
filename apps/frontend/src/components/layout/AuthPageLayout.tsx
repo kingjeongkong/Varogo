@@ -19,7 +19,7 @@ export function AuthPageLayout({ title, subtitle, footer, children }: AuthPageLa
             alt="Varogo"
             width={64}
             height={64}
-            className="mx-auto mb-5 animate-glow"
+            className="mx-auto mb-5"
             priority
           />
           <h1 className="text-2xl font-bold text-text-primary font-heading tracking-tight">
