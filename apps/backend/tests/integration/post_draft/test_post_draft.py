@@ -242,6 +242,96 @@ async def test_update_select_option_fills_body(client, db_session):
   assert body['body'] == 'Option 1 text'
 
 
+@pytest.mark.asyncio
+async def test_update_sets_topic_tag(client, db_session):
+  user = await seed_test_user(db_session)
+  product_row, _ = await seed_product(db_session, user['id'])
+  draft_row, _ = await seed_post_draft(db_session, product_row['id'])
+  headers = await get_auth_headers(client)
+
+  response = await client.patch(
+    f'/post-drafts/{draft_row["id"]}',
+    json={'topicTag': 'MyTopic'},
+    headers=headers,
+  )
+
+  assert response.status_code == 200
+  assert response.json()['topicTag'] == 'MyTopic'
+
+
+@pytest.mark.asyncio
+async def test_update_changes_existing_topic_tag(client, db_session):
+  user = await seed_test_user(db_session)
+  product_row, _ = await seed_product(db_session, user['id'])
+  draft_row, _ = await seed_post_draft(db_session, product_row['id'])
+  headers = await get_auth_headers(client)
+
+  first = await client.patch(
+    f'/post-drafts/{draft_row["id"]}',
+    json={'topicTag': 'FirstTag'},
+    headers=headers,
+  )
+  assert first.status_code == 200
+  assert first.json()['topicTag'] == 'FirstTag'
+
+  second = await client.patch(
+    f'/post-drafts/{draft_row["id"]}',
+    json={'topicTag': 'SecondTag'},
+    headers=headers,
+  )
+  assert second.status_code == 200
+  assert second.json()['topicTag'] == 'SecondTag'
+
+
+@pytest.mark.asyncio
+async def test_update_without_topic_tag_leaves_it_unset(client, db_session):
+  user = await seed_test_user(db_session)
+  product_row, _ = await seed_product(db_session, user['id'])
+  draft_row, opt_ids = await seed_post_draft(db_session, product_row['id'])
+  headers = await get_auth_headers(client)
+
+  response = await client.patch(
+    f'/post-drafts/{draft_row["id"]}',
+    json={'selected_option_id': opt_ids[0]},
+    headers=headers,
+  )
+
+  assert response.status_code == 200
+  assert response.json()['topicTag'] is None
+
+
+@pytest.mark.asyncio
+async def test_update_topic_tag_rejects_forbidden_characters(client, db_session):
+  user = await seed_test_user(db_session)
+  product_row, _ = await seed_product(db_session, user['id'])
+  draft_row, _ = await seed_post_draft(db_session, product_row['id'])
+  headers = await get_auth_headers(client)
+
+  response = await client.patch(
+    f'/post-drafts/{draft_row["id"]}',
+    json={'topicTag': 'bad.tag&value'},
+    headers=headers,
+  )
+
+  assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_topic_tag_rejects_too_long_value(client, db_session):
+  user = await seed_test_user(db_session)
+  product_row, _ = await seed_product(db_session, user['id'])
+  draft_row, _ = await seed_post_draft(db_session, product_row['id'])
+  headers = await get_auth_headers(client)
+
+  response = await client.patch(
+    f'/post-drafts/{draft_row["id"]}',
+    json={'topicTag': 'x' * 51},
+    headers=headers,
+  )
+
+  assert response.status_code == 422
+
+
 # ---------------------------------------------------------------------------
 # POST /post-drafts/:id/publish
 # ---------------------------------------------------------------------------

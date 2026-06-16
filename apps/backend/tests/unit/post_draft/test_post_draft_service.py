@@ -25,6 +25,11 @@ def _scalars_result(values):
   return r
 
 
+def _update_values(stmt: object) -> dict:
+  """Extract the column-name -> bound-value mapping from an Update statement."""
+  return {col.name: bind.value for col, bind in stmt._values.items()}
+
+
 _MOCK_GENERATION = {
   'options': [
     {'text': 'Option 1', 'angle_label': 'Story'},
@@ -199,6 +204,87 @@ async def test_update_draft_does_not_overwrite_non_empty_body():
 
   # Two executes: UPDATE + re-query SELECT
   assert session.execute.call_count == 2
+  assert result is updated_draft
+
+
+async def test_update_draft_sets_topic_tag():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.status = 'draft'
+  draft.options = []
+
+  updated_draft = MagicMock()
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(updated_draft))
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
+    result = await update_draft('draft-1', 'user-1', {'topic_tag': 'MyTag'}, session)
+
+  update_values = _update_values(session.execute.call_args_list[0].args[0])
+  assert update_values['topic_tag'] == 'MyTag'
+  assert result is updated_draft
+
+
+async def test_update_draft_updates_existing_topic_tag():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.status = 'draft'
+  draft.options = []
+  draft.topic_tag = 'OldTag'
+
+  updated_draft = MagicMock()
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(updated_draft))
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
+    result = await update_draft('draft-1', 'user-1', {'topic_tag': 'NewTag'}, session)
+
+  update_values = _update_values(session.execute.call_args_list[0].args[0])
+  assert update_values['topic_tag'] == 'NewTag'
+  assert result is updated_draft
+
+
+async def test_update_draft_leaves_topic_tag_unset_when_absent_from_dto():
+  option = MagicMock()
+  option.id = 'opt-1'
+  option.text = 'Option text'
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.status = 'draft'
+  draft.body = ''
+  draft.options = [option]
+  draft.topic_tag = 'ExistingTag'
+
+  updated_draft = MagicMock()
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(updated_draft))
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
+    result = await update_draft('draft-1', 'user-1', {'selected_option_id': 'opt-1'}, session)
+
+  # selected_option_id update happens but topic_tag is not part of the dto,
+  # so it must not be touched (no auto-population from the selected option).
+  update_values = _update_values(session.execute.call_args_list[0].args[0])
+  assert 'topic_tag' not in update_values
+  assert result is updated_draft
+
+
+async def test_update_draft_clears_topic_tag_when_explicitly_null():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.status = 'draft'
+  draft.options = []
+  draft.topic_tag = 'ExistingTag'
+
+  updated_draft = MagicMock()
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(updated_draft))
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
+    result = await update_draft('draft-1', 'user-1', {'topic_tag': None}, session)
+
+  update_values = _update_values(session.execute.call_args_list[0].args[0])
+  assert update_values['topic_tag'] is None
   assert result is updated_draft
 
 

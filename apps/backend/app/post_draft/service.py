@@ -200,6 +200,9 @@ async def update_draft(
   if 'today_input' in dto:
     data['today_input'] = dto['today_input']
 
+  if 'topic_tag' in dto:
+    data['topic_tag'] = dto['topic_tag']
+
   # null selected_option_id is intentionally ignored — deselection is not supported.
   if 'selected_option_id' in dto and dto['selected_option_id'] is not None:
     data['selected_option_id'] = dto['selected_option_id']
