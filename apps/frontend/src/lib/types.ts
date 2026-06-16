@@ -114,6 +114,7 @@ export interface PostDraftResponse {
   productId: string;
   todayInput: string | null;
   body: string;
+  topicTag?: string | null;
   status: string;
   selectedOptionId: string | null;
   publishedAt: string | null;
