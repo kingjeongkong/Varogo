@@ -237,7 +237,7 @@ async def test_generate_keywords_no_connection(client: AsyncClient, db_session):
 
 
 async def test_generate_keywords_no_auth(client: AsyncClient):
-  response = await client.post('/threads/keywords', json={'productId': 'some-id'})
+  response = await client.post('/threads/keywords', json={'product_id': 'some-id'})
 
   assert response.status_code == 401
 
