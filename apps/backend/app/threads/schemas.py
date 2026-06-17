@@ -45,7 +45,7 @@ class KeywordsResponse(BaseModel):
   keywords: list[str]
 
 
-class DiscoverRequest(BaseModel):
+class ExploreRequest(BaseModel):
   keywords: list[str] = Field(min_length=1)
 
 
@@ -62,7 +62,7 @@ class ThreadsPostItem(BaseModel):
   permalink: Optional[str] = None
 
 
-class DiscoverResponse(BaseModel):
+class ExploreResponse(BaseModel):
   model_config = ConfigDict(
     alias_generator=to_camel,
     populate_by_name=True,

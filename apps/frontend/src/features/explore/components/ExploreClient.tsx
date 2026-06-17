@@ -9,10 +9,10 @@ import { useThreadsConnectionStatus } from '@/features/threads';
 import { useProducts } from '@/features/product';
 import type { KeywordChip } from '../types';
 import { useGenerateKeywords } from '../hooks/use-generate-keywords';
-import { useDiscoverPosts } from '../hooks/use-discover-posts';
+import { useExplorePosts } from '../hooks/use-explore-posts';
 import { PostCard } from './PostCard';
 
-export function ReachClient() {
+export function ExploreClient() {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [chips, setChips] = useState<KeywordChip[]>([]);
   const [addInput, setAddInput] = useState('');
@@ -30,7 +30,7 @@ export function ReachClient() {
   } = useProducts();
 
   const keywordsMutation = useGenerateKeywords();
-  const discoverMutation = useDiscoverPosts();
+  const exploreMutation = useExplorePosts();
 
   const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedProductId(e.target.value || null);
@@ -100,7 +100,7 @@ export function ReachClient() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-heading font-bold text-text-primary">Reach</h1>
+        <h1 className="text-2xl font-heading font-bold text-text-primary">Explore</h1>
         <p className="mt-1 text-sm text-text-muted">
           Find relevant Threads conversations in your niche and engage to grow your presence
         </p>
@@ -111,13 +111,13 @@ export function ReachClient() {
         {/* Product select */}
         <div className="space-y-1.5">
           <label
-            htmlFor="reach-product-select"
+            htmlFor="explore-product-select"
             className="block text-sm font-medium text-text-secondary"
           >
             Product
           </label>
           <select
-            id="reach-product-select"
+            id="explore-product-select"
             value={selectedProductId ?? ''}
             onChange={handleProductChange}
             disabled={productsLoading}
@@ -204,11 +204,11 @@ export function ReachClient() {
 
         {/* Search button */}
         <Button
-          loading={discoverMutation.isPending}
+          loading={exploreMutation.isPending}
           loadingText="Searching..."
-          disabled={chips.length === 0 || discoverMutation.isPending}
+          disabled={chips.length === 0 || exploreMutation.isPending}
           onClick={() =>
-            discoverMutation.mutate(chips.map((c) => c.label), {
+            exploreMutation.mutate(chips.map((c) => c.label), {
               onSuccess: (data) => {
                 setPosts(data.posts);
               },
@@ -218,7 +218,7 @@ export function ReachClient() {
           Search
         </Button>
 
-        {discoverMutation.isError && (
+        {exploreMutation.isError && (
           <Alert>Failed to search posts. Please try again.</Alert>
         )}
       </section>

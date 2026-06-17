@@ -144,6 +144,6 @@ export interface GenerateKeywordsResponse {
   keywords: string[];
 }
 
-export interface DiscoverPostsResponse {
+export interface ExplorePostsResponse {
   posts: ThreadsPost[];
 }

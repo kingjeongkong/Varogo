@@ -11,8 +11,8 @@ from app.dependencies import get_db
 from app.threads import service
 from app.threads.schemas import (
   AuthUrlResponse,
-  DiscoverRequest,
-  DiscoverResponse,
+  ExploreRequest,
+  ExploreResponse,
   KeywordsRequest,
   KeywordsResponse,
   PublishRequest,
@@ -97,11 +97,11 @@ async def generate_keywords(
   return KeywordsResponse(keywords=result)
 
 
-@router.post('/discover', status_code=200, response_model=DiscoverResponse)
-async def discover_posts(
-  body: DiscoverRequest,
+@router.post('/explore', status_code=200, response_model=ExploreResponse)
+async def explore_posts(
+  body: ExploreRequest,
   current_user: CurrentUser = Depends(get_current_user),
   session: AsyncSession = Depends(get_db),
-) -> DiscoverResponse:
-  result = await service.discover_posts(body.keywords, current_user.sub, session)
-  return DiscoverResponse(posts=[ThreadsPostItem(**p) for p in result])
+) -> ExploreResponse:
+  result = await service.explore_posts(body.keywords, current_user.sub, session)
+  return ExploreResponse(posts=[ThreadsPostItem(**p) for p in result])

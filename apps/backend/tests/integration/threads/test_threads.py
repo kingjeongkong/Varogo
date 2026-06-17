@@ -224,10 +224,10 @@ async def test_generate_keywords_no_auth(client: AsyncClient):
 
 
 # ---------------------------------------------------------------------------
-# POST /threads/discover
+# POST /threads/explore
 # ---------------------------------------------------------------------------
 
-async def test_discover_posts_success(client: AsyncClient, db_session):
+async def test_explore_posts_success(client: AsyncClient, db_session):
   user = await seed_test_user(db_session)
   await seed_threads_connection(db_session, user['id'])
   headers = await get_auth_headers(client)
@@ -241,9 +241,9 @@ async def test_discover_posts_success(client: AsyncClient, db_session):
       'permalink': 'https://threads.net/post-1',
     },
   ]
-  with patch('app.threads.service.discover_posts', new_callable=AsyncMock, return_value=mock_posts):
+  with patch('app.threads.service.explore_posts', new_callable=AsyncMock, return_value=mock_posts):
     response = await client.post(
-      '/threads/discover',
+      '/threads/explore',
       json={'keywords': ['indie dev', 'productivity tool']},
       headers=headers,
     )
@@ -260,17 +260,17 @@ async def test_discover_posts_success(client: AsyncClient, db_session):
   assert post['permalink'] == 'https://threads.net/post-1'
 
 
-async def test_discover_posts_no_connection(client: AsyncClient, db_session):
+async def test_explore_posts_no_connection(client: AsyncClient, db_session):
   await seed_test_user(db_session)
   headers = await get_auth_headers(client)
 
   with patch(
-    'app.threads.service.discover_posts',
+    'app.threads.service.explore_posts',
     new_callable=AsyncMock,
     side_effect=HTTPException(status_code=404, detail='Threads connection not found'),
   ):
     response = await client.post(
-      '/threads/discover',
+      '/threads/explore',
       json={'keywords': ['indie dev']},
       headers=headers,
     )
@@ -278,12 +278,12 @@ async def test_discover_posts_no_connection(client: AsyncClient, db_session):
   assert response.status_code == 404
 
 
-async def test_discover_posts_empty_keywords(client: AsyncClient, db_session):
+async def test_explore_posts_empty_keywords(client: AsyncClient, db_session):
   await seed_test_user(db_session)
   headers = await get_auth_headers(client)
 
   response = await client.post(
-    '/threads/discover',
+    '/threads/explore',
     json={'keywords': []},
     headers=headers,
   )
@@ -291,7 +291,7 @@ async def test_discover_posts_empty_keywords(client: AsyncClient, db_session):
   assert response.status_code == 422
 
 
-async def test_discover_posts_no_auth(client: AsyncClient):
-  response = await client.post('/threads/discover', json={'keywords': ['indie dev']})
+async def test_explore_posts_no_auth(client: AsyncClient):
+  response = await client.post('/threads/explore', json={'keywords': ['indie dev']})
 
   assert response.status_code == 401

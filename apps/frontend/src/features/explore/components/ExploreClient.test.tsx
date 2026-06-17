@@ -6,7 +6,7 @@ import type {
   ThreadsConnectionResponse,
   Product,
   GenerateKeywordsResponse,
-  DiscoverPostsResponse,
+  ExplorePostsResponse,
 } from '@/lib/types';
 
 // --- Module mocks ---
@@ -21,7 +21,7 @@ vi.mock('@/features/product', () => ({
 
 vi.mock('../api-client', () => ({
   generateKeywords: vi.fn(),
-  discoverPosts: vi.fn(),
+  explorePosts: vi.fn(),
 }));
 
 vi.mock('next/link', () => ({
@@ -38,7 +38,7 @@ vi.mock('next/link', () => ({
 
 import { useThreadsConnectionStatus } from '@/features/threads';
 import { useProducts } from '@/features/product';
-import { generateKeywords, discoverPosts } from '../api-client';
+import { generateKeywords, explorePosts } from '../api-client';
 
 // --- Helpers ---
 
@@ -82,8 +82,8 @@ function mockUseProducts(overrides: Record<string, unknown> = {}) {
   } as any);
 }
 
-// Must import ReachClient AFTER all vi.mock() calls
-import { ReachClient } from './ReachClient';
+// Must import ExploreClient AFTER all vi.mock() calls
+import { ExploreClient } from './ExploreClient';
 
 function makeQueryClient() {
   return new QueryClient({
@@ -95,12 +95,12 @@ function renderClient() {
   const queryClient = makeQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <ReachClient />
+      <ExploreClient />
     </QueryClientProvider>,
   );
 }
 
-describe('ReachClient', () => {
+describe('ExploreClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseThreadsConnectionStatus();
@@ -220,7 +220,7 @@ describe('ReachClient', () => {
     const KEYWORDS_RESPONSE: GenerateKeywordsResponse = {
       keywords: ['indie hacking'],
     };
-    const MOCK_POSTS_RESPONSE: DiscoverPostsResponse = {
+    const MOCK_POSTS_RESPONSE: ExplorePostsResponse = {
       posts: [
         {
           id: 'post-1',
@@ -234,7 +234,7 @@ describe('ReachClient', () => {
 
     beforeEach(() => {
       vi.mocked(generateKeywords).mockResolvedValue(KEYWORDS_RESPONSE);
-      vi.mocked(discoverPosts).mockResolvedValue(MOCK_POSTS_RESPONSE);
+      vi.mocked(explorePosts).mockResolvedValue(MOCK_POSTS_RESPONSE);
     });
 
     it('renders "1 results" count and a post card after search', async () => {
@@ -268,11 +268,11 @@ describe('ReachClient', () => {
     const KEYWORDS_RESPONSE: GenerateKeywordsResponse = {
       keywords: ['obscure term'],
     };
-    const EMPTY_RESPONSE: DiscoverPostsResponse = { posts: [] };
+    const EMPTY_RESPONSE: ExplorePostsResponse = { posts: [] };
 
     beforeEach(() => {
       vi.mocked(generateKeywords).mockResolvedValue(KEYWORDS_RESPONSE);
-      vi.mocked(discoverPosts).mockResolvedValue(EMPTY_RESPONSE);
+      vi.mocked(explorePosts).mockResolvedValue(EMPTY_RESPONSE);
     });
 
     it('renders "No results found" message when search returns empty', async () => {

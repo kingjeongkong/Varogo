@@ -455,7 +455,7 @@ async def fetch_voice_units(user_id: str, session: AsyncSession) -> list[dict]:
   return units
 
 
-async def discover_posts(keywords: list[str], user_id: str, session: AsyncSession) -> list[dict]:
+async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession) -> list[dict]:
   result = await session.execute(
     select(ThreadsConnection).where(ThreadsConnection.user_id == user_id)
   )

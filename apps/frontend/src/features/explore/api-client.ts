@@ -1,7 +1,7 @@
 import { apiFetch } from '@/lib/http-client';
 import type {
   GenerateKeywordsResponse,
-  DiscoverPostsResponse,
+  ExplorePostsResponse,
 } from '@/lib/types';
 
 export function generateKeywords(
@@ -13,10 +13,10 @@ export function generateKeywords(
   });
 }
 
-export function discoverPosts(
+export function explorePosts(
   keywords: string[],
-): Promise<DiscoverPostsResponse> {
-  return apiFetch<DiscoverPostsResponse>('/threads/discover', {
+): Promise<ExplorePostsResponse> {
+  return apiFetch<ExplorePostsResponse>('/threads/explore', {
     method: 'POST',
     body: JSON.stringify({ keywords }),
   });
