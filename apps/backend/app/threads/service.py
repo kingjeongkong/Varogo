@@ -11,10 +11,14 @@ logger = logging.getLogger(__name__)
 
 import httpx
 from fastapi import HTTPException
+from google.genai import types
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
+from app.llm.gemini import get_gemini_client
+from app.products.models import Product
 from app.threads.models import ThreadsConnection
 from app.threads.threads_crypto import decrypt_token, encrypt_token
 
@@ -449,3 +453,72 @@ async def fetch_voice_units(user_id: str, session: AsyncSession) -> list[dict]:
 
   units.sort(key=lambda u: u['timestamp'], reverse=True)
   return units
+
+
+_KEYWORDS_SCHEMA = types.Schema(
+  type=types.Type.ARRAY,
+  items=types.Schema(type=types.Type.STRING),
+)
+
+
+def _build_keywords_prompt(product: Product) -> str:
+  analysis = product.analysis
+  analysis_section = ''
+  if analysis is not None:
+    primary_keywords = analysis.keywords.get('primary', []) if analysis.keywords else []
+    analysis_section = f"""
+Product category: {analysis.category}
+Primary marketing keywords: {', '.join(primary_keywords)}"""
+
+  return f"""You are helping an indie developer find Threads search queries to discover relevant communities and conversations.
+
+Product name: {product.name}
+One-liner: {product.one_liner}
+URL: {product.url}{analysis_section}
+
+Generate 2-4 short keyword phrases (2-4 words each) that:
+- Are conversational and sound like something someone would post about on Threads
+- Reflect the niche this product belongs to
+- Work well as Threads search queries to find relevant posts and communities
+- Are specific enough to find the right audience (not generic like "software tool" or "productivity app")
+
+Examples of good keyword phrases: "indie dev tool launched", "developer productivity SaaS", "solo founder side project", "build in public launch"
+
+Return only the keyword phrases as a JSON array of strings."""
+
+
+async def generate_keywords(
+  product_id: str,
+  user_id: str,
+  session: AsyncSession,
+) -> list[str]:
+  result = await session.execute(
+    select(Product)
+    .where(Product.id == product_id, Product.user_id == user_id)
+    .options(selectinload(Product.analysis))
+  )
+  product = result.scalar_one_or_none()
+  if product is None:
+    raise HTTPException(status_code=404, detail='Product not found')
+
+  client = get_gemini_client()
+  prompt = _build_keywords_prompt(product)
+
+  try:
+    response = await client.aio.models.generate_content(
+      model='gemini-2.5-flash-lite',
+      contents=prompt,
+      config=types.GenerateContentConfig(
+        response_mime_type='application/json',
+        response_schema=_KEYWORDS_SCHEMA,
+      ),
+    )
+    raw = response.text
+    if not raw:
+      raise HTTPException(status_code=500, detail='Failed to generate keywords')
+    return json.loads(raw)
+  except HTTPException:
+    raise
+  except Exception:
+    logger.exception('Failed to generate keywords for product %s', product_id)
+    raise HTTPException(status_code=500, detail='Failed to generate keywords')
