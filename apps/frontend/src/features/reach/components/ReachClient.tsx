@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import type { ThreadsPost } from '@/lib/types';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { useThreadsConnectionStatus } from '@/features/threads';
 import { useProducts } from '@/features/product';
-import { generateKeywords, discoverPosts } from '../api-client';
 import type { KeywordChip } from '../types';
+import { useGenerateKeywords } from '../hooks/use-generate-keywords';
+import { useDiscoverPosts } from '../hooks/use-discover-posts';
 import { PostCard } from './PostCard';
 
 export function ReachClient() {
@@ -17,7 +17,6 @@ export function ReachClient() {
   const [chips, setChips] = useState<KeywordChip[]>([]);
   const [addInput, setAddInput] = useState('');
   const [posts, setPosts] = useState<ThreadsPost[] | null>(null);
-  const [resultCount, setResultCount] = useState<number | null>(null);
 
   const {
     data: connection,
@@ -30,20 +29,8 @@ export function ReachClient() {
     isLoading: productsLoading,
   } = useProducts();
 
-  const keywordsMutation = useMutation({
-    mutationFn: () => generateKeywords(selectedProductId!),
-    onSuccess: (data) => {
-      setChips(data.keywords.map((k) => ({ id: crypto.randomUUID(), label: k })));
-    },
-  });
-
-  const discoverMutation = useMutation({
-    mutationFn: () => discoverPosts(chips.map((c) => c.label)),
-    onSuccess: (data) => {
-      setPosts(data.posts);
-      setResultCount(data.posts.length);
-    },
-  });
+  const keywordsMutation = useGenerateKeywords();
+  const discoverMutation = useDiscoverPosts();
 
   const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedProductId(e.target.value || null);
@@ -150,7 +137,13 @@ export function ReachClient() {
           loading={keywordsMutation.isPending}
           loadingText="Generating..."
           disabled={!selectedProductId || keywordsMutation.isPending}
-          onClick={() => keywordsMutation.mutate()}
+          onClick={() =>
+            keywordsMutation.mutate(selectedProductId!, {
+              onSuccess: (data) => {
+                setChips(data.keywords.map((k) => ({ id: crypto.randomUUID(), label: k })));
+              },
+            })
+          }
         >
           Generate Keywords
         </Button>
@@ -214,7 +207,13 @@ export function ReachClient() {
           loading={discoverMutation.isPending}
           loadingText="Searching..."
           disabled={chips.length === 0 || discoverMutation.isPending}
-          onClick={() => discoverMutation.mutate()}
+          onClick={() =>
+            discoverMutation.mutate(chips.map((c) => c.label), {
+              onSuccess: (data) => {
+                setPosts(data.posts);
+              },
+            })
+          }
         >
           Search
         </Button>
@@ -225,13 +224,13 @@ export function ReachClient() {
       </section>
 
       {/* Results section */}
-      {resultCount !== null && (
+      {posts !== null && (
         <section className="space-y-4">
-          {resultCount > 0 ? (
+          {posts.length > 0 ? (
             <>
-              <p className="text-sm font-medium text-text-secondary">{resultCount} results</p>
+              <p className="text-sm font-medium text-text-secondary">{posts.length} results</p>
               <div className="space-y-4">
-                {posts?.map((p) => (
+                {posts.map((p) => (
                   <PostCard key={p.id} post={p} />
                 ))}
               </div>

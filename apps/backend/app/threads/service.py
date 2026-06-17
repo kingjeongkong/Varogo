@@ -502,8 +502,8 @@ async def discover_posts(keywords: list[str], user_id: str, session: AsyncSessio
         seen.add(post_id)
         posts.append({
           'id': post_id,
-          'username': post.get('username'),
-          'text': post.get('text'),
+          'username': post.get('username') or '',
+          'text': post.get('text') or '',
           'timestamp': post.get('timestamp'),
           'permalink': post.get('permalink'),
         })

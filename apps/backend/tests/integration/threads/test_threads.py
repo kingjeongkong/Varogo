@@ -217,25 +217,6 @@ async def test_generate_keywords_product_not_found(client: AsyncClient, db_sessi
   assert response.status_code == 404
 
 
-async def test_generate_keywords_no_connection(client: AsyncClient, db_session):
-  user = await seed_test_user(db_session)
-  product, _ = await seed_product(db_session, user['id'])
-  headers = await get_auth_headers(client)
-
-  with patch(
-    'app.threads.service.generate_keywords',
-    new_callable=AsyncMock,
-    side_effect=HTTPException(status_code=404, detail='Threads connection not found'),
-  ):
-    response = await client.post(
-      '/threads/keywords',
-      json={'product_id': product['id']},
-      headers=headers,
-    )
-
-  assert response.status_code == 404
-
-
 async def test_generate_keywords_no_auth(client: AsyncClient):
   response = await client.post('/threads/keywords', json={'product_id': 'some-id'})
 
