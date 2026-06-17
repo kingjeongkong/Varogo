@@ -515,8 +515,13 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
 
 
 _KEYWORDS_SCHEMA = types.Schema(
-  type=types.Type.ARRAY,
-  items=types.Schema(type=types.Type.STRING),
+  type=types.Type.OBJECT,
+  properties={
+    'keywords': types.Schema(
+      type=types.Type.ARRAY,
+      items=types.Schema(type=types.Type.STRING),
+    ),
+  },
 )
 
 
@@ -575,7 +580,7 @@ async def generate_keywords(
     raw = response.text
     if not raw:
       raise HTTPException(status_code=500, detail='Failed to generate keywords')
-    return json.loads(raw)
+    return json.loads(raw).get('keywords', [])
   except HTTPException:
     raise
   except Exception:
