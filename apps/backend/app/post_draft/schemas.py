@@ -38,6 +38,8 @@ class UpdatePostDraftRequest(BaseModel):
 
 
 class PublishPostDraftRequest(BaseModel):
+  model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
   body: str = Field(..., min_length=1, max_length=500)
   topic_tag: Optional[str] = Field(default=None, max_length=50)
 
