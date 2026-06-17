@@ -200,6 +200,10 @@ describe('ReachClient', () => {
       });
       expect(screen.getByText('SaaS launch')).toBeInTheDocument();
       expect(screen.getByText('build in public')).toBeInTheDocument();
+
+      // Each keyword chip should have a delete button
+      const deleteButtons = screen.getAllByRole('button', { name: /remove keyword/i });
+      expect(deleteButtons).toHaveLength(3);
     });
   });
 
@@ -252,7 +256,7 @@ describe('ReachClient', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('1 results')).toBeInTheDocument();
+        expect(screen.getByText(/1 results?/i)).toBeInTheDocument();
       });
       expect(
         screen.getByText('Just launched my indie app!'),

@@ -26,10 +26,8 @@ describe('PostCard', () => {
       // formatRelativeTime returns something like "just now" for a very recent timestamp
       const article = screen.getByRole('article');
       expect(article).toBeInTheDocument();
-      // The timestamp span is a sibling of @username — just check it exists
-      const spans = article.querySelectorAll('span');
-      // spans: @username, ·, timestamp
-      expect(spans.length).toBeGreaterThanOrEqual(3);
+      // The timestamp should contain relative time text like "just now", "few seconds ago", etc.
+      expect(article.textContent).toMatch(/just now|few seconds ago|minute|hour|day/i);
     });
   });
 
