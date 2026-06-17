@@ -221,8 +221,8 @@ export function ExploreClient() {
 
         {exploreMutation.isError && (
           <Alert>
-            {exploreMutation.error instanceof ApiError && exploreMutation.error.status === 403
-              ? 'Threads keyword search permission not yet approved. Connect a Threads tester account to test this feature.'
+            {exploreMutation.error instanceof ApiError && exploreMutation.error.status === 502
+              ? `Threads API error: ${exploreMutation.error.message}`
               : 'Failed to search posts. Please try again.'}
           </Alert>
         )}

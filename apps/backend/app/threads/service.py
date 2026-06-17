@@ -476,11 +476,16 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
     )
     if response.status_code == 401:
       raise HTTPException(status_code=401, detail='Threads token expired. Please reconnect your account.')
-    if response.status_code == 403:
-      raise HTTPException(status_code=403, detail='Threads keyword search permission not granted. Please ensure threads_keyword_search permission is approved.')
     if not response.is_success:
-      logger.warning('Threads keyword_search failed keyword=%r status=%d body=%s', keyword, response.status_code, response.text[:300])
-      return []
+      try:
+        error_body = response.json()
+        error_msg = error_body.get('error', {}).get('message', f'HTTP {response.status_code}')
+        error_code = error_body.get('error', {}).get('code')
+      except Exception:
+        error_msg = response.text[:200] or f'HTTP {response.status_code}'
+        error_code = None
+      logger.warning('Threads keyword_search failed keyword=%r status=%d code=%s msg=%s', keyword, response.status_code, error_code, error_msg)
+      raise RuntimeError(f'Threads API error ({response.status_code}): {error_msg}')
     body = response.json()
     return body.get('data', [])
 
@@ -490,8 +495,16 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
   )
 
   for item in raw_results:
-    if isinstance(item, HTTPException) and item.status_code in (401, 403):
+    if isinstance(item, HTTPException) and item.status_code == 401:
       raise item
+
+  errors = [r for r in raw_results if isinstance(r, Exception)]
+  successes = [r for r in raw_results if not isinstance(r, Exception)]
+  if not successes:
+    first_error = errors[0] if errors else RuntimeError('Unknown error')
+    if isinstance(first_error, HTTPException):
+      raise first_error
+    raise HTTPException(status_code=502, detail=str(first_error))
 
   seen: set[str] = set()
   posts: list[dict] = []
