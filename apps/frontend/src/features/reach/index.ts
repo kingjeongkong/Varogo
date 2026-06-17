@@ -1,2 +1,3 @@
 export type { KeywordChip } from './types';
-// ReachClient and PostCard exported after Tasks 7-8
+export { PostCard } from './components/PostCard';
+export { ReachClient } from './components/ReachClient';
