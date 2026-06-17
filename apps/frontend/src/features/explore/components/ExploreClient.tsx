@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { ThreadsPost } from '@/lib/types';
+import { ApiError } from '@/lib/http-client';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { useThreadsConnectionStatus } from '@/features/threads';
@@ -219,7 +220,11 @@ export function ExploreClient() {
         </Button>
 
         {exploreMutation.isError && (
-          <Alert>Failed to search posts. Please try again.</Alert>
+          <Alert>
+            {exploreMutation.error instanceof ApiError && exploreMutation.error.status === 403
+              ? 'Threads keyword search permission not yet approved. Connect a Threads tester account to test this feature.'
+              : 'Failed to search posts. Please try again.'}
+          </Alert>
         )}
       </section>
 

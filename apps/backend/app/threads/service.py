@@ -476,7 +476,10 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
     )
     if response.status_code == 401:
       raise HTTPException(status_code=401, detail='Threads token expired. Please reconnect your account.')
+    if response.status_code == 403:
+      raise HTTPException(status_code=403, detail='Threads keyword search permission not granted. Please ensure threads_keyword_search permission is approved.')
     if not response.is_success:
+      logger.warning('Threads keyword_search failed keyword=%r status=%d body=%s', keyword, response.status_code, response.text[:300])
       return []
     body = response.json()
     return body.get('data', [])
@@ -486,9 +489,8 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
     return_exceptions=True,
   )
 
-  # Check for 401 HTTPException before proceeding
   for item in raw_results:
-    if isinstance(item, HTTPException) and item.status_code == 401:
+    if isinstance(item, HTTPException) and item.status_code in (401, 403):
       raise item
 
   seen: set[str] = set()
