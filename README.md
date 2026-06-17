@@ -4,16 +4,7 @@
 
 Varogo gives indie makers an AI partner that already understands their product. Plug in a URL, connect Threads, and co-write daily posts that match your voice — without learning marketing theory.
 
-**Service Link:** https://varo-go.com — Status: MVP (Meta App Review in progress)
-
-> [!IMPORTANT]
-> **External access currently limited.** Threads Graph API integration is under Meta App Review, so new users will be blocked at the OAuth step. The demo video below shows the full flow end-to-end.
-
-<br/>
-
-## 🎥 Demo
-
-https://github.com/user-attachments/assets/2058913e-c5e8-44dc-afb8-043b854e2680
+**Service Link:** https://varo-go.com — Status: MVP
 
 <br/>
 
