@@ -17,6 +17,7 @@ export function ReachClient() {
   const [chips, setChips] = useState<KeywordChip[]>([]);
   const [addInput, setAddInput] = useState('');
   const [posts, setPosts] = useState<ThreadsPost[] | null>(null);
+  const [resultCount, setResultCount] = useState<number | null>(null);
 
   const {
     data: connection,
@@ -40,6 +41,7 @@ export function ReachClient() {
     mutationFn: () => discoverPosts(chips.map((c) => c.label)),
     onSuccess: (data) => {
       setPosts(data.posts);
+      setResultCount(data.posts.length);
     },
   });
 
@@ -134,7 +136,7 @@ export function ReachClient() {
             disabled={productsLoading}
             className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
           >
-            <option value="" disabled>Select a product</option>
+            <option value="" disabled hidden>Select a product</option>
             {products?.map((product) => (
               <option key={product.id} value={product.id}>
                 {product.name}
@@ -223,13 +225,13 @@ export function ReachClient() {
       </section>
 
       {/* Results section */}
-      {posts !== null && (
+      {resultCount !== null && (
         <section className="space-y-4">
-          {posts.length > 0 ? (
+          {resultCount > 0 ? (
             <>
-              <p className="text-sm font-medium text-text-secondary">{posts.length} results</p>
+              <p className="text-sm font-medium text-text-secondary">{resultCount} results</p>
               <div className="space-y-4">
-                {posts.map((p) => (
+                {posts?.map((p) => (
                   <PostCard key={p.id} post={p} />
                 ))}
               </div>
