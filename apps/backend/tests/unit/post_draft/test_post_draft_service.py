@@ -296,7 +296,7 @@ async def test_publish_draft_not_found_raises_404():
   session = AsyncMock()
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(side_effect=HTTPException(status_code=404, detail='Not found'))):
     with pytest.raises(HTTPException) as exc_info:
-      await publish_draft('draft-1', 'user-1', 'body', session)
+      await publish_draft('draft-1', 'user-1', 'body', None, session)
   assert exc_info.value.status_code == 404
 
 
@@ -307,7 +307,7 @@ async def test_publish_draft_no_selected_option_raises_400():
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
     with pytest.raises(HTTPException) as exc_info:
-      await publish_draft('draft-1', 'user-1', 'body', session)
+      await publish_draft('draft-1', 'user-1', 'body', None, session)
   assert exc_info.value.status_code == 400
 
 
@@ -321,7 +321,7 @@ async def test_publish_draft_lock_claim_fails_raises_409():
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
     with pytest.raises(HTTPException) as exc_info:
-      await publish_draft('draft-1', 'user-1', 'body', session)
+      await publish_draft('draft-1', 'user-1', 'body', None, session)
   assert exc_info.value.status_code == 409
 
 
@@ -339,7 +339,7 @@ async def test_publish_draft_threads_fails_releases_lock_and_rethrows():
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
        patch('app.post_draft.service.publish_to_threads', AsyncMock(side_effect=HTTPException(status_code=500, detail='Threads error'))):
     with pytest.raises(HTTPException) as exc_info:
-      await publish_draft('draft-1', 'user-1', 'Post body', session)
+      await publish_draft('draft-1', 'user-1', 'Post body', None, session)
 
   assert exc_info.value.status_code == 500
   # execute called twice: lock claim + lock release
@@ -363,7 +363,7 @@ async def test_publish_draft_happy_path_returns_published_draft():
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
        patch('app.post_draft.service.publish_to_threads', AsyncMock(return_value=threads_result)):
-    result = await publish_draft('draft-1', 'user-1', 'Post body', session)
+    result = await publish_draft('draft-1', 'user-1', 'Post body', None, session)
 
   assert result is published_draft
 
@@ -372,7 +372,6 @@ async def test_publish_draft_passes_topic_tag_to_publish_to_threads():
   draft = MagicMock()
   draft.id = 'draft-1'
   draft.selected_option_id = 'opt-1'
-  draft.topic_tag = 'MyTag'
 
   published_draft = MagicMock()
   claim_result = _result('draft-1')
@@ -387,7 +386,7 @@ async def test_publish_draft_passes_topic_tag_to_publish_to_threads():
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
        patch('app.post_draft.service.publish_to_threads', mock_publish_to_threads):
-    result = await publish_draft('draft-1', 'user-1', 'Post body', session)
+    result = await publish_draft('draft-1', 'user-1', 'Post body', 'MyTag', session)
 
   mock_publish_to_threads.assert_awaited_once_with('user-1', 'Post body', session, 'MyTag')
   assert result is published_draft
@@ -397,7 +396,6 @@ async def test_publish_draft_without_topic_tag_passes_none():
   draft = MagicMock()
   draft.id = 'draft-1'
   draft.selected_option_id = 'opt-1'
-  draft.topic_tag = None
 
   published_draft = MagicMock()
   claim_result = _result('draft-1')
@@ -412,7 +410,7 @@ async def test_publish_draft_without_topic_tag_passes_none():
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
        patch('app.post_draft.service.publish_to_threads', mock_publish_to_threads):
-    result = await publish_draft('draft-1', 'user-1', 'Post body', session)
+    result = await publish_draft('draft-1', 'user-1', 'Post body', None, session)
 
   mock_publish_to_threads.assert_awaited_once_with('user-1', 'Post body', session, None)
   assert result is published_draft

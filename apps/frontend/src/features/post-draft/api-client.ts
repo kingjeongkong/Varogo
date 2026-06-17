@@ -39,6 +39,7 @@ export function updatePostDraft(
 
 export interface PublishPostDraftInput {
   body: string;
+  topicTag?: string | null;
 }
 
 export function publishPostDraft(

@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Info } from 'lucide-react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { PostDraftResponse } from '@/lib/types';
-import { usePublishPostDraft, useUpdatePostDraft } from '../hooks/use-post-draft';
+import { usePublishPostDraft } from '../hooks/use-post-draft';
 
 const THREADS_LIMIT = 500;
 const TOPIC_TAG_LIMIT = 50;
@@ -21,10 +21,8 @@ interface BodyEditorProps {
 
 export function BodyEditor({ draft }: BodyEditorProps) {
   const mutation = usePublishPostDraft(draft.id);
-  const updateMutation = useUpdatePostDraft(draft.id);
   const [body, setBody] = useState(draft.body);
   const [topicTag, setTopicTag] = useState(draft.topicTag ?? '');
-  const lastSavedTopicTag = useRef(draft.topicTag ?? '');
 
   const selectedOption = draft.options.find((o) => o.id === draft.selectedOptionId);
   const overLimit = body.length > THREADS_LIMIT;
@@ -36,15 +34,9 @@ export function BodyEditor({ draft }: BodyEditorProps) {
     setTopicTag(sanitized);
   };
 
-  const handleTopicTagBlur = () => {
-    if (topicTag === lastSavedTopicTag.current) return;
-    lastSavedTopicTag.current = topicTag;
-    updateMutation.mutate({ topicTag: topicTag || null });
-  };
-
   const handlePublish = () => {
     if (!canPublish) return;
-    mutation.mutate({ body });
+    mutation.mutate({ body, topicTag: topicTag || null });
   };
 
   const counterColor = overLimit ? 'text-red-400' : 'text-text-muted';
@@ -86,7 +78,6 @@ export function BodyEditor({ draft }: BodyEditorProps) {
           type="text"
           value={topicTag}
           onChange={(e) => handleTopicTagChange(e.target.value)}
-          onBlur={handleTopicTagBlur}
           maxLength={TOPIC_TAG_LIMIT}
           className="w-full rounded-lg border border-border bg-surface-elevated px-4 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none"
           placeholder="e.g. indie hacking"
@@ -119,10 +110,6 @@ export function BodyEditor({ draft }: BodyEditorProps) {
         <p role="alert" className="text-xs text-red-400">
           {body.length - THREADS_LIMIT} characters over the {THREADS_LIMIT}-character limit.
         </p>
-      )}
-
-      {updateMutation.isError && (
-        <Alert>Failed to save topic tag: {updateMutation.error.message}</Alert>
       )}
 
       {mutation.isError && <Alert>{mutation.error.message}</Alert>}

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from typing import Optional
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -238,6 +239,7 @@ async def publish_draft(
   draft_id: str,
   user_id: str,
   body: str,
+  topic_tag: Optional[str],
   session: AsyncSession,
 ) -> PostDraft:
   # 1. Fetch draft
@@ -268,7 +270,7 @@ async def publish_draft(
 
   # 4. Call Threads API
   try:
-    threads_result = await publish_to_threads(user_id, body, session, draft.topic_tag)
+    threads_result = await publish_to_threads(user_id, body, session, topic_tag)
   except Exception:
     try:
       await session.execute(
@@ -286,6 +288,7 @@ async def publish_draft(
     .where(PostDraft.id == draft_id)
     .values(
       body=body,
+      topic_tag=topic_tag,
       published_at=now,
       threads_media_id=threads_result['threads_media_id'],
       permalink=threads_result.get('permalink'),
