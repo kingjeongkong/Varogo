@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal, Optional
 
 from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 
 from app.post_draft.models import PostDraft
@@ -27,10 +27,28 @@ class UpdatePostDraftRequest(BaseModel):
     pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
   )
   today_input: Optional[str] = Field(default=None, max_length=500)
+  topic_tag: Optional[str] = Field(default=None, max_length=50)
+
+  @field_validator('topic_tag')
+  @classmethod
+  def validate_topic_tag(cls, value: Optional[str]) -> Optional[str]:
+    if value is not None and ('.' in value or '&' in value):
+      raise ValueError('topic_tag must not contain "." or "&"')
+    return value
 
 
 class PublishPostDraftRequest(BaseModel):
+  model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
   body: str = Field(..., min_length=1, max_length=500)
+  topic_tag: Optional[str] = Field(default=None, max_length=50)
+
+  @field_validator('topic_tag')
+  @classmethod
+  def validate_topic_tag(cls, value: Optional[str]) -> Optional[str]:
+    if value is not None and ('.' in value or '&' in value):
+      raise ValueError('topic_tag must not contain "." or "&"')
+    return value
 
 
 class ListPostDraftsQuery(BaseModel):
@@ -77,6 +95,7 @@ class PostDraftResponse(BaseModel):
   id: str
   product_id: str
   today_input: Optional[str] = None
+  topic_tag: Optional[str] = None
   body: str
   status: Literal['draft', 'published']
   selected_option_id: Optional[str] = None
@@ -124,6 +143,7 @@ def to_post_draft_response(
     id=draft.id,
     product_id=draft.product_id,
     today_input=draft.today_input,
+    topic_tag=draft.topic_tag,
     body=draft.body,
     status=draft.status,
     selected_option_id=draft.selected_option_id,

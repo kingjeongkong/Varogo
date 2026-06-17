@@ -78,5 +78,5 @@ async def publish_draft(
   current_user: CurrentUser = Depends(get_current_user),
   session: AsyncSession = Depends(get_db),
 ) -> PostDraftResponse:
-  draft = await post_draft_service.publish_draft(draft_id, current_user.sub, body.body, session)
+  draft = await post_draft_service.publish_draft(draft_id, current_user.sub, body.body, body.topic_tag, session)
   return to_post_draft_response(draft)

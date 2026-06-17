@@ -9,6 +9,7 @@ export interface CreatePostDraftInput {
 export interface UpdatePostDraftInput {
   todayInput?: string;
   selectedOptionId?: string;
+  topicTag?: string | null;
 }
 
 export function createPostDraft(
@@ -38,6 +39,7 @@ export function updatePostDraft(
 
 export interface PublishPostDraftInput {
   body: string;
+  topicTag?: string | null;
 }
 
 export function publishPostDraft(

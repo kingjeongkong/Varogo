@@ -338,6 +338,7 @@ async def publish_to_threads(
   user_id: str,
   text: str,
   session: AsyncSession,
+  topic_tag: Optional[str] = None,
 ) -> dict:
   result = await session.execute(
     select(ThreadsConnection).where(ThreadsConnection.user_id == user_id)
@@ -349,6 +350,10 @@ async def publish_to_threads(
   access_token = await _resolve_access_token(connection, session)
 
   # Step 1: Create media container
+  container_payload = {'media_type': 'TEXT', 'text': text}
+  if topic_tag:
+    container_payload['topic_tag'] = topic_tag
+
   container_res = await _fetch_with_timeout(
     f'{THREADS_API_BASE}/{connection.threads_user_id}/threads',
     method='POST',
@@ -356,7 +361,7 @@ async def publish_to_threads(
       'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': f'Bearer {access_token}',
     },
-    data={'media_type': 'TEXT', 'text': text},
+    data=container_payload,
   )
   if not container_res.is_success:
     raise HTTPException(

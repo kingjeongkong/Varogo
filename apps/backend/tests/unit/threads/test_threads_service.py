@@ -302,6 +302,84 @@ async def test_publish_to_threads_happy_path_returns_media_id_and_permalink():
   assert result['permalink'] == 'https://threads.net/post/abc'
 
 
+async def test_publish_to_threads_with_topic_tag_includes_it_in_container_payload():
+  connection = MagicMock()
+  connection.threads_user_id = 'threads-123'
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(connection))
+
+  container_resp = MagicMock(is_success=True)
+  container_resp.json.return_value = {'id': 'container-456'}
+  publish_resp = MagicMock(is_success=True)
+  publish_resp.json.return_value = {'id': 'media-789'}
+  permalink_resp = MagicMock(is_success=True)
+  permalink_resp.json.return_value = {'id': 'media-789', 'permalink': 'https://threads.net/post/abc'}
+
+  fetch_mock = AsyncMock(side_effect=[container_resp, publish_resp, permalink_resp])
+
+  with patch('app.threads.service._resolve_access_token', AsyncMock(return_value='token')), \
+       patch('app.threads.service._wait_for_container_ready', AsyncMock()), \
+       patch('app.threads.service._fetch_with_timeout', fetch_mock):
+    await publish_to_threads('user-1', 'hello', session, topic_tag='Indie Hacking')
+
+  container_call = fetch_mock.call_args_list[0]
+  assert container_call.kwargs['data'] == {
+    'media_type': 'TEXT',
+    'text': 'hello',
+    'topic_tag': 'Indie Hacking',
+  }
+
+
+async def test_publish_to_threads_without_topic_tag_omits_it_from_container_payload():
+  connection = MagicMock()
+  connection.threads_user_id = 'threads-123'
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(connection))
+
+  container_resp = MagicMock(is_success=True)
+  container_resp.json.return_value = {'id': 'container-456'}
+  publish_resp = MagicMock(is_success=True)
+  publish_resp.json.return_value = {'id': 'media-789'}
+  permalink_resp = MagicMock(is_success=True)
+  permalink_resp.json.return_value = {'id': 'media-789', 'permalink': 'https://threads.net/post/abc'}
+
+  fetch_mock = AsyncMock(side_effect=[container_resp, publish_resp, permalink_resp])
+
+  with patch('app.threads.service._resolve_access_token', AsyncMock(return_value='token')), \
+       patch('app.threads.service._wait_for_container_ready', AsyncMock()), \
+       patch('app.threads.service._fetch_with_timeout', fetch_mock):
+    await publish_to_threads('user-1', 'hello', session)
+
+  container_call = fetch_mock.call_args_list[0]
+  assert container_call.kwargs['data'] == {'media_type': 'TEXT', 'text': 'hello'}
+  assert 'topic_tag' not in container_call.kwargs['data']
+
+
+async def test_publish_to_threads_empty_string_topic_tag_omits_it_from_container_payload():
+  connection = MagicMock()
+  connection.threads_user_id = 'threads-123'
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(connection))
+
+  container_resp = MagicMock(is_success=True)
+  container_resp.json.return_value = {'id': 'container-456'}
+  publish_resp = MagicMock(is_success=True)
+  publish_resp.json.return_value = {'id': 'media-789'}
+  permalink_resp = MagicMock(is_success=True)
+  permalink_resp.json.return_value = {'id': 'media-789', 'permalink': 'https://threads.net/post/abc'}
+
+  fetch_mock = AsyncMock(side_effect=[container_resp, publish_resp, permalink_resp])
+
+  with patch('app.threads.service._resolve_access_token', AsyncMock(return_value='token')), \
+       patch('app.threads.service._wait_for_container_ready', AsyncMock()), \
+       patch('app.threads.service._fetch_with_timeout', fetch_mock):
+    await publish_to_threads('user-1', 'hello', session, topic_tag='')
+
+  container_call = fetch_mock.call_args_list[0]
+  assert container_call.kwargs['data'] == {'media_type': 'TEXT', 'text': 'hello'}
+  assert 'topic_tag' not in container_call.kwargs['data']
+
+
 async def test_publish_to_threads_permalink_fetch_fails_returns_null():
   connection = MagicMock()
   connection.threads_user_id = 'threads-123'

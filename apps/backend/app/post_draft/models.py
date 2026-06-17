@@ -50,6 +50,7 @@ class PostDraft(Base):
     ForeignKey('post_draft_options.id', name='post_drafts_selected_option_id_fkey', ondelete='SET NULL'),
   )
   body: Mapped[str] = mapped_column(Text)
+  topic_tag: Mapped[Optional[str]] = mapped_column(Text)
   status: Mapped[str] = mapped_column(Text)
   published_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(precision=3))
   threads_media_id: Mapped[Optional[str]] = mapped_column(Text)

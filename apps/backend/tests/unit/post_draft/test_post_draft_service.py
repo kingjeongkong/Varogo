@@ -25,6 +25,11 @@ def _scalars_result(values):
   return r
 
 
+def _update_values(stmt: object) -> dict:
+  """Extract the column-name -> bound-value mapping from an Update statement."""
+  return {col.name: bind.value for col, bind in stmt._values.items()}
+
+
 _MOCK_GENERATION = {
   'options': [
     {'text': 'Option 1', 'angle_label': 'Story'},
@@ -202,6 +207,87 @@ async def test_update_draft_does_not_overwrite_non_empty_body():
   assert result is updated_draft
 
 
+async def test_update_draft_sets_topic_tag():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.status = 'draft'
+  draft.options = []
+
+  updated_draft = MagicMock()
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(updated_draft))
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
+    result = await update_draft('draft-1', 'user-1', {'topic_tag': 'MyTag'}, session)
+
+  update_values = _update_values(session.execute.call_args_list[0].args[0])
+  assert update_values['topic_tag'] == 'MyTag'
+  assert result is updated_draft
+
+
+async def test_update_draft_updates_existing_topic_tag():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.status = 'draft'
+  draft.options = []
+  draft.topic_tag = 'OldTag'
+
+  updated_draft = MagicMock()
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(updated_draft))
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
+    result = await update_draft('draft-1', 'user-1', {'topic_tag': 'NewTag'}, session)
+
+  update_values = _update_values(session.execute.call_args_list[0].args[0])
+  assert update_values['topic_tag'] == 'NewTag'
+  assert result is updated_draft
+
+
+async def test_update_draft_leaves_topic_tag_unset_when_absent_from_dto():
+  option = MagicMock()
+  option.id = 'opt-1'
+  option.text = 'Option text'
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.status = 'draft'
+  draft.body = ''
+  draft.options = [option]
+  draft.topic_tag = 'ExistingTag'
+
+  updated_draft = MagicMock()
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(updated_draft))
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
+    result = await update_draft('draft-1', 'user-1', {'selected_option_id': 'opt-1'}, session)
+
+  # selected_option_id update happens but topic_tag is not part of the dto,
+  # so it must not be touched (no auto-population from the selected option).
+  update_values = _update_values(session.execute.call_args_list[0].args[0])
+  assert 'topic_tag' not in update_values
+  assert result is updated_draft
+
+
+async def test_update_draft_clears_topic_tag_when_explicitly_null():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.status = 'draft'
+  draft.options = []
+  draft.topic_tag = 'ExistingTag'
+
+  updated_draft = MagicMock()
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(updated_draft))
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
+    result = await update_draft('draft-1', 'user-1', {'topic_tag': None}, session)
+
+  update_values = _update_values(session.execute.call_args_list[0].args[0])
+  assert update_values['topic_tag'] is None
+  assert result is updated_draft
+
+
 # ---------------------------------------------------------------------------
 # publish_draft
 # ---------------------------------------------------------------------------
@@ -210,7 +296,7 @@ async def test_publish_draft_not_found_raises_404():
   session = AsyncMock()
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(side_effect=HTTPException(status_code=404, detail='Not found'))):
     with pytest.raises(HTTPException) as exc_info:
-      await publish_draft('draft-1', 'user-1', 'body', session)
+      await publish_draft('draft-1', 'user-1', 'body', None, session)
   assert exc_info.value.status_code == 404
 
 
@@ -221,7 +307,7 @@ async def test_publish_draft_no_selected_option_raises_400():
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
     with pytest.raises(HTTPException) as exc_info:
-      await publish_draft('draft-1', 'user-1', 'body', session)
+      await publish_draft('draft-1', 'user-1', 'body', None, session)
   assert exc_info.value.status_code == 400
 
 
@@ -235,7 +321,7 @@ async def test_publish_draft_lock_claim_fails_raises_409():
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
     with pytest.raises(HTTPException) as exc_info:
-      await publish_draft('draft-1', 'user-1', 'body', session)
+      await publish_draft('draft-1', 'user-1', 'body', None, session)
   assert exc_info.value.status_code == 409
 
 
@@ -253,7 +339,7 @@ async def test_publish_draft_threads_fails_releases_lock_and_rethrows():
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
        patch('app.post_draft.service.publish_to_threads', AsyncMock(side_effect=HTTPException(status_code=500, detail='Threads error'))):
     with pytest.raises(HTTPException) as exc_info:
-      await publish_draft('draft-1', 'user-1', 'Post body', session)
+      await publish_draft('draft-1', 'user-1', 'Post body', None, session)
 
   assert exc_info.value.status_code == 500
   # execute called twice: lock claim + lock release
@@ -277,8 +363,56 @@ async def test_publish_draft_happy_path_returns_published_draft():
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
        patch('app.post_draft.service.publish_to_threads', AsyncMock(return_value=threads_result)):
-    result = await publish_draft('draft-1', 'user-1', 'Post body', session)
+    result = await publish_draft('draft-1', 'user-1', 'Post body', None, session)
 
+  assert result is published_draft
+
+
+async def test_publish_draft_passes_topic_tag_to_publish_to_threads():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.selected_option_id = 'opt-1'
+
+  published_draft = MagicMock()
+  claim_result = _result('draft-1')
+  metadata_result = MagicMock()
+  requery_result = _result(published_draft)
+
+  session = AsyncMock()
+  session.execute = AsyncMock(side_effect=[claim_result, metadata_result, requery_result])
+
+  threads_result = {'threads_media_id': 'media-789', 'permalink': 'https://threads.net/post/abc'}
+  mock_publish_to_threads = AsyncMock(return_value=threads_result)
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
+       patch('app.post_draft.service.publish_to_threads', mock_publish_to_threads):
+    result = await publish_draft('draft-1', 'user-1', 'Post body', 'MyTag', session)
+
+  mock_publish_to_threads.assert_awaited_once_with('user-1', 'Post body', session, 'MyTag')
+  assert result is published_draft
+
+
+async def test_publish_draft_without_topic_tag_passes_none():
+  draft = MagicMock()
+  draft.id = 'draft-1'
+  draft.selected_option_id = 'opt-1'
+
+  published_draft = MagicMock()
+  claim_result = _result('draft-1')
+  metadata_result = MagicMock()
+  requery_result = _result(published_draft)
+
+  session = AsyncMock()
+  session.execute = AsyncMock(side_effect=[claim_result, metadata_result, requery_result])
+
+  threads_result = {'threads_media_id': 'media-789', 'permalink': 'https://threads.net/post/abc'}
+  mock_publish_to_threads = AsyncMock(return_value=threads_result)
+
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
+       patch('app.post_draft.service.publish_to_threads', mock_publish_to_threads):
+    result = await publish_draft('draft-1', 'user-1', 'Post body', None, session)
+
+  mock_publish_to_threads.assert_awaited_once_with('user-1', 'Post body', session, None)
   assert result is published_draft
 
 
