@@ -455,6 +455,63 @@ async def fetch_voice_units(user_id: str, session: AsyncSession) -> list[dict]:
   return units
 
 
+async def discover_posts(keywords: list[str], user_id: str, session: AsyncSession) -> list[dict]:
+  result = await session.execute(
+    select(ThreadsConnection).where(ThreadsConnection.user_id == user_id)
+  )
+  connection = result.scalar_one_or_none()
+  if connection is None:
+    raise HTTPException(status_code=404, detail='Threads connection not found')
+
+  access_token = await _resolve_access_token(connection, session)
+
+  async def _search_keyword(keyword: str) -> list[dict]:
+    params = urlencode({
+      'q': keyword,
+      'fields': 'id,text,timestamp,permalink,username',
+    })
+    response = await _fetch_with_timeout(
+      f'https://graph.threads.net/v1.0/threads/keyword_search?{params}',
+      headers={'Authorization': f'Bearer {access_token}'},
+    )
+    if response.status_code == 401:
+      raise HTTPException(status_code=401, detail='Threads token expired. Please reconnect your account.')
+    if not response.is_success:
+      return []
+    body = response.json()
+    return body.get('data', [])
+
+  raw_results = await asyncio.gather(
+    *[_search_keyword(kw) for kw in keywords],
+    return_exceptions=True,
+  )
+
+  # Check for 401 HTTPException before proceeding
+  for item in raw_results:
+    if isinstance(item, HTTPException) and item.status_code == 401:
+      raise item
+
+  seen: set[str] = set()
+  posts: list[dict] = []
+  for item in raw_results:
+    if isinstance(item, Exception):
+      continue
+    for post in item:
+      post_id = post.get('id')
+      if post_id and post_id not in seen:
+        seen.add(post_id)
+        posts.append({
+          'id': post_id,
+          'username': post.get('username'),
+          'text': post.get('text'),
+          'timestamp': post.get('timestamp'),
+          'permalink': post.get('permalink'),
+        })
+
+  posts.sort(key=lambda p: p.get('timestamp') or '', reverse=True)
+  return posts
+
+
 _KEYWORDS_SCHEMA = types.Schema(
   type=types.Type.ARRAY,
   items=types.Schema(type=types.Type.STRING),
