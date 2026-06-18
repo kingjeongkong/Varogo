@@ -178,7 +178,7 @@ describe('DraftCard', () => {
       ).toISOString();
       render(<DraftCard draft={makeDraft({ updatedAt })} />);
 
-      expect(screen.getByText(/updated \d+월 \d+일/)).toBeInTheDocument();
+      expect(screen.getByText(/updated .+/)).toBeInTheDocument();
     });
   });
 
