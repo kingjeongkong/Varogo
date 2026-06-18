@@ -1,9 +1,11 @@
+import { ERROR_MESSAGES } from './error-messages';
 import { API_BASE_URL } from './constants';
 
 export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public code?: string,
   ) {
     super(message);
   }
@@ -20,14 +22,17 @@ export async function baseFetch<T>(
 
   if (!res.ok) {
     const errorBody = await res.text().catch(() => '');
-    let message = `API error: ${res.status}`;
+    let message = `Error ${res.status}`;
+    let code: string | undefined;
     try {
       const parsed = JSON.parse(errorBody);
-      message = parsed.detail ?? parsed.message ?? message;
+      code = parsed.code;
+      const rawMessage = parsed.message ?? parsed.detail ?? message;
+      message = (code && ERROR_MESSAGES[code]) ?? rawMessage;
     } catch {
       message = errorBody || message;
     }
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, code);
   }
 
   const text = await res.text();
