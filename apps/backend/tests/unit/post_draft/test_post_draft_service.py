@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
+from app.core.exceptions import AppError
 
 from app.post_draft.service import (
   create,
@@ -52,7 +52,7 @@ _CREATE_DTO = {
 async def test_create_product_not_found_raises_404():
   session = AsyncMock()
   session.execute = AsyncMock(return_value=_result(None))  # product not found
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await create('user-1', _CREATE_DTO, session)
   assert exc_info.value.status_code == 404
 
@@ -62,7 +62,7 @@ async def test_create_product_no_analysis_raises_404():
   product.analysis = None
   session = AsyncMock()
   session.execute = AsyncMock(return_value=_result(product))
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await create('user-1', _CREATE_DTO, session)
   assert exc_info.value.status_code == 404
 
@@ -77,7 +77,7 @@ async def test_create_no_voice_profile_raises_400():
     _result(None),     # voice profile not found
   ])
 
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await create('user-1', _CREATE_DTO, session)
   assert exc_info.value.status_code == 400
 
@@ -114,7 +114,7 @@ async def test_create_happy_path_returns_draft_and_feedback():
 async def test_find_one_by_user_not_found_raises_404():
   session = AsyncMock()
   session.execute = AsyncMock(return_value=_result(None))
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await find_one_by_user('draft-1', 'user-1', session)
   assert exc_info.value.status_code == 404
 
@@ -133,8 +133,8 @@ async def test_find_one_by_user_returns_draft():
 
 async def test_update_draft_not_found_raises_404():
   session = AsyncMock()
-  with patch('app.post_draft.service.find_one_by_user', AsyncMock(side_effect=HTTPException(status_code=404, detail='Not found'))):
-    with pytest.raises(HTTPException) as exc_info:
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(side_effect=AppError(status_code=404, code='POST_DRAFT_NOT_FOUND', message='Not found'))):
+    with pytest.raises(AppError) as exc_info:
       await update_draft('draft-1', 'user-1', {}, session)
   assert exc_info.value.status_code == 404
 
@@ -145,7 +145,7 @@ async def test_update_draft_published_raises_409():
   session = AsyncMock()
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await update_draft('draft-1', 'user-1', {'today_input': 'update'}, session)
   assert exc_info.value.status_code == 409
 
@@ -159,7 +159,7 @@ async def test_update_draft_invalid_option_id_raises_400():
   session = AsyncMock()
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await update_draft('draft-1', 'user-1', {'selected_option_id': 'invalid-id'}, session)
   assert exc_info.value.status_code == 400
 
@@ -294,8 +294,8 @@ async def test_update_draft_clears_topic_tag_when_explicitly_null():
 
 async def test_publish_draft_not_found_raises_404():
   session = AsyncMock()
-  with patch('app.post_draft.service.find_one_by_user', AsyncMock(side_effect=HTTPException(status_code=404, detail='Not found'))):
-    with pytest.raises(HTTPException) as exc_info:
+  with patch('app.post_draft.service.find_one_by_user', AsyncMock(side_effect=AppError(status_code=404, code='POST_DRAFT_NOT_FOUND', message='Not found'))):
+    with pytest.raises(AppError) as exc_info:
       await publish_draft('draft-1', 'user-1', 'body', None, session)
   assert exc_info.value.status_code == 404
 
@@ -306,7 +306,7 @@ async def test_publish_draft_no_selected_option_raises_400():
   session = AsyncMock()
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await publish_draft('draft-1', 'user-1', 'body', None, session)
   assert exc_info.value.status_code == 400
 
@@ -320,7 +320,7 @@ async def test_publish_draft_lock_claim_fails_raises_409():
   session.execute = AsyncMock(return_value=_result(None))
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await publish_draft('draft-1', 'user-1', 'body', None, session)
   assert exc_info.value.status_code == 409
 
@@ -337,8 +337,8 @@ async def test_publish_draft_threads_fails_releases_lock_and_rethrows():
   session.execute = AsyncMock(side_effect=[claim_result, release_result])
 
   with patch('app.post_draft.service.find_one_by_user', AsyncMock(return_value=draft)), \
-       patch('app.post_draft.service.publish_to_threads', AsyncMock(side_effect=HTTPException(status_code=500, detail='Threads error'))):
-    with pytest.raises(HTTPException) as exc_info:
+       patch('app.post_draft.service.publish_to_threads', AsyncMock(side_effect=AppError(status_code=500, code='THREADS_PUBLISH_FAILED', message='Threads error'))):
+    with pytest.raises(AppError) as exc_info:
       await publish_draft('draft-1', 'user-1', 'Post body', None, session)
 
   assert exc_info.value.status_code == 500

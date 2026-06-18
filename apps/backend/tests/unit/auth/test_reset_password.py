@@ -3,7 +3,7 @@ import hmac
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
+from app.core.exceptions import AppError
 
 from app.auth.service import reset_password
 from app.core.config import settings
@@ -47,11 +47,11 @@ async def test_reset_password_success():
 async def test_reset_password_invalid_token():
   session = AsyncMock()
 
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await reset_password('this.is.not.a.valid.token', 'new_password456', session)
 
   assert exc_info.value.status_code == 401
-  assert exc_info.value.detail == 'Invalid or expired reset token'
+  assert exc_info.value.message == 'Invalid or expired reset token'
 
 
 @pytest.mark.asyncio
@@ -66,8 +66,8 @@ async def test_reset_password_reuse_after_change():
   await reset_password(token, 'new_password456', session)
 
   # Second use — frag no longer matches updated password_hash
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await reset_password(token, 'another_password789', session)
 
   assert exc_info.value.status_code == 401
-  assert exc_info.value.detail == 'Invalid or expired reset token'
+  assert exc_info.value.message == 'Invalid or expired reset token'

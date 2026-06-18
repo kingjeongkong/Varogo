@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
+from app.core.exceptions import AppError
 
 from app.products.service import create, get_all, get_one
 
@@ -30,9 +30,9 @@ async def test_create_analyze_fails_does_not_create_product():
   session = AsyncMock()
   with patch(
     'app.products.service.analysis_service.analyze',
-    AsyncMock(side_effect=HTTPException(status_code=500, detail='AI failed')),
+    AsyncMock(side_effect=AppError(status_code=500, code='PRODUCT_ANALYSIS_FAILED', message='AI failed')),
   ):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await create('user-1', _PRODUCT_DATA, session)
   assert exc_info.value.status_code == 500
   session.add.assert_not_called()
@@ -45,7 +45,7 @@ async def test_create_analyze_fails_does_not_create_product():
 async def test_get_one_not_found_raises_404():
   session = AsyncMock()
   session.execute = AsyncMock(return_value=_result(None))
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await get_one('nonexistent', 'user-1', session)
   assert exc_info.value.status_code == 404
 
