@@ -64,7 +64,7 @@ async def test_get_products_200_returns_seeded(client: AsyncClient, db_session):
   assert len(body) == 1
   product = body[0]
   assert product['name'] == 'Test Product'
-  assert 'userId' in product
+  assert 'userId' not in product
   assert 'oneLiner' in product
   assert 'currentTraction' in product
   assert 'createdAt' in product

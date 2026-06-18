@@ -51,7 +51,6 @@ export interface ProductAnalysis {
 
 export interface Product {
   id: string;
-  userId: string;
   name: string;
   url: string;
   oneLiner: string;
@@ -93,7 +92,6 @@ export interface ReferenceSample {
 
 export interface VoiceProfileResponse {
   id: string;
-  userId: string;
   source: string;
   sampleCount: number;
   styleFingerprint: StyleFingerprint;

@@ -42,17 +42,8 @@ class VoiceProfileResponse(BaseModel):
 
 class PasteImportRequest(BaseModel):
   method: Literal["paste"]
-  text_units: list[str] = Field(min_length=1)
+  text_units: list[Annotated[str, Field(min_length=20, max_length=2000)]] = Field(min_length=1, max_length=5)
 
-  @field_validator("text_units")
-  @classmethod
-  def validate_text_unit_lengths(cls, v: list[str]) -> list[str]:
-    for item in v:
-      if len(item) < 20:
-        raise ValueError(
-          f"Each item in text_units must be at least 20 characters, got {len(item)}."
-        )
-    return v
 
 
 class PresetImportRequest(BaseModel):
