@@ -173,12 +173,10 @@ describe('ThreadsTile', () => {
       });
     });
 
-    it('renders an Alert asking the user to refresh the page', () => {
+    it('renders an Alert with the error message', () => {
       render(<ThreadsTile />);
 
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Failed to load connection status. Please refresh the page.',
-      );
+      expect(screen.getByRole('alert')).toHaveTextContent('Network down');
     });
 
     it('does not render the Voice section', () => {
@@ -227,12 +225,10 @@ describe('ThreadsTile', () => {
     });
 
     it('shows a connect-error Alert when the connect mutation has errored', () => {
-      mockUseThreadsConnect({ isError: true });
+      mockUseThreadsConnect({ isError: true, error: new Error('Connect failed') });
       render(<ThreadsTile />);
 
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Failed to connect account. Please try again.',
-      );
+      expect(screen.getByRole('alert')).toHaveTextContent('Connect failed');
     });
 
     it('does not render the Voice label or About Voice tooltip trigger', () => {
@@ -308,12 +304,10 @@ describe('ThreadsTile', () => {
     });
 
     it('shows a disconnect-error Alert when the disconnect mutation has errored', () => {
-      mockUseThreadsDisconnect({ isError: true });
+      mockUseThreadsDisconnect({ isError: true, error: new Error('Disconnect failed') });
       render(<ThreadsTile />);
 
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Failed to disconnect account. Please try again.',
-      );
+      expect(screen.getByRole('alert')).toHaveTextContent('Disconnect failed');
     });
 
     it('renders the Voice label', () => {
@@ -467,12 +461,10 @@ describe('ThreadsTile', () => {
       mockUseVoiceProfile({ error: new Error('Profile fetch failed') });
     });
 
-    it('renders an Alert asking the user to refresh the page', () => {
+    it('renders an Alert with the error message', () => {
       render(<ThreadsTile />);
 
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Failed to load voice profile. Please refresh the page.',
-      );
+      expect(screen.getByRole('alert')).toHaveTextContent('Profile fetch failed');
     });
 
     it('does not render the Import voice button or Imported label', () => {

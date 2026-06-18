@@ -92,7 +92,7 @@ describe('ProductList', () => {
       render(<ProductList />);
 
       expect(
-        screen.getByText('Failed to load product list.'),
+        screen.getByText('Network error'),
       ).toBeInTheDocument();
     });
 

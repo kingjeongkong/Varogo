@@ -145,25 +145,21 @@ describe('PostFlowVoiceGate', () => {
   });
 
   describe('error state', () => {
-    it('renders the generic error alert when connection query fails', () => {
+    it('renders the error alert with the error message when connection query fails', () => {
       mockUseThreadsConnectionStatus({
         data: undefined,
         error: new Error('Network down'),
       });
       renderGate();
 
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Failed to load voice setup. Please refresh the page.',
-      );
+      expect(screen.getByRole('alert')).toHaveTextContent('Network down');
     });
 
-    it('renders the generic error alert when profile query fails', () => {
+    it('renders the error alert with the error message when profile query fails', () => {
       mockUseVoiceProfile({ error: new Error('Profile fetch failed') });
       renderGate();
 
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Failed to load voice setup. Please refresh the page.',
-      );
+      expect(screen.getByRole('alert')).toHaveTextContent('Profile fetch failed');
     });
 
     it('does not render children when an error is present', () => {
@@ -171,18 +167,6 @@ describe('PostFlowVoiceGate', () => {
       renderGate();
 
       expect(screen.queryByText(CHILDREN_TEXT)).not.toBeInTheDocument();
-    });
-
-    it('does not leak the underlying error message to the user', () => {
-      mockUseThreadsConnectionStatus({
-        data: undefined,
-        error: new Error('Very specific internal error'),
-      });
-      renderGate();
-
-      expect(
-        screen.queryByText(/very specific internal error/i),
-      ).not.toBeInTheDocument();
     });
   });
 

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { ThreadsPost } from '@/lib/types';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { ApiError } from '@/lib/http-client';
 import { useThreadsConnectionStatus } from '@/features/threads';
 import { useProducts } from '@/features/product';
 import type { KeywordChip } from '../types';
@@ -221,7 +222,14 @@ export function ExploreClient() {
         </div>
 
         {exploreMutation.isError && (
-          <Alert>{exploreMutation.error.message}</Alert>
+          <Alert>
+            <span>{exploreMutation.error.message}</span>
+            {exploreMutation.error instanceof ApiError && exploreMutation.error.code === 'THREADS_TOKEN_EXPIRED' && (
+              <Link href="/integrations" className="ml-2 underline font-medium">
+                Reconnect Threads
+              </Link>
+            )}
+          </Alert>
         )}
       </section>
 

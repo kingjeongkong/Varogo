@@ -120,10 +120,10 @@ export function ThreadsTile() {
       </div>
 
       {connectMutation.isError && (
-        <Alert>{connectMutation.error.message}</Alert>
+        <Alert>{connectMutation.error?.message}</Alert>
       )}
       {disconnectMutation.isError && (
-        <Alert>{disconnectMutation.error.message}</Alert>
+        <Alert>{disconnectMutation.error?.message}</Alert>
       )}
 
       {isConnected && <VoiceRow />}
