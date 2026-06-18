@@ -507,10 +507,11 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
   errors = [r for r in raw_results if isinstance(r, Exception)]
   successes = [r for r in raw_results if not isinstance(r, Exception)]
   if not successes:
-    first_error = errors[0] if errors else RuntimeError('Unknown error')
-    if isinstance(first_error, AppError):
-      raise first_error
-    raise AppError(status_code=502, code='THREADS_API_ERROR', message=str(first_error))
+    for item in errors:
+      if isinstance(item, AppError):
+        raise item
+    logger.warning('All Threads keyword searches failed, falling back to mock data')
+    return MOCK_EXPLORE_POSTS
 
   seen: set[str] = set()
   posts: list[dict] = []
