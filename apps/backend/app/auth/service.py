@@ -287,4 +287,5 @@ async def reset_password(
     raise HTTPException(status_code=401, detail='Invalid or expired reset token')
 
   user.password_hash = hash_password(new_password)
+  await session.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id))
   await session.commit()
