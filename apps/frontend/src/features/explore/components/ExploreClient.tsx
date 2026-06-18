@@ -204,24 +204,28 @@ export function ExploreClient() {
         )}
 
         {/* Search button */}
-        <Button
-          loading={exploreMutation.isPending}
-          loadingText="Searching..."
-          disabled={chips.length === 0 || exploreMutation.isPending}
-          onClick={() =>
-            exploreMutation.mutate(chips.map((c) => c.label), {
-              onSuccess: (data) => {
-                setPosts(data.posts);
-              },
-            })
-          }
-        >
-          Search
-        </Button>
+        <div className="pt-2">
+          <Button
+            loading={exploreMutation.isPending}
+            loadingText="Searching..."
+            disabled={chips.length === 0 || exploreMutation.isPending}
+            onClick={() =>
+              exploreMutation.mutate(chips.map((c) => c.label), {
+                onSuccess: (data) => {
+                  setPosts(data.posts);
+                },
+              })
+            }
+          >
+            Search
+          </Button>
+        </div>
 
         {exploreMutation.isError && (
           <Alert>
-            {exploreMutation.error instanceof ApiError && exploreMutation.error.status === 502
+            {exploreMutation.error instanceof ApiError && exploreMutation.error.status === 401
+              ? 'Your Threads session has expired. Please reconnect your account in Integrations.'
+              : exploreMutation.error instanceof ApiError && exploreMutation.error.status === 502
               ? `Threads API error: ${exploreMutation.error.message}`
               : 'Failed to search posts. Please try again.'}
           </Alert>
