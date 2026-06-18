@@ -2,8 +2,8 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
 
+from app.core.exceptions import AppError
 from app.voice_profile.voice_analysis_service import REFERENCE_SAMPLE_COUNT, analyze
 
 MOCK_FINGERPRINT = {
@@ -78,10 +78,11 @@ async def test_analyze_gemini_empty_response_raises_500():
     'app.voice_profile.voice_analysis_service.get_gemini_client',
     return_value=client,
   ):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await analyze(_make_units(6))
 
   assert exc_info.value.status_code == 500
+  assert exc_info.value.code == 'VOICE_EXTRACTION_FAILED'
 
 
 async def test_analyze_gemini_call_raises_500():
@@ -92,10 +93,11 @@ async def test_analyze_gemini_call_raises_500():
     'app.voice_profile.voice_analysis_service.get_gemini_client',
     return_value=client,
   ):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await analyze(_make_units(6))
 
   assert exc_info.value.status_code == 500
+  assert exc_info.value.code == 'VOICE_EXTRACTION_FAILED'
 
 
 async def test_analyze_gemini_missing_required_fields_raises_500():
@@ -109,7 +111,8 @@ async def test_analyze_gemini_missing_required_fields_raises_500():
     'app.voice_profile.voice_analysis_service.get_gemini_client',
     return_value=client,
   ):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await analyze(_make_units(6))
 
   assert exc_info.value.status_code == 500
+  assert exc_info.value.code == 'VOICE_EXTRACTION_FAILED'
