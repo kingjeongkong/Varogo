@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { ThreadsPost } from '@/lib/types';
-import { ApiError } from '@/lib/http-client';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { useThreadsConnectionStatus } from '@/features/threads';
@@ -72,7 +71,7 @@ export function ExploreClient() {
 
   if (connectionError) {
     return (
-      <Alert>Failed to load Threads connection status. Please refresh the page.</Alert>
+      <Alert>{connectionError.message}</Alert>
     );
   }
 
@@ -150,7 +149,7 @@ export function ExploreClient() {
         </Button>
 
         {keywordsMutation.isError && (
-          <Alert>Failed to generate keywords. Please try again.</Alert>
+          <Alert>{keywordsMutation.error.message}</Alert>
         )}
 
         {/* Keywords area */}
@@ -222,13 +221,7 @@ export function ExploreClient() {
         </div>
 
         {exploreMutation.isError && (
-          <Alert>
-            {exploreMutation.error instanceof ApiError && exploreMutation.error.status === 401
-              ? 'Your Threads session has expired. Please reconnect your account in Integrations.'
-              : exploreMutation.error instanceof ApiError && exploreMutation.error.status === 502
-              ? `Threads API error: ${exploreMutation.error.message}`
-              : 'Failed to search posts. Please try again.'}
-          </Alert>
+          <Alert>{exploreMutation.error.message}</Alert>
         )}
       </section>
 

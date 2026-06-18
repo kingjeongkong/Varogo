@@ -24,7 +24,7 @@ export default function AnalysisPage({
 
       {error && (
         <div className="glass-card p-8 text-center">
-          <p className="text-error text-sm">Failed to load analysis result.</p>
+          <p className="text-error text-sm">{error.message}</p>
         </div>
       )}
 

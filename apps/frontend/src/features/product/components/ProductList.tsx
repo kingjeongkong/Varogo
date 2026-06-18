@@ -30,7 +30,7 @@ export function ProductList() {
   if (error) {
     return (
       <div className="glass-card p-8 text-center">
-        <p className="text-error text-sm">Failed to load product list.</p>
+        <p className="text-error text-sm">{error.message}</p>
       </div>
     );
   }
