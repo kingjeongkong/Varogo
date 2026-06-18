@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Annotated, Optional
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
@@ -46,7 +46,7 @@ class KeywordsResponse(BaseModel):
 
 
 class ExploreRequest(BaseModel):
-  keywords: list[str] = Field(min_length=1)
+  keywords: list[Annotated[str, Field(min_length=1, max_length=100)]] = Field(min_length=1, max_length=5)
 
 
 class ThreadsPostItem(BaseModel):
