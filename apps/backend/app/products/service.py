@@ -33,6 +33,11 @@ async def get_one(product_id: str, user_id: str, session: AsyncSession) -> Produ
 
 async def create(user_id: str, data: dict, session: AsyncSession) -> Product:
   analysis_result = await analysis_service.analyze(data)
+  product_name = data['name']
+  stmt = analysis_result.get('positioning_statement', '')
+  for placeholder in ('[product]', '[Product Name]', '[product name]', '[Product name]'):
+    stmt = stmt.replace(placeholder, product_name)
+  analysis_result['positioning_statement'] = stmt
   now = datetime.now(timezone.utc).replace(tzinfo=None)
   product_id = str(uuid.uuid4())
 

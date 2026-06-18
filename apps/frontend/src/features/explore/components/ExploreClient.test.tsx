@@ -45,7 +45,6 @@ import { generateKeywords, explorePosts } from '../api-client';
 const MOCK_PRODUCTS: Product[] = [
   {
     id: 'prod-1',
-    userId: 'u-1',
     name: 'My SaaS',
     url: 'https://myapp.com',
     oneLiner: 'Helps devs ship faster',

@@ -61,10 +61,17 @@ export async function apiFetch<T>(
     try {
       await refreshPromise;
     } catch {
+      window.location.href = '/login';
       throw err;
     }
 
-    // 재시도 — 실패 시 호출자에게 전파 (AuthProvider가 에러 처리)
-    return await baseFetch<T>(url, opts);
+    try {
+      return await baseFetch<T>(url, opts);
+    } catch (retryErr) {
+      if (retryErr instanceof ApiError && retryErr.status === 401) {
+        window.location.href = '/login';
+      }
+      throw retryErr;
+    }
   }
 }

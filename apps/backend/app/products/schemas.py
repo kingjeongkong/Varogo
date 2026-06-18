@@ -94,7 +94,6 @@ class ProductResponse(BaseModel):
   )
 
   id: str
-  user_id: str
   name: str
   url: str
   one_liner: str

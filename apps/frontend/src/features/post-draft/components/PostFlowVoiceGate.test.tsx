@@ -80,7 +80,6 @@ const MOCK_STYLE_FINGERPRINT: StyleFingerprint = {
 
 const MOCK_VOICE_PROFILE: VoiceProfileResponse = {
   id: 'vp-1',
-  userId: 'u-1',
   source: 'threads_import',
   sampleCount: 25,
   styleFingerprint: MOCK_STYLE_FINGERPRINT,

@@ -34,7 +34,6 @@ function mockUseProducts(overrides: Record<string, unknown> = {}) {
 const MOCK_PRODUCTS: Product[] = [
   {
     id: 'prod-1',
-    userId: 'user-1',
     name: 'Varogo',
     url: 'https://varo-go.com',
     oneLiner: 'X 마케팅 전략 자동화 도구',
@@ -46,7 +45,6 @@ const MOCK_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-2',
-    userId: 'user-1',
     name: 'My SaaS',
     url: 'https://my-saas.dev',
     oneLiner: 'SaaS for developers',
