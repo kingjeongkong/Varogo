@@ -3,12 +3,12 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import HTTPException
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.discord import notify_published
+from app.core.exceptions import AppError
 from app.post_draft.generation_pipeline import graph as generation_pipeline
 from app.post_draft.models import PostDraft, PostDraftOption
 from app.products.models import Product, ProductAnalysis
@@ -80,7 +80,7 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
   product = product_result.scalar_one_or_none()
 
   if product is None or product.analysis is None:
-    raise HTTPException(status_code=404, detail='Product not found or analysis not available')
+    raise AppError(status_code=404, code='PRODUCT_NOT_FOUND', message='Product not found or analysis not available')
 
   # 2. Fetch voice profile
   vp_stmt = select(VoiceProfile).where(VoiceProfile.user_id == user_id)
@@ -88,7 +88,7 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
   voice_profile = vp_result.scalar_one_or_none()
 
   if voice_profile is None:
-    raise HTTPException(status_code=400, detail='Import your Threads voice first')
+    raise AppError(status_code=400, code='VOICE_PROFILE_REQUIRED', message='Import your Threads voice first')
 
   # 3. Build analysis dict
   pa: ProductAnalysis = product.analysis
@@ -171,7 +171,7 @@ async def find_one_by_user(
   draft = result.scalar_one_or_none()
 
   if draft is None:
-    raise HTTPException(status_code=404, detail='Post draft not found')
+    raise AppError(status_code=404, code='POST_DRAFT_NOT_FOUND', message='Post draft not found')
 
   return draft
 
@@ -187,13 +187,13 @@ async def update_draft(
 
   # 2. Status guard
   if draft.status != 'draft':
-    raise HTTPException(status_code=409, detail='Cannot modify a published draft')
+    raise AppError(status_code=409, code='POST_DRAFT_ALREADY_PUBLISHED', message='Cannot modify a published draft')
 
   # 3. Validate selected_option_id if provided
   if dto.get('selected_option_id') is not None:
     valid_ids = [o.id for o in draft.options]
     if dto['selected_option_id'] not in valid_ids:
-      raise HTTPException(status_code=400, detail='Invalid option id')
+      raise AppError(status_code=400, code='POST_DRAFT_INVALID_OPTION', message='Invalid option id')
 
   # 4. Build update data
   data: dict = {}
@@ -247,7 +247,7 @@ async def publish_draft(
 
   # 2. Option must be selected
   if draft.selected_option_id is None:
-    raise HTTPException(status_code=400, detail='Select an option first')
+    raise AppError(status_code=400, code='POST_DRAFT_NO_OPTION_SELECTED', message='Select an option first')
 
   # 3. Atomic claim
   claim_result = await session.execute(
@@ -258,9 +258,10 @@ async def publish_draft(
   )
   claimed_id = claim_result.scalar_one_or_none()
   if claimed_id is None:
-    raise HTTPException(
+    raise AppError(
       status_code=409,
-      detail='This post is already being published or has been published. Please refresh.',
+      code='POST_DRAFT_PUBLISH_CONFLICT',
+      message='This post is already being published or has been published. Please refresh.',
     )
   await session.commit()
 

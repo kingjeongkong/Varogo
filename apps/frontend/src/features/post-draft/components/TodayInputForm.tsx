@@ -86,7 +86,7 @@ export function TodayInputForm({ productId, onCreated }: TodayInputFormProps) {
         {charCount} / {MAX_LENGTH}
       </div>
 
-      {mutation.isError && mutation.error.status !== 0 && (
+      {mutation.isError && (mutation.error as { status?: number }).status !== 0 && (
         <Alert>{mutation.error.message}</Alert>
       )}
 

@@ -134,6 +134,7 @@ function errorState(refetch = vi.fn()): HookReturn {
     data: undefined,
     isLoading: false,
     isError: true,
+    error: new Error('Failed to load posts.'),
     refetch,
     hasNextPage: false,
     isFetchingNextPage: false,

@@ -33,6 +33,7 @@ export function PostsListClient({ productId }: PostsListClientProps) {
     data,
     isLoading,
     isError,
+    error,
     refetch,
     hasNextPage,
     isFetchingNextPage,
@@ -86,7 +87,7 @@ export function PostsListClient({ productId }: PostsListClientProps) {
         {isError && (
           <Alert>
             <div className="flex items-center justify-between gap-4">
-              <span>Failed to load posts.</span>
+              <span>{error?.message}</span>
               <button
                 type="button"
                 onClick={() => refetch()}

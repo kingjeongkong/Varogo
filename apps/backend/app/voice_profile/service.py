@@ -2,10 +2,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import AppError
 from app.threads.service import fetch_voice_units
 from app.voice_profile.models import VoiceProfile
 from app.voice_profile.presets import PRESET_FINGERPRINTS
@@ -19,9 +19,10 @@ async def import_from_threads(user_id: str, session: AsyncSession) -> VoiceProfi
   units = await fetch_voice_units(user_id, session)
 
   if len(units) < MIN_VOICE_UNITS:
-    raise HTTPException(
+    raise AppError(
       status_code=400,
-      detail=f'Need at least {MIN_VOICE_UNITS} Threads posts to import voice (found {len(units)}).',
+      code='VOICE_UNITS_INSUFFICIENT',
+      message=f'Need at least {MIN_VOICE_UNITS} Threads posts to import voice (found {len(units)}).',
     )
 
   result = await analyze(units)

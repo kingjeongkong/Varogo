@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { ThreadsPost } from '@/lib/types';
-import { ApiError } from '@/lib/http-client';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { ApiError } from '@/lib/http-client';
 import { useThreadsConnectionStatus } from '@/features/threads';
 import { useProducts } from '@/features/product';
 import type { KeywordChip } from '../types';
@@ -72,7 +72,7 @@ export function ExploreClient() {
 
   if (connectionError) {
     return (
-      <Alert>Failed to load Threads connection status. Please refresh the page.</Alert>
+      <Alert>{connectionError.message}</Alert>
     );
   }
 
@@ -150,7 +150,7 @@ export function ExploreClient() {
         </Button>
 
         {keywordsMutation.isError && (
-          <Alert>Failed to generate keywords. Please try again.</Alert>
+          <Alert>{keywordsMutation.error.message}</Alert>
         )}
 
         {/* Keywords area */}
@@ -223,11 +223,12 @@ export function ExploreClient() {
 
         {exploreMutation.isError && (
           <Alert>
-            {exploreMutation.error instanceof ApiError && exploreMutation.error.status === 401
-              ? 'Your Threads session has expired. Please reconnect your account in Integrations.'
-              : exploreMutation.error instanceof ApiError && exploreMutation.error.status === 502
-              ? `Threads API error: ${exploreMutation.error.message}`
-              : 'Failed to search posts. Please try again.'}
+            <span>{exploreMutation.error.message}</span>
+            {exploreMutation.error instanceof ApiError && exploreMutation.error.code === 'THREADS_TOKEN_EXPIRED' && (
+              <Link href="/integrations" className="ml-2 underline font-medium">
+                Reconnect Threads
+              </Link>
+            )}
           </Alert>
         )}
       </section>

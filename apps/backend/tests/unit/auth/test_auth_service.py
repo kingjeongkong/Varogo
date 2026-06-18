@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
+from app.core.exceptions import AppError
 
 from app.auth.service import get_me, login, logout, refresh, signup
 
@@ -25,7 +25,7 @@ def _session(*execute_returns):
 
 async def test_signup_duplicate_email_raises_409():
   session = _session(MagicMock())  # existing user found
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await signup('existing@test.com', 'pw', None, session)
   assert exc_info.value.status_code == 409
 
@@ -48,7 +48,7 @@ async def test_signup_hashes_password_before_storing():
 
 async def test_login_user_not_found_raises_401():
   session = _session(None)
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await login('no@one.com', 'pw', session)
   assert exc_info.value.status_code == 401
 
@@ -57,7 +57,7 @@ async def test_login_no_password_hash_raises_401():
   user = MagicMock()
   user.password_hash = None
   session = _session(user)
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await login('test@test.com', 'pw', session)
   assert exc_info.value.status_code == 401
 
@@ -67,7 +67,7 @@ async def test_login_wrong_password_raises_401():
   user.password_hash = 'some_hash'
   session = _session(user)
   with patch('app.auth.service.verify_password', return_value=False):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await login('test@test.com', 'wrong', session)
   assert exc_info.value.status_code == 401
 
@@ -78,7 +78,7 @@ async def test_login_wrong_password_raises_401():
 
 async def test_refresh_missing_token_raises_401():
   session = AsyncMock()
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await refresh(None, session)
   assert exc_info.value.status_code == 401
 
@@ -86,7 +86,7 @@ async def test_refresh_missing_token_raises_401():
 async def test_refresh_invalid_token_raises_401():
   session = AsyncMock()
   with patch('app.auth.service._rotate_refresh_token', AsyncMock(return_value=None)):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await refresh('bad-token', session)
   assert exc_info.value.status_code == 401
 
@@ -96,7 +96,7 @@ async def test_refresh_user_not_found_after_rotate_raises_401():
   session.execute = AsyncMock(return_value=_result(None))
   rotate_result = {'token': 'new-refresh', 'user_id': 'deleted-user'}
   with patch('app.auth.service._rotate_refresh_token', AsyncMock(return_value=rotate_result)):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await refresh('old-token', session)
   assert exc_info.value.status_code == 401
 
@@ -118,7 +118,7 @@ async def test_logout_executes_delete_and_commits():
 
 async def test_get_me_user_not_found_raises_401():
   session = _session(None)
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await get_me('deleted-user', session)
   assert exc_info.value.status_code == 401
 

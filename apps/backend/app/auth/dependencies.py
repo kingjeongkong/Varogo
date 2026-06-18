@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from fastapi import Cookie, HTTPException
+from fastapi import Cookie
 from jose import JWTError
+from app.core.exceptions import AppError
 from app.core.security import decode_access_token
 
 
@@ -12,9 +13,9 @@ class CurrentUser:
 
 async def get_current_user(access_token: str | None = Cookie(None)) -> CurrentUser:
   if access_token is None:
-    raise HTTPException(status_code=401, detail='Not authenticated')
+    raise AppError(status_code=401, code='NOT_AUTHENTICATED', message='Not authenticated')
   try:
     payload = decode_access_token(access_token)
     return CurrentUser(sub=payload['sub'], email=payload['email'])
   except (JWTError, KeyError):
-    raise HTTPException(status_code=401, detail='Invalid or expired token')
+    raise AppError(status_code=401, code='INVALID_TOKEN', message='Invalid or expired token')

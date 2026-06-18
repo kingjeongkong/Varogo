@@ -1,8 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
 
+from app.core.exceptions import AppError
 from app.voice_profile.schemas import CustomImportRequest, PasteImportRequest, PresetImportRequest
 from app.voice_profile.service import find_one, import_from_threads, import_manual
 
@@ -37,10 +37,11 @@ async def test_import_fewer_than_5_units_raises_400():
     'app.voice_profile.service.fetch_voice_units',
     AsyncMock(return_value=_make_units(4)),
   ):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await import_from_threads('user-1', session)
   assert exc_info.value.status_code == 400
-  assert '5' in exc_info.value.detail
+  assert exc_info.value.code == 'VOICE_UNITS_INSUFFICIENT'
+  assert '5' in exc_info.value.message
 
 
 async def test_import_creates_new_profile_when_none_exists():

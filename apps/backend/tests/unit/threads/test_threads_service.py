@@ -3,8 +3,8 @@ import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
 
+from app.core.exceptions import AppError
 from app.threads.service import (
   _verify_state,
   _wait_for_container_ready,
@@ -82,16 +82,17 @@ def test_verify_state_valid_returns_user_id():
 
 
 def test_verify_state_expired_raises_401():
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     _verify_state(_expired_state())
   assert exc_info.value.status_code == 401
-  assert 'expired' in exc_info.value.detail
+  assert exc_info.value.code == 'THREADS_OAUTH_STATE_EXPIRED'
 
 
 def test_verify_state_invalid_token_raises_401():
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     _verify_state('garbage-not-a-real-state')
   assert exc_info.value.status_code == 401
+  assert exc_info.value.code == 'THREADS_INVALID_OAUTH_STATE'
 
 
 # ---------------------------------------------------------------------------
@@ -117,38 +118,42 @@ async def test_wait_for_container_error_with_message_raises_500():
   with patch('app.threads.service._fetch_with_timeout', AsyncMock(return_value=_http_response('ERROR', 'Content policy violation'))), \
        patch('app.threads.service.asyncio.sleep', AsyncMock()), \
        patch('app.threads.service.time.monotonic', side_effect=[0, 5]):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await _wait_for_container_ready('cid', 'token')
   assert exc_info.value.status_code == 500
-  assert 'Content policy violation' in exc_info.value.detail
+  assert exc_info.value.code == 'THREADS_POST_CONTENT_REJECTED'
+  assert 'Content policy violation' in exc_info.value.message
 
 
 async def test_wait_for_container_error_no_message_raises_500():
   with patch('app.threads.service._fetch_with_timeout', AsyncMock(return_value=_http_response('ERROR'))), \
        patch('app.threads.service.asyncio.sleep', AsyncMock()), \
        patch('app.threads.service.time.monotonic', side_effect=[0, 5]):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await _wait_for_container_ready('cid', 'token')
   assert exc_info.value.status_code == 500
-  assert 'rejected' in exc_info.value.detail
+  assert exc_info.value.code == 'THREADS_POST_CONTENT_REJECTED'
+  assert 'rejected' in exc_info.value.message
 
 
 async def test_wait_for_container_expired_raises_500():
   with patch('app.threads.service._fetch_with_timeout', AsyncMock(return_value=_http_response('EXPIRED'))), \
        patch('app.threads.service.asyncio.sleep', AsyncMock()), \
        patch('app.threads.service.time.monotonic', side_effect=[0, 5]):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await _wait_for_container_ready('cid', 'token')
   assert exc_info.value.status_code == 500
+  assert exc_info.value.code == 'THREADS_POST_EXPIRED'
 
 
 async def test_wait_for_container_timeout_raises_500():
   # deadline = 0 + 10 = 10; loop check returns 15 → timeout
   with patch('app.threads.service.time.monotonic', side_effect=[0, 15]):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await _wait_for_container_ready('cid', 'token')
   assert exc_info.value.status_code == 500
-  assert 'taking longer than usual' in exc_info.value.detail
+  assert exc_info.value.code == 'THREADS_PUBLISH_TIMEOUT'
+  assert 'taking longer than usual' in exc_info.value.message
 
 
 async def test_wait_for_container_401_response_raises_401():
@@ -158,9 +163,10 @@ async def test_wait_for_container_401_response_raises_401():
   with patch('app.threads.service._fetch_with_timeout', AsyncMock(return_value=resp)), \
        patch('app.threads.service.asyncio.sleep', AsyncMock()), \
        patch('app.threads.service.time.monotonic', side_effect=[0, 5]):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await _wait_for_container_ready('cid', 'token')
   assert exc_info.value.status_code == 401
+  assert exc_info.value.code == 'THREADS_TOKEN_EXPIRED'
 
 
 async def test_wait_for_container_fetch_throws_then_retries_and_finishes():
@@ -178,15 +184,15 @@ async def test_wait_for_container_fetch_throws_then_retries_and_finishes():
 
 async def test_handle_callback_expired_state_raises_401():
   session = AsyncMock()
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await handle_callback('code', _expired_state(), session)
   assert exc_info.value.status_code == 401
 
 
 async def test_handle_callback_code_exchange_fails_raises_500():
   session = AsyncMock()
-  with patch('app.threads.service._exchange_code_for_token', AsyncMock(side_effect=HTTPException(status_code=500, detail='Failed'))):
-    with pytest.raises(HTTPException) as exc_info:
+  with patch('app.threads.service._exchange_code_for_token', AsyncMock(side_effect=AppError(status_code=500, code='THREADS_TOKEN_EXCHANGE_FAILED', message='Failed'))):
+    with pytest.raises(AppError) as exc_info:
       await handle_callback('code', _valid_state(), session)
   assert exc_info.value.status_code == 500
 
@@ -195,8 +201,8 @@ async def test_handle_callback_profile_fetch_fails_raises_500():
   session = AsyncMock()
   with patch('app.threads.service._exchange_code_for_token', AsyncMock(return_value='short-token')), \
        patch('app.threads.service._exchange_for_long_lived_token', AsyncMock(return_value=('long-token', 5184000))), \
-       patch('app.threads.service._fetch_profile', AsyncMock(side_effect=HTTPException(status_code=500, detail='Failed'))):
-    with pytest.raises(HTTPException) as exc_info:
+       patch('app.threads.service._fetch_profile', AsyncMock(side_effect=AppError(status_code=500, code='THREADS_PROFILE_FETCH_FAILED', message='Failed'))):
+    with pytest.raises(AppError) as exc_info:
       await handle_callback('code', _valid_state(), session)
   assert exc_info.value.status_code == 500
 
@@ -239,9 +245,10 @@ async def test_get_connection_returns_none_when_not_found():
 async def test_disconnect_not_found_raises_404():
   session = AsyncMock()
   session.execute = AsyncMock(return_value=_result(None))
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await disconnect('user-1', session)
   assert exc_info.value.status_code == 404
+  assert exc_info.value.code == 'THREADS_CONNECTION_NOT_FOUND'
 
 
 async def test_disconnect_deletes_connection_and_commits():
@@ -260,9 +267,10 @@ async def test_disconnect_deletes_connection_and_commits():
 async def test_publish_to_threads_no_connection_raises_404():
   session = AsyncMock()
   session.execute = AsyncMock(return_value=_result(None))
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await publish_to_threads('user-1', 'hello', session)
   assert exc_info.value.status_code == 404
+  assert exc_info.value.code == 'THREADS_CONNECTION_NOT_FOUND'
 
 
 async def test_publish_to_threads_container_creation_fails_raises_500():
@@ -275,9 +283,10 @@ async def test_publish_to_threads_container_creation_fails_raises_500():
 
   with patch('app.threads.service._resolve_access_token', AsyncMock(return_value='token')), \
        patch('app.threads.service._fetch_with_timeout', AsyncMock(return_value=fail_resp)):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
       await publish_to_threads('user-1', 'hello', session)
   assert exc_info.value.status_code == 500
+  assert exc_info.value.code == 'THREADS_PUBLISH_CONTAINER_FAILED'
 
 
 async def test_publish_to_threads_happy_path_returns_media_id_and_permalink():
@@ -411,9 +420,10 @@ async def test_publish_to_threads_permalink_fetch_fails_returns_null():
 async def test_fetch_voice_units_no_connection_raises_404():
   session = AsyncMock()
   session.execute = AsyncMock(return_value=_result(None))
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await fetch_voice_units('user-1', session)
   assert exc_info.value.status_code == 404
+  assert exc_info.value.code == 'THREADS_CONNECTION_NOT_FOUND'
 
 
 async def test_fetch_voice_units_own_replies_concatenated_into_unit():

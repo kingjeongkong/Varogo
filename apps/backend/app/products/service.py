@@ -1,11 +1,11 @@
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.exceptions import AppError
 from app.products import analysis_service
 from app.products.models import Product, ProductAnalysis
 
@@ -27,7 +27,7 @@ async def get_one(product_id: str, user_id: str, session: AsyncSession) -> Produ
   )
   product = result.scalar_one_or_none()
   if product is None:
-    raise HTTPException(status_code=404, detail='Product not found')
+    raise AppError(status_code=404, code='PRODUCT_NOT_FOUND', message='Product not found')
   return product
 
 

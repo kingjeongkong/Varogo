@@ -41,7 +41,7 @@ export function PostFlowVoiceGate({ children }: PostFlowVoiceGateProps) {
   if (connectionError || profileError) {
     return (
       <Alert>
-        Failed to load voice setup. Please refresh the page.
+        {(connectionError ?? profileError)!.message}
       </Alert>
     );
   }

@@ -62,9 +62,7 @@ export function ThreadsTile() {
         <h2 id={headingId} className="sr-only">
           Threads
         </h2>
-        <Alert>
-          Failed to load connection status. Please refresh the page.
-        </Alert>
+        <Alert>{connectionError.message}</Alert>
       </section>
     );
   }
@@ -121,12 +119,11 @@ export function ThreadsTile() {
         )}
       </div>
 
-      {(connectMutation.isError || disconnectMutation.isError) && (
-        <Alert>
-          {connectMutation.isError
-            ? 'Failed to connect account. Please try again.'
-            : 'Failed to disconnect account. Please try again.'}
-        </Alert>
+      {connectMutation.isError && (
+        <Alert>{connectMutation.error?.message}</Alert>
+      )}
+      {disconnectMutation.isError && (
+        <Alert>{disconnectMutation.error?.message}</Alert>
       )}
 
       {isConnected && <VoiceRow />}
@@ -175,7 +172,7 @@ function VoiceRow() {
       {profileLoading ? (
         <div className="skeleton h-10 w-full" />
       ) : profileError ? (
-        <Alert>Failed to load voice profile. Please refresh the page.</Alert>
+        <Alert>{profileError.message}</Alert>
       ) : !profile ? (
         <Button
           variant="outline"

@@ -1,7 +1,7 @@
 import json
 import logging
 
-from fastapi import HTTPException
+from app.core.exceptions import AppError
 from google.genai import types
 
 from app.llm.gemini import get_gemini_client
@@ -95,7 +95,7 @@ async def _call_gemini(prompt: str) -> dict:
     )
     raw = result.text
     if not raw:
-      raise HTTPException(status_code=500, detail='Voice extraction failed')
+      raise AppError(status_code=500, code='VOICE_EXTRACTION_FAILED', message='Voice extraction failed')
 
     parsed = json.loads(raw)
     if (
@@ -103,14 +103,14 @@ async def _call_gemini(prompt: str) -> dict:
       not isinstance(parsed.get('openingPatterns'), list) or
       not isinstance(parsed.get('signaturePhrases'), list)
     ):
-      raise HTTPException(status_code=500, detail='Voice extraction returned incomplete data')
+      raise AppError(status_code=500, code='VOICE_EXTRACTION_FAILED', message='Voice extraction returned incomplete data')
 
     return parsed
-  except HTTPException:
+  except AppError:
     raise
   except Exception:
     logger.exception('Voice extraction failed')
-    raise HTTPException(status_code=500, detail='Voice extraction failed')
+    raise AppError(status_code=500, code='VOICE_EXTRACTION_FAILED', message='Voice extraction failed')
 
 
 async def _extract_qualitative(units: list[dict]) -> dict:

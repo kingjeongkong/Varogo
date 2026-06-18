@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
+from app.core.exceptions import AppError
 
 from app.auth.service import google_oauth_callback
 
@@ -68,7 +68,7 @@ async def test_google_oauth_callback_email_conflict_raises_409():
 
   session = _session(None, existing_user)
 
-  with pytest.raises(HTTPException) as exc_info:
+  with pytest.raises(AppError) as exc_info:
     await google_oauth_callback('google-sub-333', 'conflict@example.com', 'Conflict User', None, session)
 
   assert exc_info.value.status_code == 409

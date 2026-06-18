@@ -8,6 +8,18 @@ from sqlalchemy.exc import SQLAlchemyError
 logger = logging.getLogger(__name__)
 
 
+class AppError(Exception):
+  def __init__(self, status_code: int, code: str, message: str) -> None:
+    super().__init__(message)
+    self.status_code = status_code
+    self.code = code
+    self.message = message
+
+
+async def _app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+  return JSONResponse(status_code=exc.status_code, content={'code': exc.code, 'message': exc.message})
+
+
 def _make_serializable(errors: list) -> list:
   result = []
   for error in errors:
@@ -34,6 +46,7 @@ async def _generic_exception_handler(request: Request, exc: Exception) -> JSONRe
 
 
 def setup_exception_handlers(app: FastAPI) -> None:
+  app.add_exception_handler(AppError, _app_error_handler)
   app.add_exception_handler(RequestValidationError, _validation_exception_handler)
   app.add_exception_handler(SQLAlchemyError, _sqlalchemy_exception_handler)
   app.add_exception_handler(Exception, _generic_exception_handler)

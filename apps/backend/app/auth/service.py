@@ -4,7 +4,6 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import HTTPException
 from jose import JWTError
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +13,7 @@ from app.auth.schemas import UserResponse
 from app.core.config import settings
 from app.core.discord import notify_signup
 from app.core.email import send_password_reset_email
+from app.core.exceptions import AppError
 from app.core.security import create_access_token, create_password_reset_token, decode_password_reset_token, hash_password, verify_password
 
 
@@ -97,7 +97,7 @@ async def signup(
 ) -> dict:
   existing = await session.execute(select(User).where(User.email == email))
   if existing.scalar_one_or_none() is not None:
-    raise HTTPException(status_code=409, detail='Email already in use')
+    raise AppError(status_code=409, code='EMAIL_ALREADY_IN_USE', message='Email already in use')
 
   password_hash = hash_password(password)
   now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -127,10 +127,10 @@ async def login(
   result = await session.execute(select(User).where(User.email == email))
   user = result.scalar_one_or_none()
   if user is None or not user.password_hash:
-    raise HTTPException(status_code=401, detail='Invalid credentials')
+    raise AppError(status_code=401, code='INVALID_CREDENTIALS', message='Invalid credentials')
 
   if not verify_password(password, user.password_hash):
-    raise HTTPException(status_code=401, detail='Invalid credentials')
+    raise AppError(status_code=401, code='INVALID_CREDENTIALS', message='Invalid credentials')
 
   result = await _issue_tokens(user.id, user.email, user, session)
   await session.commit()
@@ -142,17 +142,17 @@ async def refresh(
   session: AsyncSession,
 ) -> dict:
   if not raw_token:
-    raise HTTPException(status_code=401, detail='Missing refresh token')
+    raise AppError(status_code=401, code='MISSING_REFRESH_TOKEN', message='Missing refresh token')
 
   new_expires_at = _refresh_expires_at()
   rotate_result = await _rotate_refresh_token(raw_token, new_expires_at, session)
   if rotate_result is None:
-    raise HTTPException(status_code=401, detail='Invalid or expired refresh token')
+    raise AppError(status_code=401, code='INVALID_REFRESH_TOKEN', message='Invalid or expired refresh token')
 
   user_result = await session.execute(select(User).where(User.id == rotate_result['user_id']))
   user = user_result.scalar_one_or_none()
   if user is None:
-    raise HTTPException(status_code=401, detail='User not found')
+    raise AppError(status_code=401, code='USER_NOT_FOUND', message='User not found')
 
   access_token = create_access_token(user.id, user.email)
   await session.commit()
@@ -177,7 +177,7 @@ async def get_me(
   result = await session.execute(select(User).where(User.id == user_id))
   user = result.scalar_one_or_none()
   if user is None:
-    raise HTTPException(status_code=401, detail='User not found')
+    raise AppError(status_code=401, code='USER_NOT_FOUND', message='User not found')
   return user
 
 
@@ -225,7 +225,7 @@ async def google_oauth_callback(
 
   if existing_user is not None and existing_user.password_hash is not None:
     # 3a. Email/password account conflict
-    raise HTTPException(status_code=409, detail='An account with this email already exists. Please log in with your email and password.')
+    raise AppError(status_code=409, code='EMAIL_CONFLICT_OAUTH', message='An account with this email already exists. Please log in with your email and password.')
 
   # 3b. No existing user — create new User
   if existing_user is None:
@@ -270,13 +270,13 @@ async def reset_password(
   try:
     payload = decode_password_reset_token(token)
   except JWTError:
-    raise HTTPException(status_code=401, detail='Invalid or expired reset token')
+    raise AppError(status_code=401, code='INVALID_RESET_TOKEN', message='Invalid or expired reset token')
 
   user_id = payload.get('sub')
   result = await session.execute(select(User).where(User.id == user_id))
   user = result.scalar_one_or_none()
   if user is None:
-    raise HTTPException(status_code=401, detail='Invalid or expired reset token')
+    raise AppError(status_code=401, code='INVALID_RESET_TOKEN', message='Invalid or expired reset token')
 
   expected_frag = hmac.new(
     settings.JWT_SECRET.encode(),
@@ -284,7 +284,7 @@ async def reset_password(
     hashlib.sha256,
   ).hexdigest()[:16]
   if payload.get('frag') != expected_frag:
-    raise HTTPException(status_code=401, detail='Invalid or expired reset token')
+    raise AppError(status_code=401, code='INVALID_RESET_TOKEN', message='Invalid or expired reset token')
 
   user.password_hash = hash_password(new_password)
   await session.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id))
