@@ -19,6 +19,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.llm.gemini import get_gemini_client
 from app.products.models import Product
+from app.threads.mock_explore import MOCK_EXPLORE_POSTS
 from app.threads.models import ThreadsConnection
 from app.threads.threads_crypto import decrypt_token, encrypt_token
 
@@ -456,6 +457,10 @@ async def fetch_voice_units(user_id: str, session: AsyncSession) -> list[dict]:
 
 
 async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession) -> list[dict]:
+  if settings.THREADS_EXPLORE_MOCK:
+    await asyncio.sleep(3)
+    return MOCK_EXPLORE_POSTS
+
   result = await session.execute(
     select(ThreadsConnection).where(ThreadsConnection.user_id == user_id)
   )
