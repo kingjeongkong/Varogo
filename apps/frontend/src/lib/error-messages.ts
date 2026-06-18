@@ -1,4 +1,5 @@
 export const ERROR_MESSAGES: Record<string, string> = {
+  // --- Auth ---
   INVALID_CREDENTIALS: 'Incorrect email or password.',
   EMAIL_ALREADY_IN_USE: 'An account with this email already exists.',
   EMAIL_CONFLICT_OAUTH: 'An account with this email already exists. Please log in with your email and password.',
@@ -8,10 +9,17 @@ export const ERROR_MESSAGES: Record<string, string> = {
   INVALID_REFRESH_TOKEN: 'Your session has expired. Please log in again.',
   USER_NOT_FOUND: 'Your session has expired. Please log in again.',
   INVALID_RESET_TOKEN: 'This reset link is invalid or has expired.',
+
+  // --- Products ---
   PRODUCT_NOT_FOUND: 'Product not found.',
   PRODUCT_ANALYSIS_FAILED: 'Analysis failed. Please try again.',
+
+  // --- Voice Profile ---
   VOICE_EXTRACTION_FAILED: 'Voice profile extraction failed. Please try again.',
   VOICE_PROFILE_REQUIRED: 'Please set up your voice profile before generating posts.',
+  VOICE_UNITS_INSUFFICIENT: 'Not enough Threads posts to build a voice profile.',
+
+  // --- Threads ---
   THREADS_TOKEN_EXCHANGE_FAILED: 'Failed to connect Threads account. Please try again.',
   THREADS_LONG_LIVED_TOKEN_FAILED: 'Failed to connect Threads account. Please try again.',
   THREADS_PROFILE_FETCH_FAILED: 'Failed to fetch Threads profile. Please try again.',
@@ -28,10 +36,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   THREADS_CONNECTION_NOT_FOUND: 'Threads account not connected.',
   THREADS_API_ERROR: 'Threads API returned an error. Please try again.',
   THREADS_KEYWORDS_FAILED: 'Failed to generate keywords. Please try again.',
+
+  // --- Post Draft ---
   POST_DRAFT_NOT_FOUND: 'Post draft not found.',
   POST_DRAFT_ALREADY_PUBLISHED: 'This post has already been published.',
   POST_DRAFT_INVALID_OPTION: 'Invalid option selected.',
   POST_DRAFT_NO_OPTION_SELECTED: 'Please select an option before publishing.',
   POST_DRAFT_PUBLISH_CONFLICT: 'This post is already being published. Please refresh.',
-  VOICE_UNITS_INSUFFICIENT: 'Not enough Threads posts to build a voice profile.',
 };
