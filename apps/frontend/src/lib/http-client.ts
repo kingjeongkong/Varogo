@@ -41,6 +41,8 @@ export async function baseFetch<T>(
 
 let refreshPromise: Promise<void> | null = null;
 
+const AUTH_PATHS = ['/auth/login', '/auth/signup', '/auth/refresh'];
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -52,6 +54,8 @@ export async function apiFetch<T>(
     return await baseFetch<T>(url, opts);
   } catch (err) {
     if (!(err instanceof ApiError) || err.status !== 401) throw err;
+    // Auth endpoints returning 401 mean bad credentials, not expired session
+    if (AUTH_PATHS.some((p) => path.startsWith(p))) throw err;
 
     // 동시 401 → 하나의 refresh만 실행
     if (!refreshPromise) {
