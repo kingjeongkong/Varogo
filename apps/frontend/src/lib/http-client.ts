@@ -23,7 +23,7 @@ export async function baseFetch<T>(
     let message = `API error: ${res.status}`;
     try {
       const parsed = JSON.parse(errorBody);
-      message = parsed.message ?? message;
+      message = parsed.detail ?? parsed.message ?? message;
     } catch {
       message = errorBody || message;
     }
