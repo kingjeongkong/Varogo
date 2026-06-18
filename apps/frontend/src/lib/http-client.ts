@@ -1,5 +1,5 @@
 import { ERROR_MESSAGES } from './error-messages';
-import { API_BASE_URL } from './constants';
+import { API_BASE_URL, PUBLIC_PAGE_PATHS } from './constants';
 
 export class ApiError extends Error {
   constructor(
@@ -42,8 +42,6 @@ export async function baseFetch<T>(
 let refreshPromise: Promise<void> | null = null;
 
 const AUTH_PATHS = ['/auth/login', '/auth/signup', '/auth/refresh'];
-
-const PUBLIC_PAGE_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password'];
 
 function redirectToLogin() {
   const isPublic = PUBLIC_PAGE_PATHS.some((p) => window.location.pathname.startsWith(p));
