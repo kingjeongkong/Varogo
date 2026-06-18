@@ -43,6 +43,13 @@ let refreshPromise: Promise<void> | null = null;
 
 const AUTH_PATHS = ['/auth/login', '/auth/signup', '/auth/refresh'];
 
+const PUBLIC_PAGE_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password'];
+
+function redirectToLogin() {
+  const isPublic = PUBLIC_PAGE_PATHS.some((p) => window.location.pathname.startsWith(p));
+  if (!isPublic) window.location.href = '/login';
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -70,7 +77,7 @@ export async function apiFetch<T>(
     try {
       await refreshPromise;
     } catch {
-      window.location.href = '/login';
+      redirectToLogin();
       throw err;
     }
 
@@ -78,7 +85,7 @@ export async function apiFetch<T>(
       return await baseFetch<T>(url, opts);
     } catch (retryErr) {
       if (retryErr instanceof ApiError && retryErr.status === 401) {
-        window.location.href = '/login';
+        redirectToLogin();
       }
       throw retryErr;
     }
