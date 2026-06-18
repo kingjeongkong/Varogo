@@ -32,6 +32,7 @@ class Settings(BaseSettings):
   THREADS_APP_SECRET: str
   THREADS_REDIRECT_URI: str
   THREADS_TOKEN_ENCRYPTION_KEY: str
+  THREADS_EXPLORE_MOCK: bool = False
 
   # Google OAuth
   GOOGLE_CLIENT_ID: str

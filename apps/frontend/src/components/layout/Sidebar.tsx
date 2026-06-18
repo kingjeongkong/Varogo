@@ -25,6 +25,12 @@ const NAV_ITEMS: NavItem[] = [
     isActive: (p) => matchesRoute(p, '/products') || matchesRoute(p, '/product'),
   },
   {
+    label: 'Explore',
+    href: '/explore',
+    icon: '📡',
+    isActive: (p) => matchesRoute(p, '/explore'),
+  },
+  {
     label: 'Integrations',
     href: '/integrations',
     icon: '🔌',

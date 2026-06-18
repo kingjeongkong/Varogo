@@ -131,3 +131,19 @@ export interface PostDraftsListResponse {
   nextOffset: number | null;
   total: number;
 }
+
+export interface ThreadsPost {
+  id: string;
+  username: string;
+  text: string;
+  timestamp: string;
+  permalink: string | null;
+}
+
+export interface GenerateKeywordsResponse {
+  keywords: string[];
+}
+
+export interface ExplorePostsResponse {
+  posts: ThreadsPost[];
+}

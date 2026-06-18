@@ -11,10 +11,15 @@ logger = logging.getLogger(__name__)
 
 import httpx
 from fastapi import HTTPException
+from google.genai import types
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
+from app.llm.gemini import get_gemini_client
+from app.products.models import Product
+from app.threads.mock_explore import MOCK_EXPLORE_POSTS
 from app.threads.models import ThreadsConnection
 from app.threads.threads_crypto import decrypt_token, encrypt_token
 
@@ -266,7 +271,7 @@ def generate_auth_url(user_id: str) -> str:
   params = urlencode({
     'client_id': settings.THREADS_APP_ID,
     'redirect_uri': settings.THREADS_REDIRECT_URI,
-    'scope': 'threads_basic,threads_content_publish',
+    'scope': 'threads_basic,threads_content_publish,threads_keyword_search',
     'response_type': 'code',
     'state': state,
   })
@@ -449,3 +454,153 @@ async def fetch_voice_units(user_id: str, session: AsyncSession) -> list[dict]:
 
   units.sort(key=lambda u: u['timestamp'], reverse=True)
   return units
+
+
+async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession) -> list[dict]:
+  if settings.THREADS_EXPLORE_MOCK:
+    await asyncio.sleep(3)
+    return MOCK_EXPLORE_POSTS
+
+  result = await session.execute(
+    select(ThreadsConnection).where(ThreadsConnection.user_id == user_id)
+  )
+  connection = result.scalar_one_or_none()
+  if connection is None:
+    raise HTTPException(status_code=404, detail='Threads connection not found')
+
+  access_token = await _resolve_access_token(connection, session)
+
+  async def _search_keyword(keyword: str) -> list[dict]:
+    params = urlencode({
+      'q': keyword,
+      'fields': 'id,text,timestamp,permalink,username',
+    })
+    response = await _fetch_with_timeout(
+      f'https://graph.threads.net/v1.0/threads/keyword_search?{params}',
+      headers={'Authorization': f'Bearer {access_token}'},
+    )
+    if response.status_code == 401:
+      raise HTTPException(status_code=401, detail='Threads token expired. Please reconnect your account.')
+    if not response.is_success:
+      try:
+        error_body = response.json()
+        error_msg = error_body.get('error', {}).get('message', f'HTTP {response.status_code}')
+        error_code = error_body.get('error', {}).get('code')
+      except Exception:
+        error_msg = response.text[:200] or f'HTTP {response.status_code}'
+        error_code = None
+      logger.warning('Threads keyword_search failed keyword=%r status=%d code=%s msg=%s', keyword, response.status_code, error_code, error_msg)
+      raise RuntimeError(f'Threads API error ({response.status_code}): {error_msg}')
+    body = response.json()
+    return body.get('data', [])
+
+  raw_results = await asyncio.gather(
+    *[_search_keyword(kw) for kw in keywords],
+    return_exceptions=True,
+  )
+
+  for item in raw_results:
+    if isinstance(item, HTTPException) and item.status_code == 401:
+      raise item
+
+  errors = [r for r in raw_results if isinstance(r, Exception)]
+  successes = [r for r in raw_results if not isinstance(r, Exception)]
+  if not successes:
+    first_error = errors[0] if errors else RuntimeError('Unknown error')
+    if isinstance(first_error, HTTPException):
+      raise first_error
+    raise HTTPException(status_code=502, detail=str(first_error))
+
+  seen: set[str] = set()
+  posts: list[dict] = []
+  for item in raw_results:
+    if isinstance(item, Exception):
+      continue
+    for post in item:
+      post_id = post.get('id')
+      if post_id and post_id not in seen:
+        seen.add(post_id)
+        posts.append({
+          'id': post_id,
+          'username': post.get('username') or '',
+          'text': post.get('text') or '',
+          'timestamp': post.get('timestamp'),
+          'permalink': post.get('permalink'),
+        })
+
+  posts.sort(key=lambda p: p.get('timestamp') or '', reverse=True)
+  return posts
+
+
+_KEYWORDS_SCHEMA = types.Schema(
+  type=types.Type.OBJECT,
+  properties={
+    'keywords': types.Schema(
+      type=types.Type.ARRAY,
+      items=types.Schema(type=types.Type.STRING),
+    ),
+  },
+)
+
+
+def _build_keywords_prompt(product: Product) -> str:
+  analysis = product.analysis
+  analysis_section = ''
+  if analysis is not None:
+    primary_keywords = analysis.keywords.get('primary', []) if analysis.keywords else []
+    analysis_section = f"""
+Product category: {analysis.category}
+Primary marketing keywords: {', '.join(primary_keywords)}"""
+
+  return f"""You are helping an indie developer find Threads search queries to discover relevant communities and conversations.
+
+Product name: {product.name}
+One-liner: {product.one_liner}
+URL: {product.url}{analysis_section}
+
+Generate 2-4 short keyword phrases (2-4 words each) that:
+- Are conversational and sound like something someone would post about on Threads
+- Reflect the niche this product belongs to
+- Work well as Threads search queries to find relevant posts and communities
+- Are specific enough to find the right audience (not generic like "software tool" or "productivity app")
+
+Examples of good keyword phrases: "indie dev tool launched", "developer productivity SaaS", "solo founder side project", "build in public launch"
+
+Return only the keyword phrases as a JSON array of strings."""
+
+
+async def generate_keywords(
+  product_id: str,
+  user_id: str,
+  session: AsyncSession,
+) -> list[str]:
+  result = await session.execute(
+    select(Product)
+    .where(Product.id == product_id, Product.user_id == user_id)
+    .options(selectinload(Product.analysis))
+  )
+  product = result.scalar_one_or_none()
+  if product is None:
+    raise HTTPException(status_code=404, detail='Product not found')
+
+  client = get_gemini_client()
+  prompt = _build_keywords_prompt(product)
+
+  try:
+    response = await client.aio.models.generate_content(
+      model='gemini-2.5-flash-lite',
+      contents=prompt,
+      config=types.GenerateContentConfig(
+        response_mime_type='application/json',
+        response_schema=_KEYWORDS_SCHEMA,
+      ),
+    )
+    raw = response.text
+    if not raw:
+      raise HTTPException(status_code=500, detail='Failed to generate keywords')
+    return json.loads(raw).get('keywords', [])
+  except HTTPException:
+    raise
+  except Exception:
+    logger.exception('Failed to generate keywords for product %s', product_id)
+    raise HTTPException(status_code=500, detail='Failed to generate keywords')

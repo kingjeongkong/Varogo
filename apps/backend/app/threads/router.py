@@ -9,7 +9,17 @@ from app.auth.dependencies import CurrentUser, get_current_user
 from app.core.config import settings
 from app.dependencies import get_db
 from app.threads import service
-from app.threads.schemas import AuthUrlResponse, PublishRequest, PublishResponse, ThreadsConnectionResponse
+from app.threads.schemas import (
+  AuthUrlResponse,
+  ExploreRequest,
+  ExploreResponse,
+  KeywordsRequest,
+  KeywordsResponse,
+  PublishRequest,
+  PublishResponse,
+  ThreadsConnectionResponse,
+  ThreadsPostItem,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,3 +85,23 @@ async def publish(
 ) -> PublishResponse:
   result = await service.publish_to_threads(current_user.sub, body.text, session)
   return PublishResponse(**result)
+
+
+@router.post('/keywords', status_code=200, response_model=KeywordsResponse)
+async def generate_keywords(
+  body: KeywordsRequest,
+  current_user: CurrentUser = Depends(get_current_user),
+  session: AsyncSession = Depends(get_db),
+) -> KeywordsResponse:
+  result = await service.generate_keywords(body.product_id, current_user.sub, session)
+  return KeywordsResponse(keywords=result)
+
+
+@router.post('/explore', status_code=200, response_model=ExploreResponse)
+async def explore_posts(
+  body: ExploreRequest,
+  current_user: CurrentUser = Depends(get_current_user),
+  session: AsyncSession = Depends(get_db),
+) -> ExploreResponse:
+  result = await service.explore_posts(body.keywords, current_user.sub, session)
+  return ExploreResponse(posts=[ThreadsPostItem(**p) for p in result])
