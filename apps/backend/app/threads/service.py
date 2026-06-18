@@ -10,13 +10,13 @@ from urllib.parse import urlencode
 logger = logging.getLogger(__name__)
 
 import httpx
-from fastapi import HTTPException
 from google.genai import types
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
+from app.core.exceptions import AppError
 from app.llm.gemini import get_gemini_client
 from app.products.models import Product
 from app.threads.mock_explore import MOCK_EXPLORE_POSTS
@@ -73,10 +73,10 @@ async def _exchange_code_for_token(code: str) -> str:
     },
   )
   if not response.is_success:
-    raise HTTPException(status_code=500, detail='Failed to exchange code for token')
+    raise AppError(status_code=500, code='THREADS_TOKEN_EXCHANGE_FAILED', message='Failed to exchange code for token')
   body = response.json()
   if not body.get('access_token'):
-    raise HTTPException(status_code=500, detail='Failed to exchange code for token')
+    raise AppError(status_code=500, code='THREADS_TOKEN_EXCHANGE_FAILED', message='Failed to exchange code for token')
   return body['access_token']
 
 
@@ -88,10 +88,10 @@ async def _exchange_for_long_lived_token(short_token: str) -> tuple[str, int]:
   })
   response = await _fetch_with_timeout(f'{THREADS_EXCHANGE_URL}?{params}')
   if not response.is_success:
-    raise HTTPException(status_code=500, detail='Failed to exchange for long-lived token')
+    raise AppError(status_code=500, code='THREADS_LONG_LIVED_TOKEN_FAILED', message='Failed to exchange for long-lived token')
   body = response.json()
   if not body.get('access_token') or not body.get('expires_in'):
-    raise HTTPException(status_code=500, detail='Failed to exchange for long-lived token')
+    raise AppError(status_code=500, code='THREADS_LONG_LIVED_TOKEN_FAILED', message='Failed to exchange for long-lived token')
   return body['access_token'], body['expires_in']
 
 
@@ -102,7 +102,7 @@ async def _fetch_profile(access_token: str) -> dict:
     headers={'Authorization': f'Bearer {access_token}'},
   )
   if not response.is_success:
-    raise HTTPException(status_code=500, detail='Failed to fetch Threads profile')
+    raise AppError(status_code=500, code='THREADS_PROFILE_FETCH_FAILED', message='Failed to fetch Threads profile')
   return response.json()
 
 
@@ -111,12 +111,12 @@ def _verify_state(state: str) -> str:
     payload = json.loads(decrypt_token(state))
     age = time.time() - payload['timestamp']
     if age > STATE_MAX_AGE_SECONDS:
-      raise HTTPException(status_code=401, detail='OAuth state expired')
+      raise AppError(status_code=401, code='THREADS_OAUTH_STATE_EXPIRED', message='OAuth state expired')
     return payload['user_id']
-  except HTTPException:
+  except AppError:
     raise
   except Exception:
-    raise HTTPException(status_code=401, detail='Invalid OAuth state')
+    raise AppError(status_code=401, code='THREADS_INVALID_OAUTH_STATE', message='Invalid OAuth state')
 
 
 async def _refresh_token(
@@ -130,16 +130,10 @@ async def _refresh_token(
   })
   response = await _fetch_with_timeout(f'{THREADS_REFRESH_URL}?{params}')
   if not response.is_success:
-    raise HTTPException(
-      status_code=401,
-      detail='Threads token refresh failed. Please reconnect your account.',
-    )
+    raise AppError(status_code=401, code='THREADS_TOKEN_REFRESH_FAILED', message='Threads token refresh failed. Please reconnect your account.')
   body = response.json()
   if not body.get('access_token'):
-    raise HTTPException(
-      status_code=401,
-      detail='Threads token refresh failed. Please reconnect your account.',
-    )
+    raise AppError(status_code=401, code='THREADS_TOKEN_REFRESH_FAILED', message='Threads token refresh failed. Please reconnect your account.')
 
   expires_in = body.get('expires_in') or LONG_LIVED_TOKEN_SECONDS
   token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
@@ -178,9 +172,9 @@ async def _fetch_main_posts(threads_user_id: str, access_token: str) -> list[dic
     headers={'Authorization': f'Bearer {access_token}'},
   )
   if response.status_code == 401:
-    raise HTTPException(status_code=401, detail='Threads token expired. Please reconnect your account.')
+    raise AppError(status_code=401, code='THREADS_TOKEN_EXPIRED', message='Threads token expired. Please reconnect your account.')
   if not response.is_success:
-    raise HTTPException(status_code=500, detail='Failed to fetch Threads posts')
+    raise AppError(status_code=500, code='THREADS_POSTS_FETCH_FAILED', message='Failed to fetch Threads posts')
   body = response.json()
   return body.get('data', [])
 
@@ -197,7 +191,7 @@ async def _fetch_own_replies(
       headers={'Authorization': f'Bearer {access_token}'},
     )
     if response.status_code == 401:
-      raise HTTPException(status_code=401, detail='Threads token expired. Please reconnect your account.')
+      raise AppError(status_code=401, code='THREADS_TOKEN_EXPIRED', message='Threads token expired. Please reconnect your account.')
     if not response.is_success:
       return []
     body = response.json()
@@ -208,7 +202,7 @@ async def _fetch_own_replies(
     ]
     filtered.sort(key=lambda e: e.get('timestamp', ''))
     return filtered
-  except HTTPException:
+  except AppError:
     raise
   except Exception:
     logger.warning('Failed to fetch replies for post %s', post_id, exc_info=True)
@@ -221,9 +215,10 @@ async def _wait_for_container_ready(container_id: str, access_token: str) -> Non
 
   while True:
     if time.monotonic() >= deadline:
-      raise HTTPException(
+      raise AppError(
         status_code=500,
-        detail='Threads is taking longer than usual to prepare your post. Please try again in a moment.',
+        code='THREADS_PUBLISH_TIMEOUT',
+        message='Threads is taking longer than usual to prepare your post. Please try again in a moment.',
       )
 
     result = None
@@ -236,8 +231,8 @@ async def _wait_for_container_ready(container_id: str, access_token: str) -> Non
       if response.is_success:
         result = response.json()
       elif response.status_code in (401, 403):
-        raise HTTPException(status_code=401, detail='Threads token expired. Please reconnect your account.')
-    except HTTPException:
+        raise AppError(status_code=401, code='THREADS_TOKEN_EXPIRED', message='Threads token expired. Please reconnect your account.')
+    except AppError:
       raise
     except Exception:
       pass  # fall through to sleep
@@ -248,14 +243,16 @@ async def _wait_for_container_ready(container_id: str, access_token: str) -> Non
         return
       if status == 'ERROR':
         error_msg = result.get('error_message') or 'Threads rejected the post'
-        raise HTTPException(
+        raise AppError(
           status_code=500,
-          detail=f"We couldn't publish to Threads: {error_msg}. Please try again.",
+          code='THREADS_POST_CONTENT_REJECTED',
+          message=f"We couldn't publish to Threads: {error_msg}. Please try again.",
         )
       if status == 'EXPIRED':
-        raise HTTPException(
+        raise AppError(
           status_code=500,
-          detail='The Threads post expired before we could publish it. Please try again.',
+          code='THREADS_POST_EXPIRED',
+          message='The Threads post expired before we could publish it. Please try again.',
         )
 
     await asyncio.sleep(delay)
@@ -334,7 +331,7 @@ async def disconnect(user_id: str, session: AsyncSession) -> None:
   )
   connection = result.scalar_one_or_none()
   if connection is None:
-    raise HTTPException(status_code=404, detail='Threads connection not found')
+    raise AppError(status_code=404, code='THREADS_CONNECTION_NOT_FOUND', message='Threads connection not found')
   await session.delete(connection)
   await session.commit()
 
@@ -350,7 +347,7 @@ async def publish_to_threads(
   )
   connection = result.scalar_one_or_none()
   if connection is None:
-    raise HTTPException(status_code=404, detail='Threads connection not found')
+    raise AppError(status_code=404, code='THREADS_CONNECTION_NOT_FOUND', message='Threads connection not found')
 
   access_token = await _resolve_access_token(connection, session)
 
@@ -369,15 +366,17 @@ async def publish_to_threads(
     data=container_payload,
   )
   if not container_res.is_success:
-    raise HTTPException(
+    raise AppError(
       status_code=500,
-      detail="We couldn't start a Threads post. Please try again.",
+      code='THREADS_PUBLISH_CONTAINER_FAILED',
+      message="We couldn't start a Threads post. Please try again.",
     )
   container_data = container_res.json()
   if not container_data.get('id'):
-    raise HTTPException(
+    raise AppError(
       status_code=500,
-      detail="We couldn't start a Threads post. Please try again.",
+      code='THREADS_PUBLISH_CONTAINER_FAILED',
+      message="We couldn't start a Threads post. Please try again.",
     )
   container_id = container_data['id']
 
@@ -395,15 +394,17 @@ async def publish_to_threads(
     data={'creation_id': container_id},
   )
   if not publish_res.is_success:
-    raise HTTPException(
+    raise AppError(
       status_code=500,
-      detail='Threads accepted the post but publishing failed. Please try again.',
+      code='THREADS_PUBLISH_FAILED',
+      message='Threads accepted the post but publishing failed. Please try again.',
     )
   publish_data = publish_res.json()
   if not publish_data.get('id'):
-    raise HTTPException(
+    raise AppError(
       status_code=500,
-      detail='Threads accepted the post but publishing failed. Please try again.',
+      code='THREADS_PUBLISH_FAILED',
+      message='Threads accepted the post but publishing failed. Please try again.',
     )
   media_id = publish_data['id']
 
@@ -429,7 +430,7 @@ async def fetch_voice_units(user_id: str, session: AsyncSession) -> list[dict]:
   )
   connection = result.scalar_one_or_none()
   if connection is None:
-    raise HTTPException(status_code=404, detail='Threads connection not found')
+    raise AppError(status_code=404, code='THREADS_CONNECTION_NOT_FOUND', message='Threads connection not found')
 
   access_token = await _resolve_access_token(connection, session)
   main_posts = await _fetch_main_posts(connection.threads_user_id, access_token)
@@ -466,7 +467,7 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
   )
   connection = result.scalar_one_or_none()
   if connection is None:
-    raise HTTPException(status_code=404, detail='Threads connection not found')
+    raise AppError(status_code=404, code='THREADS_CONNECTION_NOT_FOUND', message='Threads connection not found')
 
   access_token = await _resolve_access_token(connection, session)
 
@@ -480,7 +481,7 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
       headers={'Authorization': f'Bearer {access_token}'},
     )
     if response.status_code == 401:
-      raise HTTPException(status_code=401, detail='Threads token expired. Please reconnect your account.')
+      raise AppError(status_code=401, code='THREADS_TOKEN_EXPIRED', message='Threads token expired. Please reconnect your account.')
     if not response.is_success:
       try:
         error_body = response.json()
@@ -500,16 +501,16 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
   )
 
   for item in raw_results:
-    if isinstance(item, HTTPException) and item.status_code == 401:
+    if isinstance(item, AppError) and item.status_code == 401:
       raise item
 
   errors = [r for r in raw_results if isinstance(r, Exception)]
   successes = [r for r in raw_results if not isinstance(r, Exception)]
   if not successes:
     first_error = errors[0] if errors else RuntimeError('Unknown error')
-    if isinstance(first_error, HTTPException):
+    if isinstance(first_error, AppError):
       raise first_error
-    raise HTTPException(status_code=502, detail=str(first_error))
+    raise AppError(status_code=502, code='THREADS_API_ERROR', message=str(first_error))
 
   seen: set[str] = set()
   posts: list[dict] = []
@@ -581,7 +582,7 @@ async def generate_keywords(
   )
   product = result.scalar_one_or_none()
   if product is None:
-    raise HTTPException(status_code=404, detail='Product not found')
+    raise AppError(status_code=404, code='PRODUCT_NOT_FOUND', message='Product not found')
 
   client = get_gemini_client()
   prompt = _build_keywords_prompt(product)
@@ -597,10 +598,10 @@ async def generate_keywords(
     )
     raw = response.text
     if not raw:
-      raise HTTPException(status_code=500, detail='Failed to generate keywords')
+      raise AppError(status_code=500, code='THREADS_KEYWORDS_FAILED', message='Failed to generate keywords')
     return json.loads(raw).get('keywords', [])
-  except HTTPException:
+  except AppError:
     raise
   except Exception:
     logger.exception('Failed to generate keywords for product %s', product_id)
-    raise HTTPException(status_code=500, detail='Failed to generate keywords')
+    raise AppError(status_code=500, code='THREADS_KEYWORDS_FAILED', message='Failed to generate keywords')
