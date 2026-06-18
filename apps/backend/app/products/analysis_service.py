@@ -1,7 +1,7 @@
 import json
 import logging
 
-from fastapi import HTTPException
+from app.core.exceptions import AppError
 from google.genai import types
 
 from app.llm.gemini import get_gemini_client
@@ -169,17 +169,16 @@ async def _analyze_product(input: dict, product_info: str) -> dict:
   )
   raw = result.text
   if not raw:
-    raise HTTPException(status_code=500, detail='Product analysis failed')
+    raise AppError(status_code=500, code='PRODUCT_ANALYSIS_FAILED', message='Product analysis failed')
   return json.loads(raw)
 
 
 async def analyze(input: dict) -> dict:
-  """Run two-stage Gemini analysis and return result. Raises HTTPException(500) on failure."""
   try:
     product_info = await _fetch_product_info(input)
     return await _analyze_product(input, product_info)
-  except HTTPException:
+  except AppError:
     raise
   except Exception:
     logger.exception('Product analysis failed')
-    raise HTTPException(status_code=500, detail='Product analysis failed')
+    raise AppError(status_code=500, code='PRODUCT_ANALYSIS_FAILED', message='Product analysis failed')
