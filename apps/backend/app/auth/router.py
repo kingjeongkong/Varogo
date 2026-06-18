@@ -159,14 +159,19 @@ async def google_oauth_callback(
   oauth_state: str | None = Cookie(None),
   session: AsyncSession = Depends(get_db),
 ) -> RedirectResponse:
+  def _error_redirect(error_code: str) -> RedirectResponse:
+    r = RedirectResponse(f'{settings.FRONTEND_URL}/login?error={error_code}', status_code=302)
+    r.delete_cookie(key='oauth_state', path='/', domain=settings.COOKIE_DOMAIN or None)
+    return r
+
   if error:
-    return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=oauth_error', status_code=302)
+    return _error_redirect('oauth_error')
 
   if code is None or state is None:
-    return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=invalid_request', status_code=302)
+    return _error_redirect('invalid_request')
 
   if oauth_state != state:
-    return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=invalid_state', status_code=302)
+    return _error_redirect('invalid_state')
 
   async with httpx.AsyncClient() as client:
     token_response = await client.post(
@@ -180,7 +185,7 @@ async def google_oauth_callback(
       },
     )
     if token_response.status_code != 200:
-      return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=token_exchange_failed', status_code=302)
+      return _error_redirect('token_exchange_failed')
 
     access_token = token_response.json().get('access_token')
 
@@ -189,7 +194,7 @@ async def google_oauth_callback(
       headers={'Authorization': f'Bearer {access_token}'},
     )
     if userinfo_response.status_code != 200:
-      return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=userinfo_failed', status_code=302)
+      return _error_redirect('userinfo_failed')
 
   userinfo = userinfo_response.json()
   provider_user_id = userinfo['id']
@@ -203,8 +208,8 @@ async def google_oauth_callback(
     )
   except HTTPException as e:
     if e.status_code == 409:
-      return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=email_conflict', status_code=302)
-    return RedirectResponse(f'{settings.FRONTEND_URL}/login?error=oauth_error', status_code=302)
+      return _error_redirect('email_conflict')
+    return _error_redirect('oauth_error')
 
   redirect = RedirectResponse(f'{settings.FRONTEND_URL}/products', status_code=302)
   _set_token_cookies(redirect, result['access_token'], result['refresh_token'])
