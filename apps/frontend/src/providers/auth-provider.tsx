@@ -12,7 +12,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearUser = useAuthStore((s) => s.clearUser);
   const pathname = usePathname();
 
-  const isPublicPage = PUBLIC_PAGE_PATHS.some((p) => pathname.startsWith(p));
+  const isPublicPage = PUBLIC_PAGE_PATHS.some((p) =>
+    p === '/' ? pathname === '/' : pathname.startsWith(p)
+  );
 
   const { data, isSuccess, isError } = useQuery({
     queryKey: ['me'],
