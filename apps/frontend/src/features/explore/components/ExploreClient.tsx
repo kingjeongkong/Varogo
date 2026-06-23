@@ -95,8 +95,6 @@ export function ExploreClient() {
     );
   }
 
-  const showKeywordsArea = chips.length > 0 || keywordsMutation.isSuccess || keywordsMutation.isError;
-
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -108,56 +106,69 @@ export function ExploreClient() {
       </div>
 
       {/* Controls section */}
-      <section className="glass-card p-6 space-y-5">
-        {/* Product select */}
-        <div className="space-y-1.5">
-          <label
-            htmlFor="explore-product-select"
-            className="block text-sm font-medium text-text-secondary"
-          >
-            Product
-          </label>
-          <select
-            id="explore-product-select"
-            value={selectedProductId ?? ''}
-            onChange={handleProductChange}
-            disabled={productsLoading}
-            className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-          >
-            <option value="" disabled hidden>Select a product</option>
-            {products?.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      <section className="glass-card p-6">
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 md:gap-0">
 
-        {/* Generate keywords button */}
-        <Button
-          loading={keywordsMutation.isPending}
-          loadingText="Generating..."
-          disabled={!selectedProductId || keywordsMutation.isPending}
-          onClick={() =>
-            keywordsMutation.mutate(selectedProductId!, {
-              onSuccess: (data) => {
-                setChips(data.keywords.map((k) => ({ id: crypto.randomUUID(), label: k })));
-              },
-            })
-          }
-        >
-          Generate Keywords
-        </Button>
+          {/* Left column: Product */}
+          <div className="space-y-1.5 md:pr-6 md:border-r md:border-border">
+            <label
+              htmlFor="explore-product-select"
+              className="block text-sm font-medium text-text-secondary"
+            >
+              Product
+            </label>
+            <select
+              id="explore-product-select"
+              value={selectedProductId ?? ''}
+              onChange={handleProductChange}
+              disabled={productsLoading}
+              className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+            >
+              <option value="" disabled hidden>Select a product</option>
+              {products?.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {keywordsMutation.isError && (
-          <Alert>{keywordsMutation.error.message}</Alert>
-        )}
+          {/* Right column: Keywords + actions */}
+          <div className="space-y-3 md:pl-6">
+            {/* Keywords header row */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-text-secondary">Keywords</span>
+              <button
+                type="button"
+                disabled={!selectedProductId || keywordsMutation.isPending}
+                onClick={() =>
+                  keywordsMutation.mutate(selectedProductId!, {
+                    onSuccess: (data) => {
+                      setChips(data.keywords.map((k) => ({ id: crypto.randomUUID(), label: k })));
+                    },
+                  })
+                }
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {keywordsMutation.isPending ? (
+                  <>
+                    <span className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <span aria-hidden>✦</span>
+                    Generate with AI
+                  </>
+                )}
+              </button>
+            </div>
 
-        {/* Keywords area */}
-        {showKeywordsArea && (
-          <div className="space-y-3">
-            <span className="block text-sm font-medium text-text-secondary">Keywords</span>
+            {keywordsMutation.isError && (
+              <Alert>Failed to generate keywords. Please try again.</Alert>
+            )}
 
+            {/* Chips */}
             {chips.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {chips.map((chip) => (
@@ -179,7 +190,7 @@ export function ExploreClient() {
               </div>
             )}
 
-            {/* Add custom keyword */}
+            {/* Add keyword input */}
             <div className="flex gap-2">
               <input
                 type="text"
@@ -200,37 +211,39 @@ export function ExploreClient() {
                 +
               </button>
             </div>
+
+            {/* Search row */}
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex-1">
+                {exploreMutation.isError && (
+                  <Alert>
+                    <span>{exploreMutation.error.message}</span>
+                    {exploreMutation.error instanceof ApiError && exploreMutation.error.code === 'THREADS_TOKEN_EXPIRED' && (
+                      <Link href="/integrations" className="ml-2 underline font-medium">
+                        Reconnect Threads
+                      </Link>
+                    )}
+                  </Alert>
+                )}
+              </div>
+              <Button
+                loading={exploreMutation.isPending}
+                loadingText="Searching..."
+                disabled={chips.length === 0 || exploreMutation.isPending}
+                onClick={() =>
+                  exploreMutation.mutate(chips.map((c) => c.label), {
+                    onSuccess: (data) => {
+                      setPosts(data.posts);
+                    },
+                  })
+                }
+                className="ml-3 shrink-0"
+              >
+                Search Threads
+              </Button>
+            </div>
           </div>
-        )}
-
-        {/* Search button */}
-        <div className="pt-2">
-          <Button
-            loading={exploreMutation.isPending}
-            loadingText="Searching..."
-            disabled={chips.length === 0 || exploreMutation.isPending}
-            onClick={() =>
-              exploreMutation.mutate(chips.map((c) => c.label), {
-                onSuccess: (data) => {
-                  setPosts(data.posts);
-                },
-              })
-            }
-          >
-            Search
-          </Button>
         </div>
-
-        {exploreMutation.isError && (
-          <Alert>
-            <span>{exploreMutation.error.message}</span>
-            {exploreMutation.error instanceof ApiError && exploreMutation.error.code === 'THREADS_TOKEN_EXPIRED' && (
-              <Link href="/integrations" className="ml-2 underline font-medium">
-                Reconnect Threads
-              </Link>
-            )}
-          </Alert>
-        )}
       </section>
 
       {/* Results section */}
