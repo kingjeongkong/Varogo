@@ -149,28 +149,28 @@ describe('ExploreClient', () => {
       ).toBeInTheDocument();
     });
 
-    it('renders the "Generate Keywords" button', () => {
+    it('renders the "Generate with AI" button', () => {
       renderClient();
 
       expect(
-        screen.getByRole('button', { name: /generate keywords/i }),
+        screen.getByRole('button', { name: /generate with ai/i }),
       ).toBeInTheDocument();
     });
 
-    it('"Generate Keywords" button is disabled when no product is selected', () => {
+    it('"Generate with AI" button is disabled when no product is selected', () => {
       renderClient();
 
-      const btn = screen.getByRole('button', { name: /generate keywords/i });
+      const btn = screen.getByRole('button', { name: /generate with ai/i });
       expect(btn).toBeDisabled();
     });
 
-    it('"Generate Keywords" button is enabled after a product is selected', async () => {
+    it('"Generate with AI" button is enabled after a product is selected', async () => {
       renderClient();
 
       const select = screen.getByRole('combobox', { name: /product/i });
       await userEvent.selectOptions(select, 'prod-1');
 
-      const btn = screen.getByRole('button', { name: /generate keywords/i });
+      const btn = screen.getByRole('button', { name: /generate with ai/i });
       expect(btn).not.toBeDisabled();
     });
   });
@@ -191,7 +191,7 @@ describe('ExploreClient', () => {
       await userEvent.selectOptions(select, 'prod-1');
 
       await userEvent.click(
-        screen.getByRole('button', { name: /generate keywords/i }),
+        screen.getByRole('button', { name: /generate with ai/i }),
       );
 
       await waitFor(() => {
@@ -206,11 +206,11 @@ describe('ExploreClient', () => {
     });
   });
 
-  describe('Search button', () => {
+  describe('Search Threads button', () => {
     it('is disabled when chips array is empty', () => {
       renderClient();
 
-      const searchBtn = screen.getByRole('button', { name: /^search$/i });
+      const searchBtn = screen.getByRole('button', { name: /^search threads$/i });
       expect(searchBtn).toBeDisabled();
     });
   });
@@ -243,7 +243,7 @@ describe('ExploreClient', () => {
       await userEvent.selectOptions(select, 'prod-1');
 
       await userEvent.click(
-        screen.getByRole('button', { name: /generate keywords/i }),
+        screen.getByRole('button', { name: /generate with ai/i }),
       );
 
       await waitFor(() => {
@@ -251,7 +251,7 @@ describe('ExploreClient', () => {
       });
 
       await userEvent.click(
-        screen.getByRole('button', { name: /^search$/i }),
+        screen.getByRole('button', { name: /^search threads$/i }),
       );
 
       await waitFor(() => {
@@ -281,7 +281,7 @@ describe('ExploreClient', () => {
       await userEvent.selectOptions(select, 'prod-1');
 
       await userEvent.click(
-        screen.getByRole('button', { name: /generate keywords/i }),
+        screen.getByRole('button', { name: /generate with ai/i }),
       );
 
       await waitFor(() => {
@@ -289,7 +289,7 @@ describe('ExploreClient', () => {
       });
 
       await userEvent.click(
-        screen.getByRole('button', { name: /^search$/i }),
+        screen.getByRole('button', { name: /^search threads$/i }),
       );
 
       await waitFor(() => {
