@@ -1,5 +1,5 @@
 import { ERROR_MESSAGES } from './error-messages';
-import { API_BASE_URL, PUBLIC_PAGE_PATHS } from './constants';
+import { API_BASE_URL } from './constants';
 
 export class ApiError extends Error {
   constructor(
@@ -43,11 +43,6 @@ let refreshPromise: Promise<void> | null = null;
 
 const AUTH_PATHS = ['/auth/login', '/auth/signup', '/auth/refresh'];
 
-function redirectToLogin() {
-  const isPublic = PUBLIC_PAGE_PATHS.some((p) => window.location.pathname.startsWith(p));
-  if (!isPublic) window.location.href = '/login';
-}
-
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -75,17 +70,9 @@ export async function apiFetch<T>(
     try {
       await refreshPromise;
     } catch {
-      redirectToLogin();
       throw err;
     }
 
-    try {
-      return await baseFetch<T>(url, opts);
-    } catch (retryErr) {
-      if (retryErr instanceof ApiError && retryErr.status === 401) {
-        redirectToLogin();
-      }
-      throw retryErr;
-    }
+    return await baseFetch<T>(url, opts);
   }
 }
