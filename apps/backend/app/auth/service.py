@@ -187,7 +187,7 @@ async def forgot_password(
 ) -> None:
   result = await session.execute(select(User).where(User.email == email))
   user = result.scalar_one_or_none()
-  if user is None:
+  if user is None or not user.password_hash:
     return
 
   token = create_password_reset_token(user.id, user.password_hash)

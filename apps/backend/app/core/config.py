@@ -46,9 +46,9 @@ class Settings(BaseSettings):
   DISCORD_WEBHOOK_PUBLISHED: str | None = None
   DISCORD_WEBHOOK_ERRORS: str | None = None
 
-  # AWS SES (email)
-  AWS_SES_REGION: str = 'us-east-1'
-  AWS_SES_FROM_EMAIL: str = ''
+  # Resend (email)
+  RESEND_API_KEY: str = ''
+  RESEND_FROM_EMAIL: str = 'noreply@varo-go.com'
 
   @field_validator('THREADS_TOKEN_ENCRYPTION_KEY')
   @classmethod
