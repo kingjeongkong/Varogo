@@ -1,8 +1,7 @@
-import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
-import boto3
+import resend
 
 from app.core.config import settings
 
@@ -73,27 +72,19 @@ def _build_text(reset_link: str) -> str:
   )
 
 
-def _send_ses(to_email: str, reset_link: str) -> None:
+def _send(to_email: str, reset_link: str) -> None:
   try:
-    client = boto3.client('ses', region_name=settings.AWS_SES_REGION)
-    client.send_email(
-      Source=settings.AWS_SES_FROM_EMAIL,
-      Destination={'ToAddresses': [to_email]},
-      Message={
-        'Subject': {'Data': 'Reset your Varogo password', 'Charset': 'UTF-8'},
-        'Body': {
-          'Text': {'Data': _build_text(reset_link), 'Charset': 'UTF-8'},
-          'Html': {'Data': _build_html(reset_link), 'Charset': 'UTF-8'},
-        },
-      },
-    )
+    resend.api_key = settings.RESEND_API_KEY
+    resend.Emails.send({
+      'from': settings.RESEND_FROM_EMAIL,
+      'to': [to_email],
+      'subject': 'Reset your Varogo password',
+      'html': _build_html(reset_link),
+      'text': _build_text(reset_link),
+    })
   except Exception:
-    logger.warning('SES password reset email failed to %s', to_email, exc_info=True)
+    logger.warning('Resend password reset email failed to %s', to_email, exc_info=True)
 
 
 def send_password_reset_email(to_email: str, reset_link: str) -> None:
-  try:
-    loop = asyncio.get_running_loop()
-    loop.run_in_executor(_executor, _send_ses, to_email, reset_link)
-  except RuntimeError:
-    pass
+  _executor.submit(_send, to_email, reset_link)
