@@ -16,7 +16,6 @@ class Settings(BaseSettings):
 
   # App
   FRONTEND_URL: str = 'http://localhost:3001'
-  BACKEND_URL: str = 'http://localhost:3000'
   COOKIE_DOMAIN: str | None = None
   PORT: int = 3000
   ENVIRONMENT: str = 'development'
@@ -32,11 +31,6 @@ class Settings(BaseSettings):
   THREADS_APP_SECRET: str
   THREADS_REDIRECT_URI: str
   THREADS_TOKEN_ENCRYPTION_KEY: str
-  THREADS_EXPLORE_MOCK: bool = False
-
-  # Google OAuth
-  GOOGLE_CLIENT_ID: str
-  GOOGLE_CLIENT_SECRET: str
 
   # Sentry (optional)
   SENTRY_DSN: str | None = None
@@ -46,9 +40,9 @@ class Settings(BaseSettings):
   DISCORD_WEBHOOK_PUBLISHED: str | None = None
   DISCORD_WEBHOOK_ERRORS: str | None = None
 
-  # AWS SES (email)
-  AWS_SES_REGION: str = 'us-east-1'
-  AWS_SES_FROM_EMAIL: str = ''
+  # Resend (email)
+  RESEND_API_KEY: str = ''
+  RESEND_FROM_EMAIL: str = 'noreply@varo-go.com'
 
   @field_validator('THREADS_TOKEN_ENCRYPTION_KEY')
   @classmethod
