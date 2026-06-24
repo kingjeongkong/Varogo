@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
   # App
   FRONTEND_URL: str = 'http://localhost:3001'
+  BACKEND_URL: str = 'http://localhost:3000'
   COOKIE_DOMAIN: str | None = None
   PORT: int = 3000
   ENVIRONMENT: str = 'development'
@@ -31,6 +32,11 @@ class Settings(BaseSettings):
   THREADS_APP_SECRET: str
   THREADS_REDIRECT_URI: str
   THREADS_TOKEN_ENCRYPTION_KEY: str
+  THREADS_EXPLORE_MOCK: bool = False
+
+  # Google OAuth
+  GOOGLE_CLIENT_ID: str
+  GOOGLE_CLIENT_SECRET: str
 
   # Sentry (optional)
   SENTRY_DSN: str | None = None
