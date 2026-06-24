@@ -43,3 +43,18 @@ async def test_forgot_password_nonexistent_email():
     await forgot_password('ghost@varogo.com', session)
 
   mock_send.assert_not_called()
+
+
+async def test_forgot_password_oauth_user_no_password():
+  user = MagicMock()
+  user.id = 'user-2'
+  user.email = 'oauth@varogo.com'
+  user.password_hash = None
+
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(user))
+
+  with patch('app.auth.service.send_password_reset_email') as mock_send:
+    await forgot_password('oauth@varogo.com', session)
+
+  mock_send.assert_not_called()
