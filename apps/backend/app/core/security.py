@@ -40,7 +40,7 @@ def create_password_reset_token(user_id: str, password_hash: str) -> str:
     'sub': user_id,
     'purpose': 'password_reset',
     'frag': frag,
-    'exp': datetime.now(timezone.utc) + timedelta(minutes=15),
+    'exp': datetime.now(timezone.utc) + timedelta(minutes=5),
   }
   return jwt.encode(payload, settings.JWT_SECRET, algorithm=ALGORITHM)
 
