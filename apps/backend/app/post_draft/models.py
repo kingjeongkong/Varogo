@@ -81,14 +81,11 @@ class PostDraft(Base):
 class DraftGenerationLog(Base):
   __tablename__ = 'draft_generation_logs'
 
-  __table_args__ = (
-    Index('draft_generation_logs_post_draft_id_idx', 'post_draft_id'),
-  )
-
   id: Mapped[str] = mapped_column(Text, primary_key=True)
   post_draft_id: Mapped[str] = mapped_column(
     Text,
     ForeignKey('post_drafts.id', name='draft_generation_logs_post_draft_id_fkey', ondelete='CASCADE'),
+    unique=True,
   )
   today_input_type: Mapped[str] = mapped_column(Text)
   iteration_count: Mapped[int] = mapped_column(Integer)
