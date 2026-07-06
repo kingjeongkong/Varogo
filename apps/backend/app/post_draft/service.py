@@ -10,7 +10,8 @@ from sqlalchemy.orm import selectinload
 from app.core.discord import notify_published
 from app.core.exceptions import AppError
 from app.post_draft.generation_pipeline import graph as generation_pipeline
-from app.post_draft.models import PostDraft, PostDraftOption
+from app.post_draft.generation_pipeline.input_classifier import classify_today_input
+from app.post_draft.models import DraftGenerationLog, PostDraft, PostDraftOption
 from app.products.models import Product, ProductAnalysis
 from app.threads.service import publish_to_threads
 from app.voice_profile.models import VoiceProfile
@@ -140,6 +141,32 @@ async def create(user_id: str, dto: dict, session: AsyncSession) -> dict:
       )
     )
   await session.flush()
+
+  # 8b. Log generation metadata (best-effort — must never block draft creation).
+  # A SAVEPOINT (begin_nested) isolates this from the outer transaction: if the
+  # flush inside it fails at the DB level, only this savepoint rolls back, so the
+  # already-flushed draft/options above are unaffected and the later commit() below
+  # still succeeds.
+  try:
+    metadata = generation_result['metadata']
+    today_input_type = classify_today_input(dto.get('today_input'))
+    async with session.begin_nested():
+      session.add(
+        DraftGenerationLog(
+          id=str(uuid4()),
+          post_draft_id=draft.id,
+          today_input_type=today_input_type,
+          iteration_count=metadata['iteration_count'],
+          all_options_passed=metadata['all_options_passed'],
+          failed_option_count=metadata['failed_option_count'],
+          research_performed=metadata['research_performed'],
+          details={'option_details': metadata['option_details']},
+          created_at=now,
+          updated_at=now,
+        )
+      )
+  except Exception:
+    logger.warning('Failed to persist draft generation log for draft %s', draft.id, exc_info=True)
 
   # 9. Re-query draft with options loaded
   requery = await session.execute(

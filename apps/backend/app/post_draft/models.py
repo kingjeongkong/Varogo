@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Index, Text
-from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy import Boolean, ForeignKey, Index, Integer, Text
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -69,4 +69,35 @@ class PostDraft(Base):
     'PostDraftOption',
     foreign_keys=[selected_option_id],
     uselist=False,
+  )
+  generation_log: Mapped[Optional['DraftGenerationLog']] = relationship(
+    'DraftGenerationLog',
+    back_populates='post_draft',
+    uselist=False,
+    cascade='all, delete-orphan',
+  )
+
+
+class DraftGenerationLog(Base):
+  __tablename__ = 'draft_generation_logs'
+
+  id: Mapped[str] = mapped_column(Text, primary_key=True)
+  post_draft_id: Mapped[str] = mapped_column(
+    Text,
+    ForeignKey('post_drafts.id', name='draft_generation_logs_post_draft_id_fkey', ondelete='CASCADE'),
+    unique=True,
+  )
+  today_input_type: Mapped[str] = mapped_column(Text)
+  iteration_count: Mapped[int] = mapped_column(Integer)
+  all_options_passed: Mapped[bool] = mapped_column(Boolean)
+  failed_option_count: Mapped[int] = mapped_column(Integer)
+  research_performed: Mapped[bool] = mapped_column(Boolean)
+  details: Mapped[Optional[dict]] = mapped_column(JSONB)
+  created_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3))
+  updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(precision=3))
+
+  post_draft: Mapped['PostDraft'] = relationship(
+    'PostDraft',
+    foreign_keys=[post_draft_id],
+    back_populates='generation_log',
   )

@@ -29,6 +29,7 @@ OTHER_USER = {'email': 'other@varogo.com', 'password': 'password123'}
 
 async def clear_database(session):
   await session.execute(text('TRUNCATE TABLE post_draft_options CASCADE'))
+  await session.execute(text('TRUNCATE TABLE draft_generation_logs CASCADE'))
   await session.execute(text('TRUNCATE TABLE post_drafts CASCADE'))
   await session.execute(text('TRUNCATE TABLE product_analyses CASCADE'))
   await session.execute(text('TRUNCATE TABLE products CASCADE'))
