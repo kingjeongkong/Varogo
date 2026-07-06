@@ -18,6 +18,7 @@ COPY --from=builder /app/.venv ./.venv
 COPY apps/backend/app ./app
 COPY apps/backend/alembic ./alembic
 COPY apps/backend/alembic.ini ./alembic.ini
+COPY apps/backend/scripts ./scripts
 
 ENV PATH="/app/.venv/bin:$PATH"
 
