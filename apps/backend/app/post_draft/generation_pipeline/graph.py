@@ -49,6 +49,27 @@ def _build_graph() -> StateGraph:
 _graph = _build_graph()
 
 
+def _build_metadata(state: GraphState) -> dict:
+  options = state['options']
+
+  return {
+    'iteration_count': state['iteration'],
+    'all_options_passed': all(o.status == 'passed' for o in options),
+    'failed_option_count': sum(1 for o in options if o.status == 'failed'),
+    'research_performed': bool(state['research_context']),
+    'option_details': [
+      {
+        'angle_label': o.angle_label,
+        'attempt': o.attempt,
+        'status': o.status,
+        'artifact_issues': o.artifact_issues,
+        'eval_issues': o.eval_issues,
+      }
+      for o in options
+    ],
+  }
+
+
 async def generate(
   analysis: dict,
   style_fingerprint: dict,
@@ -72,5 +93,6 @@ async def generate(
     'options': [
       {'text': o.text, 'angle_label': o.angle_label}
       for o in result['options']
-    ]
+    ],
+    'metadata': _build_metadata(result),
   }
