@@ -26,15 +26,15 @@ Keywords: {keywords}
 {topic_block}
 
 === Available tools ===
-- search_hn: Search Hacker News via Algolia. Best for technical discussions, indie dev threads, and Show HN posts.
-- search_devto: Search Dev.to articles. Best for tutorials, opinion pieces, and developer community trends.
+- search_hn: Search Hacker News via Algolia with a free-text query. Best for technical discussions, indie dev threads, and Show HN posts.
+- search_devto: Search Dev.to articles. Dev.to has no free-text search — pass a single Dev.to tag (e.g. 'indiehackers', 'saas', 'startup', 'devtools', 'ai') that best matches the topic, not a sentence. Best for tutorials, opinion pieces, and developer community trends.
 
 === Tool usage rules ===
 1. Decide what to search based on today's topic and the product category/keywords.
 2. Start with the source most likely to have relevant results.
 3. If the first source returns sufficient context (3+ relevant results), you do NOT need to call the second source.
 4. Call both sources only when the first yields sparse or off-topic results.
-5. Do NOT call the same tool twice with the same query.
+5. Do NOT call the same tool twice with the same input.
 
 === Output ===
 After tool calls are complete, synthesize your findings into a concise research_context summary.
