@@ -3,7 +3,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from app.post_draft.generation_pipeline import graph
 from app.post_draft.generation_pipeline.nodes.evaluator import EvaluatorOutput
@@ -54,9 +54,16 @@ async def test_generate_returns_metadata_when_all_options_pass():
   Asserts the new `metadata` key is present alongside the unchanged `options` key,
   with all_options_passed=True, failed_option_count=0, and an int iteration_count.
   """
-  research_ai_msg = AIMessage(
-    content='TRENDING TOPICS: CI automation\nRESONATING ANGLES: speed\nRELEVANT DISCUSSIONS: HN thread'
-  )
+  # research_node now runs a create_react_agent; it returns a state dict whose
+  # last message is the agent's final synthesized answer.
+  research_result = {
+    'messages': [
+      HumanMessage(content='research prompt'),
+      AIMessage(
+        content='TRENDING TOPICS: CI automation\nRESONATING ANGLES: speed\nRELEVANT DISCUSSIONS: HN thread'
+      ),
+    ]
+  }
 
   MockChatOpenAI, mock_planning_llm = _setup_mock_planning_chat_openai()
   # Non-JSON content forces planning_node to fall back to _llm_structured.
@@ -67,8 +74,8 @@ async def test_generate_returns_metadata_when_all_options_pass():
   generation_output = GenerationOutput(text=clean_text, angle_label='Story')
 
   with patch(
-    'app.post_draft.generation_pipeline.nodes.research._llm'
-  ) as mock_research_llm, patch(
+    'app.post_draft.generation_pipeline.nodes.research._agent'
+  ) as mock_research_agent, patch(
     'app.post_draft.generation_pipeline.nodes.planning.ChatOpenAI', MockChatOpenAI
   ), patch(
     'app.post_draft.generation_pipeline.nodes.planning._llm_structured'
@@ -77,7 +84,7 @@ async def test_generate_returns_metadata_when_all_options_pass():
   ) as mock_generation_llm, patch(
     'app.post_draft.generation_pipeline.nodes.evaluator._llm'
   ) as mock_evaluator_llm:
-    mock_research_llm.ainvoke = AsyncMock(return_value=research_ai_msg)
+    mock_research_agent.ainvoke = AsyncMock(return_value=research_result)
     mock_llm_structured.ainvoke = mock_planning_structured
     mock_generation_llm.ainvoke = AsyncMock(return_value=generation_output)
     mock_evaluator_llm.ainvoke = AsyncMock(return_value=EvaluatorOutput(issues=[]))

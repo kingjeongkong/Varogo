@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.errors import GraphRecursionError
 
-from app.post_draft.generation_pipeline.state import GraphState, OptionState
+from app.post_draft.generation_pipeline.state import GraphState
 
 
 # ---------------------------------------------------------------------------
@@ -31,6 +32,17 @@ def _make_state(today_input: str | None = 'Shipped new CI pipeline') -> GraphSta
   )
 
 
+def _agent_result(final_content) -> dict:
+  """Shape create_react_agent returns: a state dict whose last message is the
+  agent's final synthesized answer."""
+  return {
+    'messages': [
+      HumanMessage(content='research prompt'),
+      AIMessage(content=final_content),
+    ]
+  }
+
+
 # ---------------------------------------------------------------------------
 # TestResearchNode
 # ---------------------------------------------------------------------------
@@ -38,99 +50,73 @@ def _make_state(today_input: str | None = 'Shipped new CI pipeline') -> GraphSta
 class TestResearchNode:
 
   @pytest.mark.asyncio
-  async def test_no_tool_calls_returns_synthesized_content(self):
-    """LLM returns a direct response without tool calls → research_context is a string."""
+  async def test_final_message_content_becomes_research_context(self):
+    """The agent's final message content is returned as research_context."""
     state = _make_state()
+    result_dict = _agent_result(
+      'TRENDING TOPICS: CI automation\nRESONATING ANGLES: speed\nRELEVANT DISCUSSIONS: HN thread'
+    )
 
-    final_ai_msg = AIMessage(content='TRENDING TOPICS: CI automation\nRESONATING ANGLES: speed\nRELEVANT DISCUSSIONS: HN thread')
-
-    with patch('app.post_draft.generation_pipeline.nodes.research._llm') as mock_llm:
-      mock_llm.ainvoke = AsyncMock(return_value=final_ai_msg)
+    with patch('app.post_draft.generation_pipeline.nodes.research._agent') as mock_agent:
+      mock_agent.ainvoke = AsyncMock(return_value=result_dict)
       from app.post_draft.generation_pipeline.nodes.research import research_node
       result = await research_node(state)
 
     assert isinstance(result['research_context'], str)
     assert 'TRENDING TOPICS' in result['research_context']
-    mock_llm.ainvoke.assert_called_once()
+    mock_agent.ainvoke.assert_called_once()
 
   @pytest.mark.asyncio
-  async def test_single_tool_call_search_hn_then_synthesizes(self):
-    """LLM calls search_hn once, then synthesizes → LLM invoked twice total."""
+  async def test_recursion_limit_passed_to_agent(self):
+    """The node must cap tool rounds via recursion_limit, not run unbounded."""
+    from app.post_draft.generation_pipeline.nodes.research import _RECURSION_LIMIT
+
     state = _make_state()
 
-    first_ai_msg = AIMessage(
-      content='',
-      tool_calls=[{
-        'name': 'search_hn',
-        'args': {'query': 'CI deployment automation'},
-        'id': 'call_hn_1',
-        'type': 'tool_call',
-      }],
-    )
-    second_ai_msg = AIMessage(
-      content='TRENDING TOPICS: CI pipelines\nRESONATING ANGLES: faster deploys\nRELEVANT DISCUSSIONS: Show HN thread',
-    )
+    with patch('app.post_draft.generation_pipeline.nodes.research._agent') as mock_agent:
+      mock_agent.ainvoke = AsyncMock(return_value=_agent_result('TRENDING TOPICS: x'))
+      from app.post_draft.generation_pipeline.nodes.research import research_node
+      await research_node(state)
 
-    with patch('app.post_draft.generation_pipeline.nodes.research._llm') as mock_llm:
-      mock_llm.ainvoke = AsyncMock(side_effect=[first_ai_msg, second_ai_msg])
-      with patch('app.post_draft.generation_pipeline.nodes.research.search_hn') as mock_search_hn:
-        mock_search_hn.ainvoke = AsyncMock(return_value='- Faster CI | https://hn.com | points: 100 | comments: 30')
-        from app.post_draft.generation_pipeline.nodes.research import research_node
-        result = await research_node(state)
-
-    assert isinstance(result['research_context'], str)
-    assert 'TRENDING TOPICS' in result['research_context']
-    assert mock_llm.ainvoke.call_count == 2
-    mock_search_hn.ainvoke.assert_called_once_with({'query': 'CI deployment automation'})
+    _, call_kwargs = mock_agent.ainvoke.call_args
+    assert call_kwargs['config']['recursion_limit'] == _RECURSION_LIMIT
 
   @pytest.mark.asyncio
-  async def test_two_tool_calls_search_hn_and_devto(self):
-    """LLM calls both search_hn and search_devto, then synthesizes → LLM invoked twice total."""
+  async def test_list_content_blocks_are_joined(self):
+    """Gemini can return content as a list of blocks — they must be flattened
+    into a single string."""
     state = _make_state()
-
-    first_ai_msg = AIMessage(
-      content='',
-      tool_calls=[
-        {
-          'name': 'search_hn',
-          'args': {'query': 'CI automation'},
-          'id': 'call_hn_1',
-          'type': 'tool_call',
-        },
-        {
-          'name': 'search_devto',
-          'args': {'query': 'CI deployment tutorial'},
-          'id': 'call_devto_1',
-          'type': 'tool_call',
-        },
-      ],
-    )
-    second_ai_msg = AIMessage(
-      content='TRENDING TOPICS: CI/CD\nRESONATING ANGLES: zero downtime\nRELEVANT DISCUSSIONS: DevTo article on CI',
+    result_dict = _agent_result(
+      [{'text': 'TRENDING TOPICS: '}, {'text': 'CI automation'}, {'no_text': 'ignored'}]
     )
 
-    with patch('app.post_draft.generation_pipeline.nodes.research._llm') as mock_llm:
-      mock_llm.ainvoke = AsyncMock(side_effect=[first_ai_msg, second_ai_msg])
-      with patch('app.post_draft.generation_pipeline.nodes.research.search_hn') as mock_search_hn:
-        with patch('app.post_draft.generation_pipeline.nodes.research.search_devto') as mock_search_devto:
-          mock_search_hn.ainvoke = AsyncMock(return_value='- HN result | https://hn.com | points: 50 | comments: 10')
-          mock_search_devto.ainvoke = AsyncMock(return_value='- DevTo article | https://dev.to | tags: ci | reactions: 20')
-          from app.post_draft.generation_pipeline.nodes.research import research_node
-          result = await research_node(state)
+    with patch('app.post_draft.generation_pipeline.nodes.research._agent') as mock_agent:
+      mock_agent.ainvoke = AsyncMock(return_value=result_dict)
+      from app.post_draft.generation_pipeline.nodes.research import research_node
+      result = await research_node(state)
 
-    assert isinstance(result['research_context'], str)
-    assert 'TRENDING TOPICS' in result['research_context']
-    assert mock_llm.ainvoke.call_count == 2
-    mock_search_hn.ainvoke.assert_called_once_with({'query': 'CI automation'})
-    mock_search_devto.ainvoke.assert_called_once_with({'query': 'CI deployment tutorial'})
+    assert result['research_context'] == 'TRENDING TOPICS: CI automation'
 
   @pytest.mark.asyncio
-  async def test_llm_exception_returns_none(self):
-    """LLM raises an exception → research_context is None (graceful fallback)."""
+  async def test_agent_exception_returns_none(self):
+    """Any agent failure → research_context is None (graceful fallback)."""
     state = _make_state()
 
-    with patch('app.post_draft.generation_pipeline.nodes.research._llm') as mock_llm:
-      mock_llm.ainvoke = AsyncMock(side_effect=Exception('Gemini API error'))
+    with patch('app.post_draft.generation_pipeline.nodes.research._agent') as mock_agent:
+      mock_agent.ainvoke = AsyncMock(side_effect=Exception('Gemini API error'))
+      from app.post_draft.generation_pipeline.nodes.research import research_node
+      result = await research_node(state)
+
+    assert result['research_context'] is None
+
+  @pytest.mark.asyncio
+  async def test_recursion_limit_exceeded_returns_none(self):
+    """Hitting the tool-round cap raises GraphRecursionError → graceful None,
+    so a runaway agent never blocks draft creation."""
+    state = _make_state()
+
+    with patch('app.post_draft.generation_pipeline.nodes.research._agent') as mock_agent:
+      mock_agent.ainvoke = AsyncMock(side_effect=GraphRecursionError('limit reached'))
       from app.post_draft.generation_pipeline.nodes.research import research_node
       result = await research_node(state)
 

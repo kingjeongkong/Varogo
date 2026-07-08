@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 
-from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.prebuilt import create_react_agent
 
 from app.core.config import settings
 from app.post_draft.generation_pipeline.prompts.research import build_research_prompt
@@ -13,10 +14,19 @@ from app.post_draft.generation_pipeline.tools.search_hn import search_hn
 
 logger = logging.getLogger(__name__)
 
-_llm = ChatGoogleGenerativeAI(
-  model='gemini-2.5-flash-lite',
-  google_api_key=settings.GEMINI_API_KEY,
-).bind_tools([search_hn, search_devto])
+# recursion_limit counts graph supersteps (agent step + tool step alternating),
+# not tool rounds — 6 caps research at roughly 2 tool rounds, matching the
+# MAX_TOOL_CALL_ROUNDS intent in planning_node. Exceeding it raises
+# GraphRecursionError, which the graceful except below turns into None.
+_RECURSION_LIMIT = 6
+
+_agent = create_react_agent(
+  ChatGoogleGenerativeAI(
+    model='gemini-2.5-flash-lite',
+    google_api_key=settings.GEMINI_API_KEY,
+  ),
+  [search_hn, search_devto],
+)
 
 
 async def research_node(state: GraphState) -> dict:
@@ -25,35 +35,13 @@ async def research_node(state: GraphState) -> dict:
 
   try:
     prompt = build_research_prompt(today_input, product_analysis)
-    messages = [HumanMessage(content=prompt)]
 
-    response = await _llm.ainvoke(messages)
+    result = await _agent.ainvoke(
+      {'messages': [HumanMessage(content=prompt)]},
+      config={'recursion_limit': _RECURSION_LIMIT},
+    )
 
-    _tool_map = {
-      'search_hn': search_hn,
-      'search_devto': search_devto,
-    }
-
-    while response.tool_calls:
-      messages.append(response)
-
-      for call in response.tool_calls:
-        tool_name = call['name']
-        tool_args = call['args']
-        tool_fn = _tool_map.get(tool_name)
-
-        if tool_fn is not None:
-          tool_result = await tool_fn.ainvoke(tool_args)
-        else:
-          tool_result = 'Tool not found.'
-
-        messages.append(
-          ToolMessage(content=str(tool_result), tool_call_id=call['id'])
-        )
-
-      response = await _llm.ainvoke(messages)
-
-    content = response.content
+    content = result['messages'][-1].content
     if isinstance(content, list):
       content = ''.join(
         block.get('text', '') for block in content if isinstance(block, dict)
