@@ -137,6 +137,7 @@ Avoid:
 - Do not use AI filler: "Here's the kicker", "Here's the deal", "Here's the catch", "keep it real", "at the end of the day", "it's worth noting"
 - Do not address the reader as an opener: "Founders,", "Indie devs,", "Builders,"
 - Do not end with advice, a lesson directed at the reader, or upbeat forward-looking phrases ("Excited for what's next", "Can't wait to see where this goes", "Looking forward to", "Onward")
+- Do not end with a forced rhetorical question used as a fake punchline (e.g. "Who knew?", "who's got cookie crumbs on their fingers from overthinking marketing?") — a genuine question asking the reader about their own experience is fine, but never manufacture a question just to fake a conclusion
 - Do not reuse the same ending across posts — vary the closing line each time
 - Never write value propositions or marketing copy about the product: no "it learns your voice", no "so you don't have to rewrite", no "helps you post without X"
 - Never mention the tool or platform name in the post — the post should read as the user's personal experience, not a product feature description

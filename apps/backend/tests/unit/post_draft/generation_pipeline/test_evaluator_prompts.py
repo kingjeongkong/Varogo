@@ -83,3 +83,18 @@ class TestBuildVoiceEvalPrompt:
     text = 'He said "ship it" and I did.'
     prompt = build_voice_eval_prompt(text, style_fingerprint, reference_samples, today_input)
     assert r'\"ship it\"' in prompt
+
+  def test_forced_rhetorical_question_fails_example_appears_in_prompt(
+    self, style_fingerprint, reference_samples, today_input
+  ):
+    text = 'Just shipped dark mode. Took 3 days.'
+    prompt = build_voice_eval_prompt(text, style_fingerprint, reference_samples, today_input)
+    assert 'Who knew?' in prompt
+    assert "who's got cookie crumbs on their fingers" in prompt
+
+  def test_genuine_question_passes_example_appears_in_prompt(
+    self, style_fingerprint, reference_samples, today_input
+  ):
+    text = 'Just shipped dark mode. Took 3 days.'
+    prompt = build_voice_eval_prompt(text, style_fingerprint, reference_samples, today_input)
+    assert 'Anyone else default to fixing symptoms instead of the actual bug?' in prompt

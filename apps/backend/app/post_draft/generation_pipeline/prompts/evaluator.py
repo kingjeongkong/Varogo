@@ -3,7 +3,8 @@ prompts/evaluator.py — Voice evaluation prompt for the post-draft pipeline.
 
 The artifact_filter handles all mechanical checks (AI vocabulary, length, specificity,
 hallucination). This prompt focuses on what the filter cannot detect: obvious voice
-mismatch that a regular reader of this writer's posts would immediately notice.
+mismatch, and forced rhetorical questions used as a fake punchline/conclusion — both
+require judging intent, not just matching a literal phrase.
 
 Designed to work with smaller/cheaper models (gpt-4o-mini). Uses relative comparison
 against reference posts rather than absolute quality judgment.
@@ -77,15 +78,37 @@ PASSES (very short with uncertainty — still fine):
 - Short sentences with no conclusion → fine
 - Slightly stiff but still first-person → fine
 
+=== What "forced rhetorical question" means — examples ===
+
+A genuine question invites the reader to answer about their own experience. A forced
+rhetorical question is not really asking anything — it's a stock tic used to fake a
+punchline or conclusion, the same move as ending with "the takeaway is...".
+
+FAILS (fake question — no real answer wanted, just a manufactured punchline):
+"Distribution mattered more than I thought. Who knew?"
+"Turns out distribution matters more than content. So, who's got cookie crumbs on their fingers from overthinking marketing?"
+"I can't believe this took me a year to figure out. Right?"
+Why it fails: none of these questions is seeking a real answer. They're filler used to manufacture a punchline — sometimes propped up by a forced metaphor, sometimes just a one-word tag like "Right?" tacked onto a statement.
+
+PASSES (genuine question inviting a real reply):
+"Anyone else default to fixing symptoms instead of the actual bug?"
+"Is this normal for solo devs, or am I just bad at scheduling?"
+Why it passes: the writer is actually asking the reader something they could answer about their own experience.
+
+=== DO NOT flag ===
+- A post that ends with a genuine question about the reader's own experience/opinion → fine, even if short
+- A post with no question at all → fine
+
 === The ONLY things worth flagging ===
-Corporate register signals: "we", "our", "excited to announce", "proud to present", "powerful tool", "leverages", "enables users to", "game-changing", "revolutionizes", "seamlessly".
-A post written in first person about personal experience is NEVER corporate, even if the writing is plain.
+1. Corporate register signals: "we", "our", "excited to announce", "proud to present", "powerful tool", "leverages", "enables users to", "game-changing", "revolutionizes", "seamlessly".
+   A post written in first person about personal experience is NEVER corporate, even if the writing is plain.
+2. A forced rhetorical question used as a fake punchline/conclusion (see FAILS examples above) — NOT a genuine question to the reader.
 
 === Post to evaluate ===
 "{escaped_text}"
 
 === Task ===
-Compare the post against the FAILS example ONLY. If it does NOT use the listed corporate register signals, return [].
-Return a single issue in under 12 words ONLY if it genuinely uses corporate/marketing language like the FAILS example.
+Compare the post against the FAILS examples ONLY. If it does NOT match either FAILS pattern above, return [].
+Return a single issue in under 12 words ONLY if it genuinely matches one of the two FAILS patterns.
 
 IMPORTANT: Return [] as an empty JSON array — never return ["None"] or ["No issues"]."""
