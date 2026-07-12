@@ -209,7 +209,8 @@ def detect_artifacts(text: str) -> list[str]:
 
   # Length
   if len(text) > MAX_LENGTH:
-    issues.append("length: post exceeds 500 characters")
+    overage = len(text) - MAX_LENGTH
+    issues.append(f"length: post is {len(text)} chars, {overage} over the {MAX_LENGTH} limit")
 
   return issues
 

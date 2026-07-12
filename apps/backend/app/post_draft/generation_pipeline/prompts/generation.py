@@ -126,7 +126,7 @@ Avoid:
 {avoid_text}
 
 === Rules ===
-- Max 500 characters — count carefully before returning; if your draft exceeds 500, shorten it first
+- Max 500 characters — count carefully before returning. If the facts don't fit, drop the least essential fact entirely rather than compressing every sentence — a shorter post missing one supporting detail is correct, a cut-off or padded-out post is not
 - {specificity_rule}
 - Always write in first person (I/my/me) — never use "you" or "your" when describing the product or its behavior
 - No passive voice — write "it flagged 2 drafts" not "2 drafts were flagged by it"

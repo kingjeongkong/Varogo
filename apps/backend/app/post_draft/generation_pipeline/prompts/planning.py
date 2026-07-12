@@ -159,12 +159,19 @@ def _format_angle_reuse_guidance(failed_options: list[OptionState]) -> str:
   lines = []
   for opt in failed_options:
     has_duplicate = any(issue.startswith('duplicate:') for issue in opt.artifact_issues)
+    has_length = any(issue.startswith('length:') for issue in opt.artifact_issues)
     has_eval = bool(opt.eval_issues)
     if has_duplicate:
       lines.append(
         f'- "{opt.angle_label}": duplicates another option\'s content — redesign with a genuinely '
         f'different angle and strategy, not just a formatting change. Reusing the same angle will '
         f'likely reproduce the same content.'
+      )
+    elif has_length:
+      lines.append(
+        f'- "{opt.angle_label}": exceeded the 500-char limit — same angle is OK, but the strategy must '
+        f'either drop 1-2 of the least essential facts or switch to a more compact format (bullet-list '
+        f'or ultra-short). Rewording alone will not fit this many facts in 500 characters.'
       )
     elif has_eval:
       lines.append(

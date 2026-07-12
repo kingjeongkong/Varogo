@@ -102,12 +102,17 @@ class TestDetectArtifacts:
   def test_length_violation_over_500(self):
     long_text = "a" * 501
     issues = detect_artifacts(long_text)
-    assert "length: post exceeds 500 characters" in issues
+    assert "length: post is 501 chars, 1 over the 500 limit" in issues
+
+  def test_length_violation_reports_overage_amount(self):
+    long_text = "a" * 575
+    issues = detect_artifacts(long_text)
+    assert "length: post is 575 chars, 75 over the 500 limit" in issues
 
   def test_length_exactly_500_is_fine(self):
     text = "a" * 500
     issues = detect_artifacts(text)
-    assert "length: post exceeds 500 characters" not in issues
+    assert not any(i.startswith("length:") for i in issues)
 
   def test_negative_parallelism(self):
     issues = detect_artifacts("It's not just a tool, it's a movement.")

@@ -142,6 +142,20 @@ def failed_options_with_duplicate() -> list[OptionState]:
   ]
 
 
+@pytest.fixture
+def failed_options_with_length_overage() -> list[OptionState]:
+  return [
+    OptionState(
+      text='This week hit me hard, grinding on a tool for indie devs but barely marketing it myself.',
+      angle_label='My Marketing Revelation',
+      artifact_issues=['length: post is 575 chars, 75 over the 500 limit'],
+      eval_issues=[],
+      status='failed',
+      attempt=1,
+    ),
+  ]
+
+
 # ---------------------------------------------------------------------------
 # TestBuildRetryPlanningPrompt
 # ---------------------------------------------------------------------------
@@ -219,6 +233,17 @@ class TestBuildRetryPlanningPrompt:
     )
     assert 'duplicates another option' in prompt
     assert 'same angle is OK' not in prompt
+
+  def test_length_overage_issue_gives_actionable_guidance(
+    self, analysis, style_fingerprint, reference_samples, today_input,
+    failed_options_with_length_overage, passed_angle_labels
+  ):
+    prompt = build_retry_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      failed_options_with_length_overage, passed_angle_labels,
+    )
+    assert 'drop 1-2 of the least essential facts' in prompt
+    assert 'Rewording alone will not fit' in prompt
 
 
 # ---------------------------------------------------------------------------
