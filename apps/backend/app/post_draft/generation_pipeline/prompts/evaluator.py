@@ -3,8 +3,9 @@ prompts/evaluator.py — Voice evaluation prompt for the post-draft pipeline.
 
 The artifact_filter handles all mechanical checks (AI vocabulary, length, specificity,
 hallucination). This prompt focuses on what the filter cannot detect: obvious voice
-mismatch, and forced rhetorical questions used as a fake punchline/conclusion — both
-require judging intent, not just matching a literal phrase.
+mismatch, forced punchlines (question or not) used to fake a conclusion, and cliché
+forced analogies used to dress up a mundane update — all three require judging intent,
+not just matching a literal phrase.
 
 Designed to work with smaller/cheaper models (gpt-4o-mini). Uses relative comparison
 against reference posts rather than absolute quality judgment.
@@ -78,17 +79,19 @@ PASSES (very short with uncertainty — still fine):
 - Short sentences with no conclusion → fine
 - Slightly stiff but still first-person → fine
 
-=== What "forced rhetorical question" means — examples ===
+=== What "forced punchline" means — examples ===
 
 A genuine question invites the reader to answer about their own experience. A forced
-rhetorical question is not really asking anything — it's a stock tic used to fake a
-punchline or conclusion, the same move as ending with "the takeaway is...".
+punchline is not really asking anything or reflecting anything — it's a stock tic used
+to fake a conclusion, the same move as ending with "the takeaway is...". It doesn't have
+to be phrased as a question — a wink-at-the-camera aside counts too.
 
-FAILS (fake question — no real answer wanted, just a manufactured punchline):
+FAILS (fake punchline — manufactured, not a real question or real reflection):
 "Distribution mattered more than I thought. Who knew?"
 "Turns out distribution matters more than content. So, who's got cookie crumbs on their fingers from overthinking marketing?"
 "I can't believe this took me a year to figure out. Right?"
-Why it fails: none of these questions is seeking a real answer. They're filler used to manufacture a punchline — sometimes propped up by a forced metaphor, sometimes just a one-word tag like "Right?" tacked onto a statement.
+"One narrative for now, experiments later. I bet you didn't see that landing coming."
+Why it fails: none of these are a real question or a real reflection. They're filler used to manufacture a punchline — a rhetorical question, a one-word tag like "Right?", or a flat ironic aside like "I bet you didn't see that coming" all do the same fake job.
 
 PASSES (genuine question inviting a real reply):
 "Anyone else default to fixing symptoms instead of the actual bug?"
@@ -97,18 +100,35 @@ Why it passes: the writer is actually asking the reader something they could ans
 
 === DO NOT flag ===
 - A post that ends with a genuine question about the reader's own experience/opinion → fine, even if short
-- A post with no question at all → fine
+- A post with no question and no ironic aside at all → fine
+
+=== What "forced analogy" means — examples ===
+
+FAILS (elaborate analogy to an unrelated scenario, used to dress up a mundane update):
+"Ever try being a one-man band while juggling flaming torches? That's me trying to test all the marketing angles at once."
+"Being an undercover agent in a chaotic world is tough. You can't just switch identities every five minutes. Turns out, building a Threads account is kinda the same."
+Why it fails: circus acts and spy missions have nothing to do with the actual work. The analogy exists only to sound colorful, not because it clarifies anything — a regular reader of this writer's real posts would never reach for it.
+
+PASSES (states the fact directly, no inserted scenario):
+"Tried to test all the marketing angles at once. Didn't work — spread too thin."
+"Switching strategy every week wasn't working. Picked one and stuck with it."
+Why it passes: no unrelated scenario is grafted on. Any comparison, if present, stays tightly grounded in the actual work (e.g. "it's like flipping a switch") instead of opening up a whole separate story.
+
+=== DO NOT flag ===
+- A short, directly-grounded comparison to the actual work (no unrelated scenario introduced) → fine
+- A post with no analogy at all → fine
 
 === The ONLY things worth flagging ===
 1. Corporate register signals: "we", "our", "excited to announce", "proud to present", "powerful tool", "leverages", "enables users to", "game-changing", "revolutionizes", "seamlessly".
    A post written in first person about personal experience is NEVER corporate, even if the writing is plain.
-2. A forced rhetorical question used as a fake punchline/conclusion (see FAILS examples above) — NOT a genuine question to the reader.
+2. A forced punchline used as a fake conclusion (see forced-punchline FAILS examples above) — NOT a genuine question to the reader.
+3. A forced analogy to an unrelated scenario used to dress up a mundane update (see forced-analogy FAILS examples above) — NOT a short comparison grounded in the actual work.
 
 === Post to evaluate ===
 "{escaped_text}"
 
 === Task ===
-Compare the post against the FAILS examples ONLY. If it does NOT match either FAILS pattern above, return [].
-Return a single issue in under 12 words ONLY if it genuinely matches one of the two FAILS patterns.
+Compare the post against the FAILS examples ONLY. If it does NOT match any FAILS pattern above, return [].
+Return a single issue in under 12 words ONLY if it genuinely matches one of the FAILS patterns.
 
 IMPORTANT: Return [] as an empty JSON array — never return ["None"] or ["No issues"]."""

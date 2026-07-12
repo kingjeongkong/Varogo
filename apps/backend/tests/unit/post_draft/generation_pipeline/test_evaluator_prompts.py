@@ -98,3 +98,25 @@ class TestBuildVoiceEvalPrompt:
     text = 'Just shipped dark mode. Took 3 days.'
     prompt = build_voice_eval_prompt(text, style_fingerprint, reference_samples, today_input)
     assert 'Anyone else default to fixing symptoms instead of the actual bug?' in prompt
+
+  def test_non_question_forced_aside_fails_example_appears_in_prompt(
+    self, style_fingerprint, reference_samples, today_input
+  ):
+    text = 'Just shipped dark mode. Took 3 days.'
+    prompt = build_voice_eval_prompt(text, style_fingerprint, reference_samples, today_input)
+    assert "I bet you didn't see that landing coming" in prompt
+
+  def test_forced_analogy_fails_examples_appear_in_prompt(
+    self, style_fingerprint, reference_samples, today_input
+  ):
+    text = 'Just shipped dark mode. Took 3 days.'
+    prompt = build_voice_eval_prompt(text, style_fingerprint, reference_samples, today_input)
+    assert 'juggling flaming torches' in prompt
+    assert 'Being an undercover agent in a chaotic world is tough' in prompt
+
+  def test_forced_analogy_passes_example_appears_in_prompt(
+    self, style_fingerprint, reference_samples, today_input
+  ):
+    text = 'Just shipped dark mode. Took 3 days.'
+    prompt = build_voice_eval_prompt(text, style_fingerprint, reference_samples, today_input)
+    assert 'Tried to test all the marketing angles at once. Didn\'t work' in prompt
