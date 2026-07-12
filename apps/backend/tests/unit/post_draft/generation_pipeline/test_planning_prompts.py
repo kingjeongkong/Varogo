@@ -128,6 +128,20 @@ def passed_angle_labels() -> list[str]:
   return ['Origin Story', 'Technical Deep-Dive']
 
 
+@pytest.fixture
+def failed_options_with_duplicate() -> list[OptionState]:
+  return [
+    OptionState(
+      text='Marketing is NOT about creativity, it is about distribution.',
+      angle_label='Distribution Over Everything',
+      artifact_issues=["duplicate: 26% overlap with option 'My Marketing Journey'"],
+      eval_issues=[],
+      status='failed',
+      attempt=1,
+    ),
+  ]
+
+
 # ---------------------------------------------------------------------------
 # TestBuildRetryPlanningPrompt
 # ---------------------------------------------------------------------------
@@ -194,6 +208,17 @@ class TestBuildRetryPlanningPrompt:
       failed_options, passed_angle_labels,
     )
     assert 'Design 2 new plan(s)' in prompt
+
+  def test_duplicate_issue_forces_angle_redesign_not_same_angle_ok(
+    self, analysis, style_fingerprint, reference_samples, today_input,
+    failed_options_with_duplicate, passed_angle_labels
+  ):
+    prompt = build_retry_planning_prompt(
+      analysis, style_fingerprint, reference_samples, today_input,
+      failed_options_with_duplicate, passed_angle_labels,
+    )
+    assert 'duplicates another option' in prompt
+    assert 'same angle is OK' not in prompt
 
 
 # ---------------------------------------------------------------------------

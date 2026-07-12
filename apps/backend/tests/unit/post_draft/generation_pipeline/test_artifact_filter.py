@@ -1,11 +1,13 @@
 import pytest
 
 from app.post_draft.generation_pipeline.artifact_filter import (
+  DUPLICATE_THRESHOLD,
   auto_correct,
   check_hallucination,
   check_specificity,
   detect_artifacts,
   run,
+  text_similarity,
 )
 
 
@@ -303,3 +305,51 @@ class TestRun:
     result = run("Some text.", None)
     assert isinstance(result, tuple)
     assert len(result) == 2
+
+
+# ---------------------------------------------------------------------------
+# text_similarity
+# ---------------------------------------------------------------------------
+
+class TestTextSimilarity:
+  def test_verbatim_reused_clause_meets_duplicate_threshold(self):
+    a = (
+      "I've been building an AI marketing tool for indie devs while barely marketing it myself. "
+      "I posted 2-3 threads and used my own pipeline to write them. "
+      "Traffic came through, but zero signups."
+    )
+    b = (
+      "Turns out, I've been building an AI marketing tool for indie devs while barely marketing "
+      "my own product. Only posted 2-3 threads so far, using my own pipeline to write them. "
+      "Traffic came through, but zero signups."
+    )
+    assert text_similarity(a, b) >= DUPLICATE_THRESHOLD
+
+  def test_same_facts_different_structure_stays_below_threshold(self):
+    prose = (
+      "I've been building an AI marketing tool for indie devs while barely marketing it myself. "
+      "I posted 2-3 threads and used my own pipeline to write them. Traffic came through, but zero signups."
+    )
+    bullets = (
+      "What do top indie developers know that I don't? "
+      "I've been building an AI marketing tool but barely marketed it. "
+      "Only posted 2-3 threads using my own pipeline. Traffic came through, but zero signups."
+    )
+    assert text_similarity(prose, bullets) < DUPLICATE_THRESHOLD
+
+  def test_unrelated_texts_have_zero_similarity(self):
+    a = "Fixed a bug today. Posts were cut at 280 chars instead of 500."
+    b = "Shipped the voice evaluator. It flagged 2 of 3 drafts."
+    assert text_similarity(a, b) == 0.0
+
+  def test_identical_text_has_similarity_one(self):
+    text = "Shipped v2 today. Fixed the flagging bug."
+    assert text_similarity(text, text) == 1.0
+
+  def test_empty_text_has_zero_similarity(self):
+    assert text_similarity("", "Some real post text here.") == 0.0
+
+  def test_short_paraphrase_of_same_fact_stays_below_threshold(self):
+    a = "Shipped v2 today. Fixed the flagging bug."
+    b = "Pushed out version 2. The bug where drafts got flagged incorrectly is gone."
+    assert text_similarity(a, b) < DUPLICATE_THRESHOLD

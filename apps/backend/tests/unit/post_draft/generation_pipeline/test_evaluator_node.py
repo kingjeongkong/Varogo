@@ -162,6 +162,64 @@ class TestEvaluatorNode:
     assert result['options'][0].status == 'passed'
 
   @pytest.mark.asyncio
+  async def test_duplicate_pending_option_fails_and_earlier_one_passes(self):
+    a_text = (
+      "I've been building an AI marketing tool for indie devs while barely marketing it myself. "
+      "I posted 2-3 threads and used my own pipeline to write them. Traffic came through, but zero signups."
+    )
+    b_text = (
+      "Turns out, I've been building an AI marketing tool for indie devs while barely marketing "
+      "my own product. Only posted 2-3 threads so far, using my own pipeline to write them. "
+      "Traffic came through, but zero signups."
+    )
+    options = [
+      OptionState(text=a_text, angle_label='My Marketing Journey', status='pending'),
+      OptionState(text=b_text, angle_label='Distribution Over Everything', status='pending'),
+    ]
+    state = _make_state(options, today_input='I posted 2-3 threads this week using my own pipeline.')
+
+    mock_result = AsyncMock()
+    mock_result.issues = []
+
+    with patch('app.post_draft.generation_pipeline.nodes.evaluator._llm') as mock_llm:
+      mock_llm.ainvoke = AsyncMock(return_value=mock_result)
+      from app.post_draft.generation_pipeline.nodes.evaluator import evaluator_node
+      result = await evaluator_node(state)
+
+    returned = {o.angle_label: o for o in result['options']}
+    assert returned['My Marketing Journey'].status == 'passed'
+    assert returned['Distribution Over Everything'].status == 'failed'
+    assert any(
+      issue.startswith('duplicate:') for issue in returned['Distribution Over Everything'].artifact_issues
+    )
+
+  @pytest.mark.asyncio
+  async def test_pending_option_duplicating_already_passed_option_fails(self):
+    passed_text = 'Shipped the voice evaluator. It flagged 2 of 3 drafts. Not sure if that means it works.'
+    new_pending_text = (
+      'Shipped the voice evaluator today. It flagged 2 of 3 drafts. '
+      'Not sure if that means it actually works.'
+    )
+    options = [
+      OptionState(text=passed_text, angle_label='Already Passed', status='passed'),
+      OptionState(text=new_pending_text, angle_label='New Attempt', status='pending'),
+    ]
+    state = _make_state(options, today_input='Shipped the voice evaluator. It flagged 2 of 3 drafts.')
+
+    mock_result = AsyncMock()
+    mock_result.issues = []
+
+    with patch('app.post_draft.generation_pipeline.nodes.evaluator._llm') as mock_llm:
+      mock_llm.ainvoke = AsyncMock(return_value=mock_result)
+      from app.post_draft.generation_pipeline.nodes.evaluator import evaluator_node
+      result = await evaluator_node(state)
+
+    returned = {o.angle_label: o for o in result['options']}
+    assert returned['Already Passed'].status == 'passed'
+    assert returned['New Attempt'].status == 'failed'
+    assert any(issue.startswith('duplicate:') for issue in returned['New Attempt'].artifact_issues)
+
+  @pytest.mark.asyncio
   async def test_two_pending_options_both_pass_and_llm_called_twice(self):
     options = [
       OptionState(

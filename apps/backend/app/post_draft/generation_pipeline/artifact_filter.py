@@ -107,6 +107,13 @@ _KNOWN_TOOLS: list[str] = [
 
 MAX_LENGTH = 500
 
+# Word-shingle containment threshold for cross-option duplicate detection.
+# Empirically tuned (see docs/pipeline): 6-word shingles, containment >= 0.20 catches
+# verbatim-reused clauses across options while leaving same-facts-different-format
+# (e.g. prose vs bullet-list) and merely-same-topic posts unflagged.
+_DUPLICATE_SHINGLE_SIZE = 6
+DUPLICATE_THRESHOLD = 0.20
+
 # ---------------------------------------------------------------------------
 # Exported constants — consumed by prompt builders (generation, evaluator)
 # so evaluator and generation always check the same AI pattern set.
@@ -285,6 +292,27 @@ def check_hallucination(text: str, today_input: str | None) -> list[str]:
     if n not in today_numbers:
       issues.append(f"hallucination: number {n} not grounded in today_input")
   return issues
+
+
+def _word_shingles(text: str, n: int = _DUPLICATE_SHINGLE_SIZE) -> set[str]:
+  """Return the set of n-word shingles in text (lowercased, punctuation-stripped)."""
+  words = re.findall(r"[a-z0-9']+", text.lower())
+  if len(words) < n:
+    return {' '.join(words)} if words else set()
+  return {' '.join(words[i:i + n]) for i in range(len(words) - n + 1)}
+
+
+def text_similarity(a: str, b: str) -> float:
+  """Containment similarity: fraction of the SMALLER text's shingles also present in the
+  other. Unlike Jaccard, this stays high when a short reused clause is embedded in a
+  longer post, which is the actual failure mode (one option copies a clause from another).
+  """
+  shingles_a = _word_shingles(a)
+  shingles_b = _word_shingles(b)
+  if not shingles_a or not shingles_b:
+    return 0.0
+  smaller, larger = (shingles_a, shingles_b) if len(shingles_a) <= len(shingles_b) else (shingles_b, shingles_a)
+  return len(smaller & larger) / len(smaller)
 
 
 def run(text: str, today_input: str | None) -> tuple[str, list[str]]:

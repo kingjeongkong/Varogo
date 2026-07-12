@@ -70,8 +70,13 @@ async def test_generate_returns_metadata_when_all_options_pass():
   mock_planning_llm.ainvoke = AsyncMock(return_value=AIMessage(content='Here are my plans.'))
   mock_planning_structured = AsyncMock(return_value=_make_planning_output(3))
 
-  clean_text = 'Shipped a new tool. 42 deploys. Instant rollback.'
-  generation_output = GenerationOutput(text=clean_text, angle_label='Story')
+  # Distinct text per option — identical text across options would (correctly) trip the
+  # cross-option duplicate check and force a retry loop, which this mock setup doesn't model.
+  generation_outputs = [
+    GenerationOutput(text='Shipped a new tool. 42 deploys. Instant rollback.', angle_label='Story'),
+    GenerationOutput(text='Nobody talks about cold starts on vercel until they happen.', angle_label='Contrarian'),
+    GenerationOutput(text='42 deploys today with zero downtime on the new release.', angle_label='Data'),
+  ]
 
   with patch(
     'app.post_draft.generation_pipeline.nodes.research._agent'
@@ -86,7 +91,7 @@ async def test_generate_returns_metadata_when_all_options_pass():
   ) as mock_evaluator_llm:
     mock_research_agent.ainvoke = AsyncMock(return_value=research_result)
     mock_llm_structured.ainvoke = mock_planning_structured
-    mock_generation_llm.ainvoke = AsyncMock(return_value=generation_output)
+    mock_generation_llm.ainvoke = AsyncMock(side_effect=generation_outputs)
     mock_evaluator_llm.ainvoke = AsyncMock(return_value=EvaluatorOutput(issues=[]))
 
     result = await graph.generate(MOCK_ANALYSIS, MOCK_STYLE, MOCK_SAMPLES, MOCK_TODAY)

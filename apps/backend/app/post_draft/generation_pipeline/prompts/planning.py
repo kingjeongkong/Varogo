@@ -158,8 +158,15 @@ def _format_failed_options(failed_options: list[OptionState]) -> str:
 def _format_angle_reuse_guidance(failed_options: list[OptionState]) -> str:
   lines = []
   for opt in failed_options:
+    has_duplicate = any(issue.startswith('duplicate:') for issue in opt.artifact_issues)
     has_eval = bool(opt.eval_issues)
-    if has_eval:
+    if has_duplicate:
+      lines.append(
+        f'- "{opt.angle_label}": duplicates another option\'s content — redesign with a genuinely '
+        f'different angle and strategy, not just a formatting change. Reusing the same angle will '
+        f'likely reproduce the same content.'
+      )
+    elif has_eval:
       lines.append(
         f'- "{opt.angle_label}": has eval issues (voice mismatch) — redesign strategy or choose a different angle.'
       )
