@@ -6,6 +6,9 @@ import sentry_sdk
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from app.database import engine
 from app.core.config import settings
 from app.core.discord import DiscordErrorHandler
 from app.core.exceptions import setup_exception_handlers
@@ -60,4 +63,9 @@ app.include_router(post_draft_router, prefix='/post-drafts')
 
 @app.get('/health')
 async def health():
+  try:
+    async with engine.connect() as conn:
+      await conn.execute(text('SELECT 1'))
+  except Exception:
+    return JSONResponse(status_code=503, content={'status': 'error', 'db': 'disconnected'})
   return {'status': 'ok'}

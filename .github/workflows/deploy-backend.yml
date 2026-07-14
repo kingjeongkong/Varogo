@@ -23,7 +23,10 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            docker tag varogo-backend varogo-backend:previous 2>/dev/null || true
+            RUNNING_IMAGE=$(docker inspect --format='{{.Image}}' varogo-backend 2>/dev/null || true)
+            if [ -n "$RUNNING_IMAGE" ]; then
+              docker tag "$RUNNING_IMAGE" varogo-backend:previous
+            fi
 
             if ! docker build -t varogo-backend -f apps/backend/Dockerfile .; then
               echo "::error::Docker build failed — no container swap performed. Previous container still running. To manually recover: docker run ... varogo-backend:previous"
