@@ -229,7 +229,7 @@ export function ExploreClient() {
                   ).map((option) => (
                     <label
                       key={option.value}
-                      className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200 ${
+                      className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200 focus-within:ring-2 focus-within:ring-primary/50 ${
                         searchType === option.value
                           ? 'bg-primary/10 text-primary'
                           : 'text-text-muted hover:text-text-secondary'
