@@ -19,7 +19,6 @@ from app.core.config import settings
 from app.core.exceptions import AppError
 from app.llm.gemini import get_gemini_client
 from app.products.models import Product
-from app.threads.mock_explore import MOCK_EXPLORE_POSTS
 from app.threads.models import ThreadsConnection
 from app.threads.threads_crypto import decrypt_token, encrypt_token
 
@@ -458,10 +457,6 @@ async def fetch_voice_units(user_id: str, session: AsyncSession) -> list[dict]:
 
 
 async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession) -> list[dict]:
-  if settings.THREADS_EXPLORE_MOCK:
-    await asyncio.sleep(3)
-    return MOCK_EXPLORE_POSTS
-
   result = await session.execute(
     select(ThreadsConnection).where(ThreadsConnection.user_id == user_id)
   )
@@ -477,7 +472,7 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
       'fields': 'id,text,timestamp,permalink,username',
     })
     response = await _fetch_with_timeout(
-      f'https://graph.threads.net/v1.0/threads/keyword_search?{params}',
+      f'{THREADS_API_BASE}/keyword_search?{params}',
       headers={'Authorization': f'Bearer {access_token}'},
     )
     if response.status_code == 401:
@@ -510,8 +505,7 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
     for item in errors:
       if isinstance(item, AppError):
         raise item
-    logger.warning('All Threads keyword searches failed, falling back to mock data')
-    return MOCK_EXPLORE_POSTS
+    raise AppError(status_code=502, code='THREADS_API_ERROR', message=str(errors[0]))
 
   seen: set[str] = set()
   posts: list[dict] = []
