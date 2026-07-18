@@ -103,5 +103,5 @@ async def explore_posts(
   current_user: CurrentUser = Depends(get_current_user),
   session: AsyncSession = Depends(get_db),
 ) -> ExploreResponse:
-  result = await service.explore_posts(body.keywords, current_user.sub, session)
+  result = await service.explore_posts(body.keywords, current_user.sub, session, body.search_type)
   return ExploreResponse(posts=[ThreadsPostItem(**p) for p in result])

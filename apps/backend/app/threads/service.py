@@ -456,7 +456,12 @@ async def fetch_voice_units(user_id: str, session: AsyncSession) -> list[dict]:
   return units
 
 
-async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession) -> list[dict]:
+async def explore_posts(
+  keywords: list[str],
+  user_id: str,
+  session: AsyncSession,
+  search_type: str = 'RECENT',
+) -> list[dict]:
   result = await session.execute(
     select(ThreadsConnection).where(ThreadsConnection.user_id == user_id)
   )
@@ -470,6 +475,7 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
     params = urlencode({
       'q': keyword,
       'fields': 'id,text,timestamp,permalink,username',
+      'search_type': search_type,
     })
     response = await _fetch_with_timeout(
       f'{THREADS_API_BASE}/keyword_search?{params}',
