@@ -35,6 +35,7 @@ FETCH_TIMEOUT_SECONDS = 8.0
 POLL_INITIAL_DELAY_SECONDS = 1.0
 POLL_MAX_DELAY_SECONDS = 3.0
 POLL_TIMEOUT_SECONDS = 10.0
+EXPLORE_TOP_SINCE_DAYS = 7
 
 THREADS_AUTH_BASE = 'https://threads.net/oauth/authorize'
 THREADS_TOKEN_URL = 'https://graph.threads.net/oauth/access_token'
@@ -472,11 +473,14 @@ async def explore_posts(
   access_token = await _resolve_access_token(connection, session)
 
   async def _search_keyword(keyword: str) -> list[dict]:
-    params = urlencode({
+    query: dict[str, str | int] = {
       'q': keyword,
       'fields': 'id,text,timestamp,permalink,username',
       'search_type': search_type,
-    })
+    }
+    if search_type == 'TOP':
+      query['since'] = int(time.time()) - EXPLORE_TOP_SINCE_DAYS * 24 * 3600
+    params = urlencode(query)
     response = await _fetch_with_timeout(
       f'{THREADS_API_BASE}/keyword_search?{params}',
       headers={'Authorization': f'Bearer {access_token}'},
