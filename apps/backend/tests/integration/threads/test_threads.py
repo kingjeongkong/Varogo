@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import ANY, AsyncMock, patch
 
 from fastapi import HTTPException
 from httpx import AsyncClient
@@ -241,7 +241,7 @@ async def test_explore_posts_success(client: AsyncClient, db_session):
       'permalink': 'https://threads.net/post-1',
     },
   ]
-  with patch('app.threads.service.explore_posts', new_callable=AsyncMock, return_value=mock_posts):
+  with patch('app.threads.service.explore_posts', new_callable=AsyncMock, return_value=mock_posts) as mock_explore:
     response = await client.post(
       '/threads/explore',
       json={'keywords': ['indie dev', 'productivity tool']},
@@ -258,6 +258,7 @@ async def test_explore_posts_success(client: AsyncClient, db_session):
   assert post['text'] == 'Great indie dev tool!'
   assert post['timestamp'] == '2024-01-01T00:00:00Z'
   assert post['permalink'] == 'https://threads.net/post-1'
+  mock_explore.assert_called_once_with(['indie dev', 'productivity tool'], user['id'], ANY)
 
 
 async def test_explore_posts_no_connection(client: AsyncClient, db_session):

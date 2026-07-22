@@ -1,14 +1,17 @@
 import json
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
 from app.core.exceptions import AppError
 from app.threads.service import (
+  EXPLORE_TOP_SINCE_DAYS,
   _verify_state,
   _wait_for_container_ready,
   disconnect,
+  explore_posts,
   fetch_voice_units,
   generate_auth_url,
   get_connection,
@@ -466,3 +469,30 @@ async def test_fetch_voice_units_empty_text_post_filtered_out():
     units = await fetch_voice_units('user-1', session)
 
   assert units == []
+
+
+# ---------------------------------------------------------------------------
+# explore_posts
+# ---------------------------------------------------------------------------
+
+async def test_explore_posts_always_searches_top_within_since_window():
+  connection = MagicMock()
+  session = AsyncMock()
+  session.execute = AsyncMock(return_value=_result(connection))
+
+  search_resp = MagicMock(is_success=True, status_code=200)
+  search_resp.json.return_value = {'data': []}
+
+  before = int(time.time())
+  with patch('app.threads.service._resolve_access_token', AsyncMock(return_value='token')), \
+       patch('app.threads.service._fetch_with_timeout', AsyncMock(return_value=search_resp)) as fetch_mock:
+    await explore_posts(['indie dev'], 'user-1', session)
+  after = int(time.time())
+
+  url = fetch_mock.call_args.args[0]
+  query = parse_qs(urlparse(url).query)
+  assert query['search_type'] == ['TOP']
+  since_value = int(query['since'][0])
+  expected_earliest = before - EXPLORE_TOP_SINCE_DAYS * 24 * 3600
+  expected_latest = after - EXPLORE_TOP_SINCE_DAYS * 24 * 3600
+  assert expected_earliest <= since_value <= expected_latest

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ThreadsPost } from '@/lib/types';
@@ -11,6 +11,23 @@ const post: ThreadsPost = {
   timestamp: new Date().toISOString(),
   permalink: 'https://threads.net/p/abc',
 };
+
+// jsdom reports scrollHeight/clientHeight as 0 by default, so PostCard's
+// overflow check treats text as never clamped unless we simulate real layout.
+function mockTextOverflow(scrollHeight: number, clientHeight: number) {
+  Object.defineProperty(HTMLParagraphElement.prototype, 'scrollHeight', {
+    configurable: true,
+    value: scrollHeight,
+  });
+  Object.defineProperty(HTMLParagraphElement.prototype, 'clientHeight', {
+    configurable: true,
+    value: clientHeight,
+  });
+}
+
+afterEach(() => {
+  mockTextOverflow(0, 0);
+});
 
 describe('PostCard', () => {
   describe('header', () => {
@@ -32,7 +49,17 @@ describe('PostCard', () => {
   });
 
   describe('text truncation', () => {
-    it('applies line-clamp-3 class to text element initially', () => {
+    it('does not render a "Read more" button when the text does not overflow', () => {
+      mockTextOverflow(60, 60);
+      render(<PostCard post={post} />);
+
+      expect(
+        screen.queryByRole('button', { name: /read more of this post/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('applies line-clamp-3 class to text element initially when the text overflows', () => {
+      mockTextOverflow(90, 60);
       render(<PostCard post={post} />);
 
       const textEl = screen.getByText('Hello world');
@@ -40,6 +67,7 @@ describe('PostCard', () => {
     });
 
     it('expands text when "Read more" button is clicked and changes label to "Show less"', async () => {
+      mockTextOverflow(90, 60);
       render(<PostCard post={post} />);
 
       const readMoreBtn = screen.getByRole('button', {

@@ -35,6 +35,7 @@ FETCH_TIMEOUT_SECONDS = 8.0
 POLL_INITIAL_DELAY_SECONDS = 1.0
 POLL_MAX_DELAY_SECONDS = 3.0
 POLL_TIMEOUT_SECONDS = 10.0
+EXPLORE_TOP_SINCE_DAYS = 7
 
 THREADS_AUTH_BASE = 'https://threads.net/oauth/authorize'
 THREADS_TOKEN_URL = 'https://graph.threads.net/oauth/access_token'
@@ -456,7 +457,11 @@ async def fetch_voice_units(user_id: str, session: AsyncSession) -> list[dict]:
   return units
 
 
-async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession) -> list[dict]:
+async def explore_posts(
+  keywords: list[str],
+  user_id: str,
+  session: AsyncSession,
+) -> list[dict]:
   result = await session.execute(
     select(ThreadsConnection).where(ThreadsConnection.user_id == user_id)
   )
@@ -470,6 +475,8 @@ async def explore_posts(keywords: list[str], user_id: str, session: AsyncSession
     params = urlencode({
       'q': keyword,
       'fields': 'id,text,timestamp,permalink,username',
+      'search_type': 'TOP',
+      'since': int(time.time()) - EXPLORE_TOP_SINCE_DAYS * 24 * 3600,
     })
     response = await _fetch_with_timeout(
       f'{THREADS_API_BASE}/keyword_search?{params}',
