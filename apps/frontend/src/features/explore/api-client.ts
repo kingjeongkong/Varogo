@@ -3,7 +3,6 @@ import type {
   GenerateKeywordsResponse,
   ExplorePostsResponse,
 } from '@/lib/types';
-import type { SearchType } from './types';
 
 export function generateKeywords(
   productId: string,
@@ -15,10 +14,10 @@ export function generateKeywords(
 }
 
 export function explorePosts(
-  { keywords, searchType }: { keywords: string[]; searchType: SearchType },
+  keywords: string[],
 ): Promise<ExplorePostsResponse> {
   return apiFetch<ExplorePostsResponse>('/threads/explore', {
     method: 'POST',
-    body: JSON.stringify({ keywords, searchType }),
+    body: JSON.stringify({ keywords }),
   });
 }

@@ -475,7 +475,7 @@ async def test_fetch_voice_units_empty_text_post_filtered_out():
 # explore_posts
 # ---------------------------------------------------------------------------
 
-async def test_explore_posts_top_search_type_includes_since_param():
+async def test_explore_posts_always_searches_top_within_since_window():
   connection = MagicMock()
   session = AsyncMock()
   session.execute = AsyncMock(return_value=_result(connection))
@@ -486,30 +486,13 @@ async def test_explore_posts_top_search_type_includes_since_param():
   before = int(time.time())
   with patch('app.threads.service._resolve_access_token', AsyncMock(return_value='token')), \
        patch('app.threads.service._fetch_with_timeout', AsyncMock(return_value=search_resp)) as fetch_mock:
-    await explore_posts(['indie dev'], 'user-1', session, search_type='TOP')
+    await explore_posts(['indie dev'], 'user-1', session)
   after = int(time.time())
 
   url = fetch_mock.call_args.args[0]
   query = parse_qs(urlparse(url).query)
-  assert 'since' in query
+  assert query['search_type'] == ['TOP']
   since_value = int(query['since'][0])
   expected_earliest = before - EXPLORE_TOP_SINCE_DAYS * 24 * 3600
   expected_latest = after - EXPLORE_TOP_SINCE_DAYS * 24 * 3600
   assert expected_earliest <= since_value <= expected_latest
-
-
-async def test_explore_posts_recent_search_type_omits_since_param():
-  connection = MagicMock()
-  session = AsyncMock()
-  session.execute = AsyncMock(return_value=_result(connection))
-
-  search_resp = MagicMock(is_success=True, status_code=200)
-  search_resp.json.return_value = {'data': []}
-
-  with patch('app.threads.service._resolve_access_token', AsyncMock(return_value='token')), \
-       patch('app.threads.service._fetch_with_timeout', AsyncMock(return_value=search_resp)) as fetch_mock:
-    await explore_posts(['indie dev'], 'user-1', session, search_type='RECENT')
-
-  url = fetch_mock.call_args.args[0]
-  query = parse_qs(urlparse(url).query)
-  assert 'since' not in query

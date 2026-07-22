@@ -461,7 +461,6 @@ async def explore_posts(
   keywords: list[str],
   user_id: str,
   session: AsyncSession,
-  search_type: str = 'RECENT',
 ) -> list[dict]:
   result = await session.execute(
     select(ThreadsConnection).where(ThreadsConnection.user_id == user_id)
@@ -473,14 +472,12 @@ async def explore_posts(
   access_token = await _resolve_access_token(connection, session)
 
   async def _search_keyword(keyword: str) -> list[dict]:
-    query: dict[str, str | int] = {
+    params = urlencode({
       'q': keyword,
       'fields': 'id,text,timestamp,permalink,username',
-      'search_type': search_type,
-    }
-    if search_type == 'TOP':
-      query['since'] = int(time.time()) - EXPLORE_TOP_SINCE_DAYS * 24 * 3600
-    params = urlencode(query)
+      'search_type': 'TOP',
+      'since': int(time.time()) - EXPLORE_TOP_SINCE_DAYS * 24 * 3600,
+    })
     response = await _fetch_with_timeout(
       f'{THREADS_API_BASE}/keyword_search?{params}',
       headers={'Authorization': f'Bearer {access_token}'},

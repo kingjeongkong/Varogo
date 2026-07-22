@@ -258,36 +258,7 @@ async def test_explore_posts_success(client: AsyncClient, db_session):
   assert post['text'] == 'Great indie dev tool!'
   assert post['timestamp'] == '2024-01-01T00:00:00Z'
   assert post['permalink'] == 'https://threads.net/post-1'
-  mock_explore.assert_called_once_with(['indie dev', 'productivity tool'], user['id'], ANY, 'RECENT')
-
-
-async def test_explore_posts_with_search_type_top(client: AsyncClient, db_session):
-  user = await seed_test_user(db_session)
-  await seed_threads_connection(db_session, user['id'])
-  headers = await get_auth_headers(client)
-
-  with patch('app.threads.service.explore_posts', new_callable=AsyncMock, return_value=[]) as mock_explore:
-    response = await client.post(
-      '/threads/explore',
-      json={'keywords': ['indie dev'], 'searchType': 'TOP'},
-      headers=headers,
-    )
-
-  assert response.status_code == 200
-  mock_explore.assert_called_once_with(['indie dev'], user['id'], ANY, 'TOP')
-
-
-async def test_explore_posts_invalid_search_type(client: AsyncClient, db_session):
-  await seed_test_user(db_session)
-  headers = await get_auth_headers(client)
-
-  response = await client.post(
-    '/threads/explore',
-    json={'keywords': ['indie dev'], 'searchType': 'BOGUS'},
-    headers=headers,
-  )
-
-  assert response.status_code == 422
+  mock_explore.assert_called_once_with(['indie dev', 'productivity tool'], user['id'], ANY)
 
 
 async def test_explore_posts_no_connection(client: AsyncClient, db_session):

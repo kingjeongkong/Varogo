@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Optional
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
@@ -46,13 +46,7 @@ class KeywordsResponse(BaseModel):
 
 
 class ExploreRequest(BaseModel):
-  model_config = ConfigDict(
-    alias_generator=to_camel,
-    populate_by_name=True,
-  )
-
   keywords: list[Annotated[str, Field(min_length=1, max_length=100)]] = Field(min_length=1, max_length=5)
-  search_type: Literal['TOP', 'RECENT'] = 'RECENT'
 
 
 class ThreadsPostItem(BaseModel):

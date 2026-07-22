@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { ApiError } from '@/lib/http-client';
 import { useThreadsConnectionStatus } from '@/features/threads';
 import { useProducts } from '@/features/product';
-import type { KeywordChip, SearchType } from '../types';
+import type { KeywordChip } from '../types';
 import { useGenerateKeywords } from '../hooks/use-generate-keywords';
 import { useExplorePosts } from '../hooks/use-explore-posts';
 import { PostCard } from './PostCard';
@@ -18,7 +18,6 @@ export function ExploreClient() {
   const [chips, setChips] = useState<KeywordChip[]>([]);
   const [addInput, setAddInput] = useState('');
   const [posts, setPosts] = useState<ThreadsPost[] | null>(null);
-  const [searchType, setSearchType] = useState<SearchType>('RECENT');
 
   const {
     data: connection,
@@ -215,39 +214,7 @@ export function ExploreClient() {
 
             {/* Search row */}
             <div className="flex items-center justify-between pt-1">
-              <div className="flex flex-1 items-center gap-3">
-                <div
-                  role="radiogroup"
-                  aria-label="Search type"
-                  className="inline-flex shrink-0 rounded-full border border-border bg-surface-elevated p-0.5"
-                >
-                  {(
-                    [
-                      { value: 'RECENT', label: 'Latest' },
-                      { value: 'TOP', label: 'Top' },
-                    ] as const
-                  ).map((option) => (
-                    <label
-                      key={option.value}
-                      className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200 focus-within:ring-2 focus-within:ring-primary/50 ${
-                        searchType === option.value
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-text-muted hover:text-text-secondary'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="search-type"
-                        value={option.value}
-                        checked={searchType === option.value}
-                        onChange={() => setSearchType(option.value)}
-                        className="sr-only"
-                      />
-                      {option.label}
-                    </label>
-                  ))}
-                </div>
-
+              <div className="flex-1">
                 {exploreMutation.isError && (
                   <Alert>
                     <span>{exploreMutation.error.message}</span>
@@ -264,14 +231,11 @@ export function ExploreClient() {
                 loadingText="Searching..."
                 disabled={chips.length === 0 || exploreMutation.isPending}
                 onClick={() =>
-                  exploreMutation.mutate(
-                    { keywords: chips.map((c) => c.label), searchType },
-                    {
-                      onSuccess: (data) => {
-                        setPosts(data.posts);
-                      },
+                  exploreMutation.mutate(chips.map((c) => c.label), {
+                    onSuccess: (data) => {
+                      setPosts(data.posts);
                     },
-                  )
+                  })
                 }
                 className="ml-3 shrink-0"
               >
